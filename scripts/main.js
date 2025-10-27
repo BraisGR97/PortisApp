@@ -1,4 +1,6 @@
 // main.js
+
+// Comprobar sesión
 const user = localStorage.getItem('currentUser');
 if (!user) {
   window.location.href = 'index.html';
@@ -13,12 +15,12 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   window.location.href = 'index.html';
 });
 
-// Botón Mantenimiento → abre maintenance.html
+// Botón Mantenimiento → abrir maintenance.html
 document.getElementById('maintenanceBtn').addEventListener('click', () => {
   window.location.href = 'maintenance.html';
 });
 
-// Botón Registro → se mantiene por ahora, puedes añadir la página más adelante
+// Botón Registro → por ahora no hace nada, listo para futuras funciones
 document.getElementById('recordsBtn').addEventListener('click', () => {
-  // aquí iría la lógica de Registro
+  // futura funcionalidad de Registro
 });
