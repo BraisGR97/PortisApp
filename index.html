@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mi Web en GitHub Pages</title>
+  <meta name="description" content="Sitio ejemplo publicado en GitHub Pages" />
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <h1 class="logo">Mi Proyecto</h1>
+      <nav class="main-nav">
+        <a href="#home">Inicio</a>
+        <a href="#about">Sobre mí</a>
+        <a href="#contact">Contacto</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="home" class="container">
+    <section class="hero">
+      <h2>Hola — Bienvenido</h2>
+      <p>Esta es una plantilla simple para publicar en GitHub Pages.</p>
+      <button id="cta">Haz clic</button>
+    </section>
+
+    <section id="about" class="card">
+      <h3>Sobre este proyecto</h3>
+      <p>Proyecto de ejemplo: HTML, CSS y JavaScript listos para GitHub.</p>
+    </section>
+
+    <section id="contact" class="card">
+      <h3>Contacto</h3>
+      <form id="contactForm" onsubmit="return false;">
+        <label>
+          Nombre
+          <input type="text" name="name" required />
+        </label>
+        <label>
+          Email
+          <input type="email" name="email" required />
+        </label>
+        <label>
+          Mensaje
+          <textarea name="message" rows="4" required></textarea>
+        </label>
+        <button type="submit">Enviar (ejemplo)</button>
+      </form>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <small>© <span id="year"></span> Mi Proyecto · Publicado en GitHub Pages</small>
+    </div>
+  </footer>
+
+  <script src="scripts/main.js"></script>
+</body>
+</html>
