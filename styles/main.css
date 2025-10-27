@@ -180,3 +180,14 @@ body{
 .error{
   color: #ef4444;
 }
+
+.logo-container{
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.logo{
+  width: 120px;    /* ancho deseado */
+  height: auto;    /* mantiene proporción */
+}

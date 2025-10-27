@@ -13,6 +13,11 @@
 <body class="page-main">
 
   <div class="card main-card">
+    <!-- Logo -->
+    <div class="logo-container">
+      <img src="PortisApp/assets/repuestos-portis.png" alt="Logo" class="logo">
+    </div>
+
     <h1 class="title">Iniciar sesión</h1>
 
     <div class="form">
@@ -23,7 +28,21 @@
       <input id="password" class="input" type="password">
 
       <button id="loginBtn" class="btn primary full">Entrar</button>
+      <button id="registerBtn" class="btn primary full">Registrarse</button>
       <div id="message" class="message error"></div>
+    </div>
+  </div>
+
+  <!-- Modal registro -->
+  <div id="registerModal" class="modal">
+    <div class="modal-content">
+      <span id="closeRegister" class="close">&times;</span>
+      <h2>Registro</h2>
+      <input id="regUser" class="input" type="text" placeholder="Usuario">
+      <input id="regPass" class="input" type="password" placeholder="Contraseña">
+      <input id="regConfirm" class="input" type="password" placeholder="Confirmar Contraseña">
+      <button id="confirmRegister" class="btn primary full">Confirmar</button>
+      <div id="regMessage" class="message"></div>
     </div>
   </div>
 
