@@ -1,25 +1,30 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login</title>
-  <link rel="stylesheet" href="styles/main.css" />
+  <link rel="stylesheet" href="styles/main.css">
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
-<body class="page-login">
-  <div class="card login-card">
+<body class="page-main">
+
+  <div class="card main-card">
     <h1 class="title">Iniciar sesión</h1>
 
-    <form id="loginForm" class="form">
+    <div class="form">
       <label class="label">Usuario</label>
-      <input id="username" class="input" type="text" required autocomplete="username" />
+      <input id="username" class="input" type="text">
 
       <label class="label">Contraseña</label>
-      <input id="password" class="input" type="password" required autocomplete="current-password" />
+      <input id="password" class="input" type="password">
 
-      <button class="btn primary full" type="submit">Entrar</button>
-      <p id="loginMessage" class="message error" aria-live="polite"></p>
-    </form>
+      <button id="loginBtn" class="btn primary full">Entrar</button>
+      <div id="message" class="message error"></div>
+    </div>
   </div>
 
   <script src="scripts/login.js"></script>

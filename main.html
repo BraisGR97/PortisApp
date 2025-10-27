@@ -1,25 +1,35 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Main</title>
-  <link rel="stylesheet" href="styles/main.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Menú Principal</title>
+  <link rel="stylesheet" href="styles/main.css">
 </head>
 <body class="page-main">
+
   <div class="card main-card">
-    <h1 class="title">Menú principal</h1>
+    <h1 class="title">Menú Principal</h1>
 
-    <!-- Texto de bienvenida entre el título y los botones -->
-    <p class="subtitle">Bienvenido, <strong id="displayUser"></strong></p>
-
-    <div class="button-grid">
-      <button id="maintenanceBtn" class="btn primary full">🛠️ Mantenimiento</button>
-      <button id="recordsBtn" class="btn primary full">📋 Registro</button>
-      <button id="logoutBtn" class="btn danger full">🚪 Cerrar sesión</button>
+    <div class="button-row">
+      <button id="maintenanceBtn" class="btn primary">Mantenimiento</button>
+      <button id="registerBtn" class="btn primary">Registro</button>
+      <button id="logoutBtn" class="btn danger">Cerrar sesión</button>
     </div>
   </div>
 
-  <script src="scripts/main.js"></script>
+  <script>
+    document.getElementById('maintenanceBtn').addEventListener('click', () => {
+      window.location.href = 'maintenance.html';
+    });
+    document.getElementById('registerBtn').addEventListener('click', () => {
+      alert("Registro en desarrollo");
+    });
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('currentUser');
+      window.location.href = 'index.html';
+    });
+  </script>
+
 </body>
 </html>

@@ -1,32 +1,33 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mantenimiento</title>
   <link rel="stylesheet" href="styles/main.css">
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body class="page-main">
 
   <div class="card main-card">
     <h1 class="title">Mantenimiento</h1>
 
-    <!-- Botones de acción -->
     <div class="button-row">
       <button id="backBtn" class="btn primary">⬅️ Atrás</button>
       <button id="addBtn" class="btn primary">➕ Añadir</button>
     </div>
 
-    <!-- Lista de elementos -->
     <ul id="itemList" class="list"></ul>
   </div>
 
-  <!-- Modal flotante para añadir nombre -->
   <div id="addModal" class="modal">
     <div class="modal-content">
       <span id="closeModal" class="close">&times;</span>
       <h2>Añadir nombre</h2>
-      <input id="newItem" class="input" type="text" placeholder="Nombre" />
+      <input id="newItem" class="input" type="text" placeholder="Nombre">
       <button id="confirmAdd" class="btn primary full">Confirmar</button>
     </div>
   </div>
