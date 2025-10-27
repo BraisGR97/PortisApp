@@ -1,37 +1,25 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Menú Principal</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Main</title>
+  <link rel="stylesheet" href="styles/main.css" />
 </head>
-<body>
-  <div class="container">
-    <h1>Menú Principal</h1>
-    <h2 id="welcome">Bienvenido, <span id="user-name"></span> 👋</h2>
+<body class="page-main">
+  <div class="card main-card">
+    <h1 class="title">Menú principal</h1>
 
-    <div class="button-group">
-      <button id="btn-maintenance">Mantenimiento</button>
-      <button id="btn-records">Registro</button>
-      <button id="btn-logout">Cerrar sesión</button>
+    <!-- Texto de bienvenida entre el título y los botones -->
+    <p class="subtitle">Bienvenido, <strong id="displayUser"></strong></p>
+
+    <div class="button-grid">
+      <button id="maintenanceBtn" class="btn primary full">🛠️ Mantenimiento</button>
+      <button id="recordsBtn" class="btn primary full">📋 Registro</button>
+      <button id="logoutBtn" class="btn danger full">🚪 Cerrar sesión</button>
     </div>
   </div>
 
-  <script>
-    // Comprobar si hay usuario logueado
-    const currentUser = localStorage.getItem("loggedUser");
-    if (!currentUser) {
-      window.location.href = "index.html";
-    } else {
-      document.getElementById("user-name").textContent = currentUser;
-    }
-
-    // Botón de cerrar sesión
-    document.getElementById("btn-logout").addEventListener("click", () => {
-      localStorage.removeItem("loggedUser");
-      window.location.href = "index.html";
-    });
-  </script>
+  <script src="scripts/main.js"></script>
 </body>
 </html>
