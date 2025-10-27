@@ -73,3 +73,8 @@ body{
 /* messages */
 .message{margin-top:12px;font-size:14px}
 .error{color:#ef4444}
+
+/* Ajuste: margen entre input de contraseña y botón Entrar */
+.form button[type="submit"] {
+  margin-top: 12px; /* mismo espacio que entre los inputs */
+}
