@@ -3,11 +3,22 @@ document.getElementById('backBtn').addEventListener('click', () => {
   window.location.href = 'main.html';
 });
 
-// Mostrar/ocultar formulario
+// Modal
 const addBtn = document.getElementById('addBtn');
-const addForm = document.getElementById('addForm');
+const addModal = document.getElementById('addModal');
+const closeModal = document.getElementById('closeModal');
+
 addBtn.addEventListener('click', () => {
-  addForm.style.display = addForm.style.display === 'none' ? 'flex' : 'none';
+  addModal.style.display = 'flex';
+});
+
+closeModal.addEventListener('click', () => {
+  addModal.style.display = 'none';
+});
+
+// Cerrar modal si se hace click fuera del contenido
+window.addEventListener('click', (e) => {
+  if (e.target === addModal) addModal.style.display = 'none';
 });
 
 // Lista y almacenamiento
@@ -26,12 +37,13 @@ confirmAdd.addEventListener('click', () => {
   items.push(value);
   localStorage.setItem('maintenanceItems', JSON.stringify(items));
   newItemInput.value = '';
+  addModal.style.display = 'none';
   renderList();
 });
 
 function renderList() {
   itemList.innerHTML = '';
-  items.forEach((item, index) => {
+  items.forEach((item) => {
     const li = document.createElement('li');
     li.textContent = item;
     itemList.appendChild(li);

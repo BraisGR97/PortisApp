@@ -16,14 +16,18 @@
       <button id="addBtn" class="btn primary">➕ Añadir</button>
     </div>
 
-    <!-- Formulario desplegable para añadir nombre -->
-    <div id="addForm" class="form" style="display:none; margin-top:12px;">
+    <!-- Lista de elementos -->
+    <ul id="itemList" class="list"></ul>
+  </div>
+
+  <!-- Modal para añadir nombre -->
+  <div id="addModal" class="modal">
+    <div class="modal-content">
+      <span id="closeModal" class="close">&times;</span>
+      <h2>Añadir nombre</h2>
       <input id="newItem" class="input" type="text" placeholder="Nombre" />
       <button id="confirmAdd" class="btn primary full">Confirmar</button>
     </div>
-
-    <!-- Lista de elementos -->
-    <ul id="itemList" class="list"></ul>
   </div>
 
   <script src="scripts/maintenance.js"></script>
