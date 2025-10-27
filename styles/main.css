@@ -87,17 +87,6 @@ body{
   color: var(--text);
 }
 
-/* messages */
-.message{margin-top:12px;font-size:14px}
-.error{color:#ef4444}
-
-/* Botones en fila */
-.button-row {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
 /* Modal flotante */
 .modal {
   display: none; /* oculto por defecto */
@@ -110,7 +99,7 @@ body{
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(0,0,0,0.5); /* fondo semi-transparente */
+  background-color: rgba(0,0,0,0.5);
 }
 
 .modal-content {
