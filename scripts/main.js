@@ -6,16 +6,19 @@ if (!user) {
   document.getElementById('displayUser').textContent = user;
 }
 
+// Botón Cerrar sesión
 document.getElementById('logoutBtn').addEventListener('click', () => {
   localStorage.removeItem('currentUser');
   localStorage.removeItem('userData');
   window.location.href = 'index.html';
 });
 
-// botones temporales (aviso)
+// Botón Mantenimiento → abre maintenance.html
 document.getElementById('maintenanceBtn').addEventListener('click', () => {
-  alert('Mantenimiento: sección en desarrollo');
+  window.location.href = 'maintenance.html';
 });
+
+// Botón Registro → se mantiene por ahora, puedes añadir la página más adelante
 document.getElementById('recordsBtn').addEventListener('click', () => {
-  alert('Registro: sección en desarrollo');
+  // aquí iría la lógica de Registro
 });
