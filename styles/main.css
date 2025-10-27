@@ -1,28 +1,55 @@
-:root{
-  --max-w: 1000px;
-  --gap: 16px;
-  --bg: #f7f7fb;
-  --card: #ffffff;
-  --text: #111827;
+body {
+  font-family: system-ui, sans-serif;
+  background: linear-gradient(135deg, #4f46e5, #06b6d4);
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-*{box-sizing:border-box}
-html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial}
-.container{max-width:var(--max-w);margin:0 auto;padding:24px}
-.site-header{background:linear-gradient(90deg,#4f46e5,#06b6d4);color:white;padding:12px 0}
-.logo{margin:0;font-size:1.25rem}
-.main-nav a{color:rgba(255,255,255,0.95);text-decoration:none;margin-left:16px}
-.hero{background:var(--bg);padding:40px;border-radius:12px;margin-top:24px}
-.card{background:var(--card);padding:20px;border-radius:10px;margin-top:20px;box-shadow:0 2px 8px rgba(15,23,42,0.06)}
-.site-footer{padding:16px;text-align:center;color:#6b7280;margin-top:24px}
+.login-container {
+  background: white;
+  padding: 30px 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  width: 300px;
+}
 
-/* Form */
-form label{display:block;margin-bottom:12px;font-size:0.95rem}
-input,textarea{width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:6px;font-size:1rem}
-button{padding:10px 14px;border-radius:8px;border:0;cursor:pointer;background:#111827;color:white}
+h2 {
+  text-align: center;
+}
 
-/* Responsive */
-@media (min-width:900px){
-  .hero{display:flex;align-items:center;justify-content:space-between}
-  .hero h2{margin:0}
+label {
+  display: block;
+  margin-top: 10px;
+}
+
+input {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+button {
+  margin-top: 16px;
+  width: 100%;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #3730a3;
+}
+
+.error {
+  color: red;
+  margin-top: 10px;
+  text-align: center;
 }

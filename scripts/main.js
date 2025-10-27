@@ -1,16 +1,22 @@
-// Variables en inglés (nombres de archivo/variables en inglés)
-document.getElementById('year').textContent = new Date().getFullYear();
+const currentUser = localStorage.getItem("currentUser");
+const userData = localStorage.getItem("userData");
 
-const cta = document.getElementById('cta');
-cta.addEventListener('click', () => {
-  alert('¡Has hecho clic! (ejemplo)');
-});
+if (!currentUser) {
+  // Si no hay sesión, volver al login
+  window.location.href = "index.html";
+}
 
-// Formulario: simulación de envío (solo demo)
-const form = document.getElementById('contactForm');
-form.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const data = new FormData(form);
-  console.log('Contacto demo:', Object.fromEntries(data.entries()));
-  alert('Gracias — (esto es solo un demo, no se envía en realidad)');
+document.getElementById("userName").textContent = currentUser;
+
+if (userData) {
+  document.getElementById("userDataDisplay").textContent = userData;
+} else {
+  document.getElementById("userDataDisplay").textContent = "Sin datos guardados.";
+}
+
+// Botón de logout
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  localStorage.removeItem("currentUser");
+  localStorage.removeItem("userData");
+  window.location.href = "index.html";
 });
