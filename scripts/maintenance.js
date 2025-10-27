@@ -9,7 +9,7 @@ const addModal = document.getElementById('addModal');
 const closeModal = document.getElementById('closeModal');
 
 addBtn.addEventListener('click', () => {
-  addModal.style.display = 'flex';
+  addModal.style.display = 'flex'; // solo aparece al pulsar Añadir
 });
 
 closeModal.addEventListener('click', () => {

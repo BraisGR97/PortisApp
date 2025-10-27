@@ -10,73 +10,124 @@
 }
 
 /* Reset mínimo */
-*{box-sizing:border-box}
-html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;color:var(--text)}
-body{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background: linear-gradient(135deg,var(--bg1),var(--bg2));
-  padding:24px;
+*{
+  box-sizing: border-box;
 }
 
-/* Card common */
+html, body{
+  height: 100%;
+  margin: 0;
+  font-family: Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color: var(--text);
+}
+
+body{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--bg1), var(--bg2));
+  padding: 24px;
+}
+
+/* Card común */
 .card{
-  width:100%;
-  max-width:var(--width-card);
-  background:var(--card-bg);
-  border-radius:var(--radius);
-  padding:24px;
-  box-shadow:0 8px 30px rgba(2,6,23,0.35);
+  width: 100%;
+  max-width: var(--width-card);
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: 0 8px 30px rgba(2,6,23,0.35);
 }
 
 /* Titles */
-.title{margin:0 0 10px 0;font-size:20px;color:var(--text)}
-.subtitle{margin:0 0 18px 0;color:rgba(15,23,42,0.8)}
+.title{
+  margin: 0 0 10px 0;
+  font-size: 20px;
+  color: var(--text);
+}
+
+.subtitle{
+  margin: 0 0 18px 0;
+  color: rgba(15,23,42,0.8);
+}
 
 /* Form */
-.form{display:flex;flex-direction:column}
-.label{font-size:14px;margin-top:8px;margin-bottom:6px;color:rgba(15,23,42,0.75)}
-.input{
-  height:44px;
-  padding:10px 12px;
-  border-radius:8px;
-  border:1px solid #e6e9ee;
-  font-size:15px;
-  outline:none;
-  width:100%;
-  margin-bottom:12px;
+.form{
+  display: flex;
+  flex-direction: column;
 }
-.input:focus{box-shadow:0 0 0 4px rgba(79,70,229,0.08);border-color:var(--bg1)}
+
+.label{
+  font-size: 14px;
+  margin-top: 8px;
+  margin-bottom: 6px;
+  color: rgba(15,23,42,0.75);
+}
+
+.input{
+  height: 44px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #e6e9ee;
+  font-size: 15px;
+  outline: none;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.input:focus{
+  box-shadow: 0 0 0 4px rgba(79,70,229,0.08);
+  border-color: var(--bg1);
+}
 
 /* Buttons */
 .btn{
-  height:var(--btn-height);
-  border-radius:10px;
-  border:0;
-  font-size:15px;
-  cursor:pointer;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
+  height: var(--btn-height);
+  border-radius: 10px;
+  border: 0;
+  font-size: 15px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.btn.full{width:100%}
-.btn.primary{background:linear-gradient(90deg,var(--bg1),var(--bg2));color:white}
-.btn.primary:hover{filter:brightness(0.95)}
-.btn.danger{background:var(--danger);color:white}
-.btn.danger:hover{filter:brightness(0.9)}
+.btn.full{
+  width: 100%;
+}
 
-/* spacing for grouped buttons */
-.button-row{display:flex;gap:12px;margin-bottom:12px}
+.btn.primary{
+  background: linear-gradient(90deg, var(--bg1), var(--bg2));
+  color: white;
+}
+
+.btn.primary:hover{
+  filter: brightness(0.95);
+}
+
+.btn.danger{
+  background: var(--danger);
+  color: white;
+}
+
+.btn.danger:hover{
+  filter: brightness(0.9);
+}
+
+/* Separación de botones */
+.button-row{
+  display: flex;
+  gap: 12px; /* separación entre botones */
+  margin-bottom: 12px; /* separación con la lista */
+}
 
 /* Lista de elementos */
 .list{
-  list-style:none;
-  padding:0;
-  margin-top:12px;
-  max-height:300px;
-  overflow-y:auto;
+  list-style: none;
+  padding: 0;
+  margin-top: 12px;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .list li{
@@ -88,21 +139,20 @@ body{
 }
 
 /* Modal flotante */
-.modal {
-  display: none; /* oculto por defecto */
+.modal{
+  display: none; /* oculto al abrir la página */
   position: fixed;
   z-index: 1000;
   left: 0;
   top: 0;
   width: 100%;
   height: 100%;
-  display: flex;
   align-items: center;
   justify-content: center;
   background-color: rgba(0,0,0,0.5);
 }
 
-.modal-content {
+.modal-content{
   background-color: var(--card-bg);
   padding: 20px;
   border-radius: var(--radius);
@@ -114,9 +164,19 @@ body{
   gap: 12px;
 }
 
-.close {
+.close{
   align-self: flex-end;
   font-size: 24px;
   font-weight: bold;
   cursor: pointer;
+}
+
+/* Mensajes */
+.message{
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+.error{
+  color: #ef4444;
 }
