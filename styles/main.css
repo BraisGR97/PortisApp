@@ -1,23 +1,28 @@
+/* Estilo general */
 body {
   font-family: system-ui, sans-serif;
-  background: linear-gradient(135deg, #4f46e5, #06b6d4);
   margin: 0;
-  height: 100vh;
+  background: linear-gradient(135deg, #4f46e5, #06b6d4);
+  color: #111;
+  min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
 }
 
+/* LOGIN */
 .login-container {
   background: white;
   padding: 30px 40px;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.15);
   width: 300px;
+  margin-top: 10%;
 }
 
 h2 {
   text-align: center;
+  margin-bottom: 10px;
 }
 
 label {
@@ -34,6 +39,11 @@ input {
 }
 
 button {
+  cursor: pointer;
+}
+
+/* LOGIN BUTTON */
+.login-container button {
   margin-top: 16px;
   width: 100%;
   background: #4f46e5;
@@ -41,10 +51,10 @@ button {
   border: none;
   padding: 10px;
   border-radius: 6px;
-  cursor: pointer;
+  font-size: 16px;
 }
 
-button:hover {
+.login-container button:hover {
   background: #3730a3;
 }
 
@@ -52,4 +62,57 @@ button:hover {
   color: red;
   margin-top: 10px;
   text-align: center;
+}
+
+/* MAIN PAGE */
+.main-header {
+  margin-top: 40px;
+  background: white;
+  padding: 10px 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.main-container {
+  background: white;
+  margin-top: 40px;
+  padding: 30px 50px;
+  border-radius: 16px;
+  box-shadow: 0 6px 25px rgba(0,0,0,0.15);
+  text-align: center;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.main-btn {
+  background: #4f46e5;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: background 0.2s;
+}
+
+.main-btn:hover {
+  background: #3730a3;
+}
+
+.logout-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: background 0.2s;
+}
+
+.logout-btn:hover {
+  background: #b91c1c;
 }
