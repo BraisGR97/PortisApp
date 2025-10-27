@@ -7,30 +7,30 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="menu-container">
+  <div class="container">
     <h1>Menú Principal</h1>
-    <h2 id="welcome-text">Bienvenido, <span id="user-name"></span> 👋</h2>
-    
-    <div class="menu-buttons">
-      <button>Mantenimiento</button>
-      <button>Registro</button>
-      <button id="logout">Cerrar Sesión</button>
+    <h2 id="welcome">Bienvenido, <span id="user-name"></span> 👋</h2>
+
+    <div class="button-group">
+      <button id="btn-maintenance">Mantenimiento</button>
+      <button id="btn-records">Registro</button>
+      <button id="btn-logout">Cerrar sesión</button>
     </div>
   </div>
 
   <script>
-    // Verifica si el usuario está autenticado
-    const currentUser = localStorage.getItem('loggedUser');
+    // Comprobar si hay usuario logueado
+    const currentUser = localStorage.getItem("loggedUser");
     if (!currentUser) {
-      window.location.href = 'index.html';
+      window.location.href = "index.html";
     } else {
-      document.getElementById('user-name').textContent = currentUser;
+      document.getElementById("user-name").textContent = currentUser;
     }
 
-    // Cerrar sesión
-    document.getElementById('logout').addEventListener('click', () => {
-      localStorage.removeItem('loggedUser');
-      window.location.href = 'index.html';
+    // Botón de cerrar sesión
+    document.getElementById("btn-logout").addEventListener("click", () => {
+      localStorage.removeItem("loggedUser");
+      window.location.href = "index.html";
     });
   </script>
 </body>
