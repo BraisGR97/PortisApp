@@ -12,6 +12,8 @@
 /* Reset mínimo */
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;color:var(--text)}
+
+
 body{
   display:flex;
   align-items:center;
@@ -37,6 +39,8 @@ body{
 /* Form */
 .form{display:flex;flex-direction:column}
 .label{font-size:14px;margin-top:8px;margin-bottom:6px;color:rgba(15,23,42,0.75)}
+
+
 .input{
   height:44px;
   padding:10px 12px;
@@ -77,4 +81,28 @@ body{
 /* Ajuste: margen entre input de contraseña y botón Entrar */
 .form button[type="submit"] {
   margin-top: 12px; /* mismo espacio que entre los inputs */
+}
+
+/* Botones en fila */
+.button-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+/* Lista de elementos */
+.list {
+  list-style: none;
+  padding: 0;
+  margin-top: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.list li {
+  background: rgba(79,70,229,0.1);
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  color: var(--text);
 }

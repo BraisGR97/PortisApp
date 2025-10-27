@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mantenimiento</title>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body class="page-main">
+  <div class="card main-card">
+    <h1 class="title">Mantenimiento</h1>
+
+    <!-- Botones de acción -->
+    <div class="button-row">
+      <button id="backBtn" class="btn primary">⬅️ Atrás</button>
+      <button id="addBtn" class="btn primary">➕ Añadir</button>
+    </div>
+
+    <!-- Formulario desplegable para añadir nombre -->
+    <div id="addForm" class="form" style="display:none; margin-top:12px;">
+      <input id="newItem" class="input" type="text" placeholder="Nombre" />
+      <button id="confirmAdd" class="btn primary full">Confirmar</button>
+    </div>
+
+    <!-- Lista de elementos -->
+    <ul id="itemList" class="list"></ul>
+  </div>
+
+  <script src="scripts/maintenance.js"></script>
+</body>
+</html>
