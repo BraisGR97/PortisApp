@@ -1,35 +1,69 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Menú Principal</title>
-  <link rel="stylesheet" href="styles/main.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="page-main">
+<body>
 
-  <div class="card main-card">
-    <h1 class="title">Menú Principal</h1>
-
-    <div class="button-row">
-      <button id="maintenanceBtn" class="btn primary">Mantenimiento</button>
-      <button id="registerBtn" class="btn primary">Registro</button>
-      <button id="logoutBtn" class="btn danger">Cerrar sesión</button>
+    <div id="login-page" class="page active">
+        <div class="login-container">
+            <img src="logo.png" alt="Logo de la empresa" class="logo"> 
+            
+            <input type="email" id="email" placeholder="Usuario (email)">
+            <input type="password" id="password" placeholder="Contraseña">
+            <button id="login-btn">Iniciar Sesión</button>
+            <p id="login-error" class="error-message"></p>
+        </div>
     </div>
-  </div>
 
-  <script>
-    document.getElementById('maintenanceBtn').addEventListener('click', () => {
-      window.location.href = 'maintenance.html';
-    });
-    document.getElementById('registerBtn').addEventListener('click', () => {
-      alert("Registro en desarrollo");
-    });
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      localStorage.removeItem('currentUser');
-      window.location.href = 'index.html';
-    });
-  </script>
+    <div id="main-menu-page" class="page">
+        <h1>Menú Principal</h1>
+        <button id="menu-reparaciones-btn">Reparaciones</button>
+        <button id="menu-registros-btn">Registros</button>
+        <button id="menu-logout-btn">Cerrar Sesión</button>
+    </div>
+
+    <div id="reparaciones-page" class="page">
+        <div class="header-controles">
+            <h1>Lista de Reparaciones</h1>
+            <div>
+                <button id="reparaciones-add-btn">Añadir</button>
+                <button id="reparaciones-volver-btn">Volver al Menú</button>
+            </div>
+        </div>
+        <div id="lista-reparaciones-container">
+            </div>
+    </div>
+
+    <div id="modal-reparaciones" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Añadir Nueva Reparación</h2>
+            <input type="text" id="modal-ubicacion" placeholder="Ubicación">
+            <input type="text" id="modal-modelo" placeholder="Modelo">
+            <input type="date" id="modal-fecha">
+            <select id="modal-contrato">
+                <option value="Mensual">Mensual</option>
+                <option value="Trimestral">Trimestral</option>
+                <option value="Anual">Anual</option>
+            </select>
+            <textarea id="modal-problemas" placeholder="Problemas detectados (dejar en blanco si no hay)"></textarea>
+            
+            <div class="modal-buttons">
+                <button id="modal-agregar-btn">Agregar</button>
+                <button id="modal-cerrar-btn">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+    <script src="app.js"></script>
 
 </body>
 </html>

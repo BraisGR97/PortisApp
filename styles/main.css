@@ -1,230 +1,140 @@
-:root{
-  --bg1: #4f46e5; /* violeta */
-  --bg2: #06b6d4; /* turquesa */
-  --card-bg: #ffffff;
-  --text: #0f172a;
-  --danger: #ef4444;
-  --radius: 12px;
-  --btn-height: 48px;
-  --width-card: 360px;
+/* Estilos Generales */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
 }
 
-/* Reset mínimo */
-*{
-  box-sizing: border-box;
+h1, h2 {
+    color: #333;
+    text-align: center;
 }
 
-html, body{
-  height: 100%;
-  margin: 0;
-  font-family: Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  color: var(--text);
+/* Sistema de "Páginas" */
+.page {
+    display: none; /* Ocultas por defecto */
+    width: 100%;
+    max-width: 800px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+.page.active {
+    display: block; /* La página activa se muestra */
 }
 
-body{
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--bg1), var(--bg2));
-  padding: 24px;
+/* Controles (Inputs y Botones) */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+select,
+textarea {
+    width: 95%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+}
+textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+button {
+    background-color: #007bff;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    margin: 5px;
+}
+button:hover {
+    background-color: #0056b3;
 }
 
-/* Card común */
-.card{
-  width: 100%;
-  max-width: var(--width-card);
-  background: var(--card-bg);
-  border-radius: var(--radius);
-  padding: 24px;
-  box-shadow: 0 8px 30px rgba(2,6,23,0.35);
+/* Específicos de Login (Fase 1) */
+.login-container {
+    max-width: 400px;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.logo {
+    width: 150px;
+    height: 150px;
+    margin-bottom: 20px;
+    /* (Asegúrate de tener un 'logo.png' o cambia esto) */
+    background-color: #eee; 
+    border-radius: 50%;
+}
+.error-message {
+    color: red;
+    text-align: center;
 }
 
-/* Titles */
-.title{
-  margin: 0 0 10px 0;
-  font-size: 20px;
-  color: var(--text);
+/* Específicos de Menú (Fase 2) */
+#main-menu-page {
+    display: none; /* Inicia oculto */
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
 }
 
-.subtitle{
-  margin: 0 0 18px 0;
-  color: rgba(15,23,42,0.8);
+/* Específicos de Reparaciones (Fase 3) */
+.header-controles {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.reparacion-item {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+}
+/* Prioridad (Fase 4) */
+.reparacion-item.prioridad {
+    border-left: 5px solid #dc3545; /* Rojo para prioridad */
+}
+.reparacion-item h3 {
+    margin-top: 0;
 }
 
-/* Form */
-.form{
-  display: flex;
-  flex-direction: column;
+/* Modal (Fase 3) */
+.modal-overlay {
+    display: none; /* Oculto por defecto */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    justify-content: center;
+    align-items: center;
 }
-
-.label{
-  font-size: 14px;
-  margin-top: 8px;
-  margin-bottom: 6px;
-  color: rgba(15,23,42,0.75);
+.modal-overlay.active {
+    display: flex; /* Se muestra al añadir */
 }
-
-.input{
-  height: 44px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid #e6e9ee;
-  font-size: 15px;
-  outline: none;
-  width: 100%;
-  margin-bottom: 12px;
+.modal-content {
+    background: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
 }
-
-.input:focus{
-  box-shadow: 0 0 0 4px rgba(79,70,229,0.08);
-  border-color: var(--bg1);
-}
-
-/* Buttons */
-.btn{
-  height: var(--btn-height);
-  border-radius: 10px;
-  border: 0;
-  font-size: 15px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn.full{
-  width: 100%;
-}
-
-.btn.primary{
-  background: linear-gradient(90deg, var(--bg1), var(--bg2));
-  color: white;
-}
-
-.btn.primary:hover{
-  filter: brightness(0.95);
-}
-
-.btn.danger{
-  background: var(--danger);
-  color: white;
-}
-
-.btn.danger:hover{
-  filter: brightness(0.9);
-}
-
-/* Separación de botones */
-.button-row{
-  display: flex;
-  gap: 12px; /* separación entre botones */
-  margin-bottom: 12px; /* separación con la lista */
-}
-
-/* Lista de elementos */
-.list{
-  list-style: none;
-  padding: 0;
-  margin-top: 12px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.list li{
-  background: rgba(79,70,229,0.1);
-  padding: 10px 12px;
-  border-radius: 8px;
-  margin-bottom: 6px;
-  color: var(--text);
-}
-
-/* Modal flotante */
-.modal{
-  display: none; /* oculto al abrir la página */
-  position: fixed;
-  z-index: 1000;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(0,0,0,0.5);
-}
-
-.modal-content{
-  background-color: var(--card-bg);
-  padding: 20px;
-  border-radius: var(--radius);
-  width: 90%;
-  max-width: 360px;
-  box-shadow: 0 8px 25px rgba(2,6,23,0.35);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.close{
-  align-self: flex-end;
-  font-size: 24px;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-/* Mensajes */
-.message{
-  margin-top: 12px;
-  font-size: 14px;
-}
-
-.error{
-  color: #ef4444;
-}
-
-.logo-container{
-  display: flex;
-  justify-content: center;
-  margin-bottom: 16px;
-}
-
-.logo{
-  width: 120px;    /* ancho deseado */
-  height: auto;    /* mantiene proporción */
-}
-
-/* Estilos de lista */
-.item-list {
-  list-style: none;
-  padding: 0;
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.list-item {
-  background-color: var(--input-bg);
-  padding: 10px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: background 0.2s;
-  text-align: center;
-}
-
-.list-item:hover {
-  background-color: var(--btn-primary-hover);
-}
-
-/* Modal detalle */
-.btn.success {
-  background-color: #28a745;
-}
-
-.btn.success:hover {
-  background-color: #218838;
-}
-
-.btn.small {
-  padding: 8px 16px;
-  font-size: 14px;
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
 }
