@@ -3,35 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestión</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Reparaciones</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-    <div id="login-page" class="page active">
-        <div class="login-container">
-            <img src="logo.png" alt="Logo de la empresa" class="logo"> 
-            
-            <input type="email" id="email" placeholder="Usuario (email)">
-            <input type="password" id="password" placeholder="Contraseña">
-            <button id="login-btn">Iniciar Sesión</button>
-            <p id="login-error" class="error-message"></p>
-        </div>
-    </div>
-
-    <div id="main-menu-page" class="page">
-        <h1>Menú Principal</h1>
-        <button id="menu-reparaciones-btn">Reparaciones</button>
-        <button id="menu-registros-btn">Registros</button>
-        <button id="menu-logout-btn">Cerrar Sesión</button>
-    </div>
-
-    <div id="reparaciones-page" class="page">
+    <div class="main-container">
         <div class="header-controles">
             <h1>Lista de Reparaciones</h1>
             <div>
                 <button id="reparaciones-add-btn">Añadir</button>
-                <button id="reparaciones-volver-btn">Volver al Menú</button>
+                <a href="menu.html" class="button-link">Volver al Menú</a>
             </div>
         </div>
         <div id="lista-reparaciones-container">
@@ -49,7 +31,7 @@
                 <option value="Trimestral">Trimestral</option>
                 <option value="Anual">Anual</option>
             </select>
-            <textarea id="modal-problemas" placeholder="Problemas detectados (dejar en blanco si no hay)"></textarea>
+            <textarea id="modal-problemas" placeholder="Problemas detectados..."></textarea>
             
             <div class="modal-buttons">
                 <button id="modal-agregar-btn">Agregar</button>
@@ -58,12 +40,11 @@
         </div>
     </div>
 
-
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
-    <script src="app.js"></script>
-
+    <script src="js/firebase-init.js"></script>
+    <script src="js/auth-guard.js"></script> <script src="js/reparaciones.js"></script>
 </body>
 </html>
