@@ -3,41 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inicio de Sesión con Firebase</title>
+    <title>Inicio de Sesión Moderno</title>
     <style>
-        /* Estilos básicos para centrar y el modal */
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f4f4f4; }
-        .login-container { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center; }
-        .input-group { margin-bottom: 20px; }
-        input[type="text"], input[type="password"] { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .button-group button { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
-        #login-btn { background-color: #4CAF50; color: white; }
-        #register-prompt-btn { background-color: #007bff; color: white; }
+        /* Estilos Generales y Tipografía */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            /* Degradado Azul a Turquesa */
+            background: linear-gradient(135deg, #007bff 0%, #00bcd4 100%);
+        }
+        
+        /* Contenedor Principal (Tarjeta de Login) */
+        .login-container {
+            background: rgba(255, 255, 255, 0.95); /* Fondo blanco semitransparente */
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 350px;
+            text-align: center;
+        }
 
-        /* Estilos del Modal */
+        /* Imagen PNG */
+        .login-container img {
+            width: 150px;
+            height: auto;
+            margin-bottom: 25px;
+        }
+
+        /* Campos de Entrada */
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+            outline: none;
+        }
+        
+        /* Botones (Clases de Color) */
+        .button-group button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 8px 5px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+        .button-group button:active { transform: translateY(1px); }
+
+        /* Positivo: Verde */
+        #login-btn, #register-submit-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        #login-btn:hover, #register-submit-btn:hover { background-color: #218838; }
+
+        /* Neutro: Gris Claro */
+        #register-prompt-btn {
+            background-color: #6c757d;
+            color: white;
+        }
+        #register-prompt-btn:hover { background-color: #5a6268; }
+
+        /* Negativo: Rojo */
+        #back-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        #back-btn:hover { background-color: #c82333; }
+
+
+        /* ------------------------
+           Estilos del Modal (Ventana Flotante)
+           ------------------------ */
         .modal {
             display: none; /* Oculto por defecto */
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.5); /* Fondo semitransparente */
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.6);
             justify-content: center; align-items: center;
+            z-index: 1000;
         }
         .modal-content {
-            background-color: white; padding: 30px; border-radius: 8px;
-            width: 300px; text-align: center; position: relative;
+            background-color: white; 
+            padding: 30px; 
+            border-radius: 10px;
+            width: 350px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            animation: fadeIn 0.3s;
         }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        /* Clases de Validación para campos de contraseña */
+        .password-match { border-color: #28a745 !important; box-shadow: 0 0 5px rgba(40, 167, 69, 0.7) !important; }
+        .password-mismatch { border-color: #dc3545 !important; box-shadow: 0 0 5px rgba(220, 53, 69, 0.7) !important; }
+
     </style>
 </head>
 <body>
 
     <div class="login-container">
         
-        <img src="logo.png" alt="Logo de la Aplicación" style="width: 100px; margin-bottom: 20px;">
+        <img src="logo.png" alt="Logo de la Aplicación">
         
-        <h2>Iniciar Sesión</h2>
+        <h2>Acceso al Sistema</h2>
         
         <div class="input-group">
-            <label for="login-username">Usuario (Email):</label>
-            <input type="text" id="login-username" placeholder="tu@email.com">
+            <label for="login-email">Usuario (Email):</label>
+            <input type="text" id="login-email" placeholder="tu@email.com">
         </div>
         
         <div class="input-group">
@@ -46,7 +132,7 @@
         </div>
         
         <div class="button-group">
-            <button id="login-btn">Iniciar Sesión</button>
+            <button id="login-btn">Entrar</button>
             <button id="register-prompt-btn">Registrarse</button>
         </div>
         
@@ -57,8 +143,8 @@
             <h3>Registro de Nuevo Usuario</h3>
             
             <div class="input-group">
-                <label for="reg-username">Usuario (Email):</label>
-                <input type="text" id="reg-username" placeholder="nuevo@email.com">
+                <label for="reg-email">Nombre de Usuario (Email):</label>
+                <input type="text" id="reg-email" placeholder="nuevo@email.com">
             </div>
             
             <div class="input-group">
@@ -71,18 +157,19 @@
                 <input type="password" id="reg-confirm-password" placeholder="Repite la contraseña">
             </div>
             
+            <p id="reg-message" style="color: #dc3545; margin-top: 10px;"></p>
+
             <div class="button-group">
                 <button id="back-btn">Volver</button>
                 <button id="register-submit-btn">Registrarse</button>
             </div>
-            <p id="reg-message" style="color: red; margin-top: 10px;"></p>
         </div>
     </div>
     
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-	<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <script src="app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
+    <script src="app.js"></script>
 </body>
 </html>

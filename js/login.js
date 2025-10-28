@@ -18,36 +18,69 @@ firebase.initializeApp(firebaseConfig);
 
 // Inicializa los servicios que vamos a usar
 const auth = firebase.auth();
-const db = firebase.firestore(); // 👈 Inicialización de Firestore
+const db = firebase.firestore(); 
 
-// 2. LÓGICA DEL MODAL (VENTANA EMERGENTE)
+// 2. ELEMENTOS DEL DOM Y LÓGICA DEL MODAL
 // =======================================
 const modal = document.getElementById('register-modal');
 const registerPromptBtn = document.getElementById('register-prompt-btn');
 const backBtn = document.getElementById('back-btn');
 const registerSubmitBtn = document.getElementById('register-submit-btn');
 
+const regEmailInput = document.getElementById('reg-email');
+const regPasswordInput = document.getElementById('reg-password');
+const regConfirmPasswordInput = document.getElementById('reg-confirm-password');
+const messageDisplay = document.getElementById('reg-message');
+
+
 // Abrir el modal
 registerPromptBtn.addEventListener('click', () => {
-    modal.style.display = 'flex'; // Muestra el modal
-    document.getElementById('reg-message').textContent = ''; // Limpia mensajes
+    modal.style.display = 'flex';
+    messageDisplay.textContent = '';
+    // Limpiar campos al abrir
+    regEmailInput.value = '';
+    regPasswordInput.value = '';
+    regConfirmPasswordInput.value = '';
+    regConfirmPasswordInput.classList.remove('password-match', 'password-mismatch');
 });
 
 // Cerrar el modal (botón "Volver")
 backBtn.addEventListener('click', () => {
-    modal.style.display = 'none'; // Oculta el modal
+    modal.style.display = 'none'; 
 });
 
 
-// 3. LÓGICA DE REGISTRO CON AUTHENTICATION Y FIRESTORE
+// 3. VALIDACIÓN VISUAL DE CONTRASEÑAS
+// =======================================
+regConfirmPasswordInput.addEventListener('input', () => {
+    const password = regPasswordInput.value;
+    const confirmPassword = regConfirmPasswordInput.value;
+    
+    // Si la casilla de confirmación está vacía, no mostrar nada
+    if (confirmPassword.length === 0) {
+        regConfirmPasswordInput.classList.remove('password-match', 'password-mismatch');
+        return;
+    }
+    
+    if (password === confirmPassword && password.length >= 6) {
+        // Coinciden y cumplen la longitud mínima (verde)
+        regConfirmPasswordInput.classList.add('password-match');
+        regConfirmPasswordInput.classList.remove('password-mismatch');
+    } else {
+        // No coinciden o son muy cortas (rojo)
+        regConfirmPasswordInput.classList.add('password-mismatch');
+        regConfirmPasswordInput.classList.remove('password-match');
+    }
+});
+
+// 4. LÓGICA DE REGISTRO (CREAR USUARIO EN AUTH Y DOC EN FIRESTORE)
 // =======================================
 registerSubmitBtn.addEventListener('click', async () => {
-    const email = document.getElementById('reg-username').value;
-    const password = document.getElementById('reg-password').value;
-    const confirmPassword = document.getElementById('reg-confirm-password').value;
-    const messageDisplay = document.getElementById('reg-message');
+    const email = regEmailInput.value;
+    const password = regPasswordInput.value;
+    const confirmPassword = regConfirmPasswordInput.value;
 
-    messageDisplay.textContent = ''; // Limpia mensajes
+    messageDisplay.textContent = ''; 
 
     if (password !== confirmPassword) {
         messageDisplay.textContent = 'Las contraseñas no coinciden.';
@@ -64,28 +97,23 @@ registerSubmitBtn.addEventListener('click', async () => {
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
         const user = userCredential.user;
 
-        // 2. GUARDAR DATOS ADICIONALES EN FIRESTORE
-        // Usamos el UID de Authentication como ID del documento en la colección "users"
+        // 2. GUARDAR DATOS EN FIRESTORE (Usando el UID como ID del documento)
         await db.collection("users").doc(user.uid).set({
             email: user.email,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(), // Marca de tiempo
-            // Puedes añadir más campos iniciales aquí
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(), 
         });
         
         // Registro exitoso
-        messageDisplay.style.color = 'green';
+        messageDisplay.style.color = '#28a745';
         messageDisplay.textContent = '¡Registro exitoso! Ya puedes iniciar sesión.';
         
-        console.log('Usuario registrado y datos guardados en Firestore con UID:', user.uid);
-        
-        // Cierra el modal después de 2 segundos
         setTimeout(() => {
             modal.style.display = 'none';
         }, 2000);
 
     } catch (error) {
         // Manejo de errores de Firebase
-        let errorMessage = 'Error al registrar: ';
+        let errorMessage = 'Error: ';
         switch (error.code) {
             case 'auth/email-already-in-use':
                 errorMessage = 'El email ya está registrado.';
@@ -99,27 +127,30 @@ registerSubmitBtn.addEventListener('click', async () => {
             default:
                 errorMessage = error.message;
         }
-        messageDisplay.style.color = 'red';
+        messageDisplay.style.color = '#dc3545';
         messageDisplay.textContent = errorMessage;
     }
 });
 
 
-// 4. LÓGICA DE INICIO DE SESIÓN (LOGIN)
+// 5. LÓGICA DE INICIO DE SESIÓN (LOGIN)
 // =======================================
 document.getElementById('login-btn').addEventListener('click', async () => {
-    const email = document.getElementById('login-username').value;
+    const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
+    
+    // ⚠️ NOTA DE SEGURIDAD:
+    // La verificación de usuario y contraseña se realiza de forma segura
+    // con Firebase Authentication (Auth), no directamente contra Firestore.
+    // Esto es el estándar de seguridad para cualquier aplicación.
 
     try {
-        // Usa Firebase Authentication para iniciar sesión
+        // Usa Firebase Authentication para verificar las credenciales
         await auth.signInWithEmailAndPassword(email, password);
         
-        // Notificación de éxito
-        alert('¡Inicio de sesión exitoso! Bienvenido.');
-        
-        // Opcional: Redirigir o actualizar la UI después del login
-        // window.location.href = 'pagina_principal.html'; 
+        // Si tiene éxito, redirige a la página principal
+        alert('¡Inicio de sesión exitoso!');
+        window.location.href = 'menu-principal.html'; 
 
     } catch (error) {
         // Manejo de errores de login

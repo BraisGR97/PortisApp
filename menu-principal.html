@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menú Principal</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+            text-align: center;
+        }
+        h1 { color: #007bff; }
+
+        /* Botón de acción negativa (rojo) para cerrar sesión */
+        #logout-btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 600;
+            background-color: #dc3545;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        #logout-btn:hover { background-color: #c82333; }
+    </style>
+</head>
+<body>
+    <h1>Bienvenido al Menú Principal</h1>
+    <p>Has iniciado sesión correctamente.</p>
+
+    <button id="logout-btn">Cerrar Sesión</button>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+    <script>
+        // Inicialización de Firebase (necesaria para el logout)
+        // **REEMPLAZA ESTO CON TU CONFIGURACIÓN REAL**
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY_AQUI", 
+            authDomain: "tu-dominio.firebaseapp.com",
+            projectId: "tu-id-proyecto",
+            // ...
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        
+        // Lógica de Cerrar Sesión
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            try {
+                await auth.signOut();
+                alert('Sesión cerrada correctamente.');
+                window.location.href = 'index.html'; // Vuelve a la página de login
+            } catch (error) {
+                console.error("Error al cerrar sesión:", error);
+                alert("Ocurrió un error al intentar cerrar sesión.");
+            }
+        });
+
+        // Opcional: Proteger la página para que solo se vea si hay sesión activa
+        auth.onAuthStateChanged(user => {
+            if (!user) {
+                // Si no hay usuario, redirige al login
+                window.location.href = 'index.html';
+            }
+        });
+
+    </script>
+</body>
+</html>
