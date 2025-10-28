@@ -13,9 +13,25 @@
         <input type="email" id="email" placeholder="Usuario (email)">
         <input type="password" id="password" placeholder="Contraseña">
         <button id="login-btn">Iniciar Sesión</button>
+        <button id="register-open-btn">Registrarse</button> 
         <p id="login-error" class="error-message"></p>
     </div>
 
+    <div id="modal-registro" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Registro de Nuevo Usuario</h2>
+            <input type="email" id="register-email" placeholder="Usuario (email)">
+            <input type="password" id="register-password" placeholder="Contraseña">
+            <input type="password" id="register-confirm-password" placeholder="Confirmar Contraseña">
+            <p id="register-error" class="error-message"></p>
+            
+            <div class="modal-buttons">
+                <button id="register-confirm-btn">Confirmar</button>
+                <button id="register-back-btn">Volver</button>
+            </div>
+        </div>
+    </div>
+    
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     

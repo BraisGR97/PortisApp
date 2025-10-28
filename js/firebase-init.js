@@ -14,11 +14,8 @@ const firebaseConfig = {
 // =======================
 // 2. INICIALIZACIÓN DE SERVICIOS
 // =======================
-// No necesitas "exportar" nada, los SDKs se adjuntan
-// al objeto global 'firebase'
 firebase.initializeApp(firebaseConfig);
 
 // Hacemos que 'auth' y 'db' sean fáciles de acceder
-// (aunque también puedes usar firebase.auth() y firebase.firestore())
 const auth = firebase.auth();
 const db = firebase.firestore();

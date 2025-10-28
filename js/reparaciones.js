@@ -17,7 +17,7 @@ const modalCerrarBtn = document.getElementById('modal-cerrar-btn');
 const reparacionesRef = db.collection('reparaciones');
 
 // =======================
-// LÓGICA DEL MODAL (Fase 3)
+// LÓGICA DEL MODAL Y GUARDADO DE DATOS CON UID
 // =======================
 
 reparacionesAddBtn.addEventListener('click', () => {
@@ -29,12 +29,20 @@ modalCerrarBtn.addEventListener('click', () => {
 });
 
 modalAgregarBtn.addEventListener('click', () => {
+    const user = auth.currentUser;
+    if (!user) {
+        alert("Error: Debes iniciar sesión para añadir reparaciones.");
+        return;
+    }
+
     const data = {
         ubicacion: modalUbicacion.value,
         modelo: modalModelo.value,
         contrato: modalContrato.value,
         problemas: modalProblemas.value, 
-        fecha: firebase.firestore.Timestamp.fromDate(new Date(modalFecha.value))
+        fecha: firebase.firestore.Timestamp.fromDate(new Date(modalFecha.value)),
+        // 👈 CLAVE: Añadir el ID del usuario actual
+        userId: user.uid 
     };
 
     if (!data.ubicacion || !data.modelo || !modalFecha.value) {
@@ -56,10 +64,9 @@ modalAgregarBtn.addEventListener('click', () => {
 
 
 // =======================
-// LÓGICA DE FIRESTORE Y ORDENAMIENTO (Fase 3 y 4)
+// LÓGICA DE ORDENAMIENTO (Fase 4)
 // =======================
 
-// Función de Ordenamiento (Fase 4)
 function ordenarReparaciones(lista) {
     return lista.sort((a, b) => {
         const fechaA = a.fecha.toDate();
@@ -67,15 +74,15 @@ function ordenarReparaciones(lista) {
         const aTieneProblemas = a.problemas && a.problemas.trim() !== '';
         const bTieneProblemas = b.problemas && b.problemas.trim() !== '';
 
+        // Prioridad: Problemas antes que No-Problemas
         if (aTieneProblemas && !bTieneProblemas) return -1;
         if (!aTieneProblemas && bTieneProblemas) return 1;
 
-        // Descendente (más nuevas primero)
+        // Ordenar por fecha (más nuevas primero)
         return fechaB - fechaA;
     });
 }
 
-// Función para "pintar" la lista en el HTML (Fase 3)
 function renderizarLista(lista) {
     listaReparacionesContainer.innerHTML = ''; 
 
@@ -101,15 +108,13 @@ function renderizarLista(lista) {
 }
 
 // =======================
-// INICIO: Escuchar datos de Firestore
+// INICIO: Escuchar datos de Firestore FILTRANDO POR UID
 // =======================
 
-// Nos aseguramos de que el auth-guard.js se haya ejecutado
-// y tengamos un usuario antes de suscribirnos a la base de datos.
 auth.onAuthStateChanged(user => {
     if (user) {
-        // Usuario logueado, ¡podemos cargar datos!
-        reparacionesRef.onSnapshot(snapshot => {
+        // CLAVE: Usamos .where('userId', '==', user.uid) para el filtro
+        reparacionesRef.where('userId', '==', user.uid).onSnapshot(snapshot => {
             let reparaciones = [];
             snapshot.forEach(doc => {
                 reparaciones.push({ id: doc.id, ...doc.data() });
@@ -120,5 +125,7 @@ auth.onAuthStateChanged(user => {
         }, error => {
             console.error("Error al escuchar reparaciones: ", error);
         });
+    } else {
+        listaReparacionesContainer.innerHTML = '<p>Inicia sesión para ver tus reparaciones.</p>';
     }
 });
