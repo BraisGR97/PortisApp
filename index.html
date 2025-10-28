@@ -3,39 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>Inicio de Sesión con Firebase</title>
+    <style>
+        /* Estilos básicos para centrar y el modal */
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f4f4f4; }
+        .login-container { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center; }
+        .input-group { margin-bottom: 20px; }
+        input[type="text"], input[type="password"] { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .button-group button { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        #login-btn { background-color: #4CAF50; color: white; }
+        #register-prompt-btn { background-color: #007bff; color: white; }
+
+        /* Estilos del Modal */
+        .modal {
+            display: none; /* Oculto por defecto */
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5); /* Fondo semitransparente */
+            justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background-color: white; padding: 30px; border-radius: 8px;
+            width: 300px; text-align: center; position: relative;
+        }
+    </style>
 </head>
 <body>
 
     <div class="login-container">
-        <img src="logo.png" alt="Logo de la empresa" class="logo">
-        <input type="email" id="email" placeholder="Usuario (email)">
-        <input type="password" id="password" placeholder="Contraseña">
-        <button id="login-btn">Iniciar Sesión</button>
-        <button id="register-open-btn">Registrarse</button> 
-        <p id="login-error" class="error-message"></p>
+        
+        <img src="logo.png" alt="Logo de la Aplicación" style="width: 100px; margin-bottom: 20px;">
+        
+        <h2>Iniciar Sesión</h2>
+        
+        <div class="input-group">
+            <label for="login-username">Usuario (Email):</label>
+            <input type="text" id="login-username" placeholder="tu@email.com">
+        </div>
+        
+        <div class="input-group">
+            <label for="login-password">Contraseña:</label>
+            <input type="password" id="login-password" placeholder="********">
+        </div>
+        
+        <div class="button-group">
+            <button id="login-btn">Iniciar Sesión</button>
+            <button id="register-prompt-btn">Registrarse</button>
+        </div>
+        
     </div>
 
-    <div id="modal-registro" class="modal-overlay">
+    <div id="register-modal" class="modal">
         <div class="modal-content">
-            <h2>Registro de Nuevo Usuario</h2>
-            <input type="email" id="register-email" placeholder="Usuario (email)">
-            <input type="password" id="register-password" placeholder="Contraseña">
-            <input type="password" id="register-confirm-password" placeholder="Confirmar Contraseña">
-            <p id="register-error" class="error-message"></p>
+            <h3>Registro de Nuevo Usuario</h3>
             
-            <div class="modal-buttons">
-                <button id="register-confirm-btn">Confirmar</button>
-                <button id="register-back-btn">Volver</button>
+            <div class="input-group">
+                <label for="reg-username">Usuario (Email):</label>
+                <input type="text" id="reg-username" placeholder="nuevo@email.com">
             </div>
+            
+            <div class="input-group">
+                <label for="reg-password">Contraseña:</label>
+                <input type="password" id="reg-password" placeholder="Mínimo 6 caracteres">
+            </div>
+            
+            <div class="input-group">
+                <label for="reg-confirm-password">Confirmar Contraseña:</label>
+                <input type="password" id="reg-confirm-password" placeholder="Repite la contraseña">
+            </div>
+            
+            <div class="button-group">
+                <button id="back-btn">Volver</button>
+                <button id="register-submit-btn">Registrarse</button>
+            </div>
+            <p id="reg-message" style="color: red; margin-top: 10px;"></p>
         </div>
     </div>
     
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    
-    <script src="js/firebase-init.js"></script>
-    <script src="js/login.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="app.js"></script>
+
 </body>
 </html>
