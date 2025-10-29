@@ -10,16 +10,17 @@
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/forms.css" />
 
-  <!-- Firebase (scripts cargados desde firebase-config.js) -->
+  <!-- Firebase y scripts -->
   <script defer src="js/firebase-config.js"></script>
   <script defer src="js/auth.js"></script>
 </head>
 <body>
   <div class="page-bg">
     <div class="login-container">
-      <div class="brand">
-        <img src="assets/logo.png" alt="Portis logo" class="logo" onerror="this.style.display='none'">
-        <h1>Portis</h1>
+
+      <!-- 🔹 Solo el logo centrado -->
+      <div class="logo-wrapper">
+        <img src="assets/logo.png" alt="Portis logo" class="logo-centered" onerror="this.style.display='none'">
       </div>
 
       <h2 class="title">Inicia sesión</h2>
@@ -43,10 +44,4 @@
         <div id="loginError" class="error" aria-live="polite"></div>
       </form>
 
-      <footer class="login-footer">
-        <small>Aplicación de ejemplo • Diseño responsive</small>
-      </footer>
-    </div>
-  </div>
-</body>
-</html>
+      <footer cl
