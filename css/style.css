@@ -179,3 +179,140 @@ body{
   border-radius: 12px;       /* Esquinas redondeadas suaves */
   object-fit: contain;
 }
+
+/* ======= Estilo general ======= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: url("../assets/background.jpg") no-repeat center center/cover;
+  backdrop-filter: blur(3px);
+  overflow: hidden;
+}
+
+/* Fondo oscuro translúcido detrás del container */
+.background {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 0;
+}
+
+/* ======= Contenedor principal (login y registro) ======= */
+.login-container {
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(15px);
+  border-radius: 20px;
+  padding: 40px 30px;
+  width: 100%;
+  max-width: 380px;
+  color: #fff;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  animation: fadeIn 0.8s ease;
+}
+
+/* Animación de aparición */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(25px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ======= Logo ======= */
+.login-container img {
+  width: 100px;
+  max-width: 80%;
+  height: auto;
+  display: block;
+  margin: 0 auto 20px auto;
+  border-radius: 12px;
+  object-fit: contain;
+}
+
+/* ======= Título ======= */
+.login-container h2 {
+  text-align: center;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+/* ======= Inputs ======= */
+.login-container input {
+  width: 100%;
+  padding: 12px 15px;
+  margin: 10px 0;
+  border: 2px solid #ccc;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  outline: none;
+  transition: border-color 0.3s, background 0.3s;
+}
+
+.login-container input:focus {
+  border-color: #4CAF50;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ======= Botones ======= */
+.login-container button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  background: linear-gradient(135deg, #4CAF50, #2E7D32);
+  color: #fff;
+  transition: background 0.3s, transform 0.1s;
+}
+
+.login-container button:hover {
+  background: linear-gradient(135deg, #66BB6A, #388E3C);
+}
+
+.login-container button:active {
+  transform: scale(0.98);
+}
+
+.secondary-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+/* ======= Mensaje ======= */
+#registerMessage,
+#loginMessage {
+  text-align: center;
+  margin-top: 15px;
+  font-weight: 500;
+}
+
+/* ======= Responsive ======= */
+@media (max-width: 600px) {
+  body {
+    padding: 20px;
+    background-position: center;
+  }
+
+  .login-container {
+    padding: 30px 20px;
+   

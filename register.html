@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registro - PortisApp</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/forms.css" />
+  <script type="module" src="js/firebase-config.js"></script>
+  <script type="module" src="js/auth.js" defer></script>
+</head>
+<body>
+  <div class="background"></div>
+
+  <div class="login-container">
+    <img src="assets/logo.png" alt="Logo PortisApp" />
+
+    <h2>Crear cuenta</h2>
+
+    <form id="registerForm">
+      <input type="text" id="registerUsername" placeholder="Usuario" required />
+      <input type="password" id="registerPassword" placeholder="Contraseña" required />
+      <input type="password" id="registerPasswordRepeat" placeholder="Repetir contraseña" required />
+
+      <button type="submit" id="createAccountBtn">Crear cuenta</button>
+      <button type="button" id="backToLoginBtn" class="secondary-btn">Volver</button>
+    </form>
+
+    <p id="registerMessage"></p>
+  </div>
+</body>
+</html>
