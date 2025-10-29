@@ -168,3 +168,14 @@ body{
   border-radius: 18px;
   box-shadow: 0 4px 14px rgba(0,0,0,0.1);
 }
+
+/* ===== Logo dentro del container de login ===== */
+.login-container img {
+  width: 120px;              /* Tamaño base del logo */
+  max-width: 80%;            /* Evita que se salga del container */
+  height: auto;              /* Mantiene proporciones */
+  display: block;
+  margin: 0 auto 20px auto;  /* Centrado con espacio debajo */
+  border-radius: 12px;       /* Esquinas redondeadas suaves */
+  object-fit: contain;
+}
