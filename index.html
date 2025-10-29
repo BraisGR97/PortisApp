@@ -1,35 +1,17 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login - PortisApp</title>
-  <link rel="stylesheet" href="css/style.css" />
-  <link rel="stylesheet" href="css/forms.css" />
-  <script type="module" src="js/firebase-config.js"></script>
-  <script type="module" src="js/auth.js" defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home - PortisApp</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="background"></div>
-
-  <div class="login-container">
-    <img src="assets/logo.png" alt="Logo PortisApp" />
-
-    <form id="loginForm">
-      <input type="text" id="username" placeholder="Usuario" required />
-      <input type="password" id="password" placeholder="Contraseña" required />
-
-      <button type="submit">Iniciar sesión</button>
-      <button type="button" id="goToRegister" class="secondary-btn">Crear cuenta</button>
-    </form>
-
-    <p id="loginMessage"></p>
+  <div class="home-container">
+    <img src="../assets/logo.png" alt="PortisApp Logo" class="home-logo">
+    <button id="home-btn">Inicio</button>
   </div>
 
-  <script>
-    document.getElementById("goToRegister").addEventListener("click", () => {
-      window.location.href = "register.html";
-    });
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>

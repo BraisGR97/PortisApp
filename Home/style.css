@@ -1,0 +1,44 @@
+/* Fondo en gradiente moderno y agradable */
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #6a11cb, #2575fc); /* púrpura a azul */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Container centrado con bordes redondeados */
+.home-container {
+  background: rgba(255, 255, 255, 0.1); /* semitransparente */
+  backdrop-filter: blur(10px); /* efecto glassmorphism */
+  padding: 3rem 2rem;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+/* Logo centrado */
+.home-logo {
+  width: 150px;
+  margin-bottom: 2rem;
+}
+
+/* Botón estilizado */
+#home-btn {
+  padding: 0.8rem 2rem;
+  font-size: 1.1rem;
+  color: white;
+  background-color: #ff416c;
+  background-image: linear-gradient(45deg, #ff416c, #ff4b2b);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+#home-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
