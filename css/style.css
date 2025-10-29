@@ -78,89 +78,13 @@ body{
   font-weight:600;
 }
 
-/* Form card */
-.form-card{
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  margin-top:8px;
-}
-
-.input-group{
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-}
-.input-group label{
-  font-size:13px;
-  color:var(--muted);
-}
-.input-group input{
-  padding:12px 14px;
-  border-radius:12px;
-  border:1px solid rgba(15,23,42,0.06);
-  background:linear-gradient(180deg,#fff,#fbfdff);
-  outline:none;
-  font-size:15px;
-  transition:box-shadow .15s, transform .08s;
-}
-.input-group input:focus{
-  box-shadow: 0 6px 18px rgba(0,122,255,0.12);
-  transform: translateY(-1px);
-  border-color: rgba(0,122,255,0.35);
-}
-
-/* Actions */
-.actions{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  margin-top:4px;
-}
-.btn{
-  padding:10px 14px;
-  border-radius:12px;
-  border:none;
-  cursor:pointer;
-  font-weight:600;
-  font-size:15px;
-}
-.btn.primary{
-  background:linear-gradient(90deg,var(--primary), #0051d6);
-  color:white;
-  box-shadow: 0 8px 20px rgba(0,122,255,0.12);
-  flex:1;
-}
-.link{
-  text-decoration:none;
-  color:var(--muted);
-  font-size:13px;
-}
-.small{font-size:13px}
-
-/* Error */
-.error{
-  color:var(--danger);
-  font-size:13px;
-  min-height:18px;
-  margin-top:6px;
-}
-
-/* Footer */
-.login-footer{
-  margin-top:18px;
-  text-align:center;
-  color:var(--muted);
-}
-
 /* Responsive adjustments */
 @media (max-width:420px){
   .login-container{ padding:20px }
   .brand h1{ font-size:18px }
 }
 
-/* === MENU PAGE === */
+/* === MENU styles (si usas después menu.html) === */
 .menu-header{
   display:flex;
   align-items:center;

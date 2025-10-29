@@ -1,20 +1,17 @@
 // js/auth.js
-// Este script espera que js/firebase-config.js ya haya cargado y creado `window.db`
-// Si no hay db aún (scripts cargan asincrónicamente) intentamos esperar brevemente.
+// Lógica de login: busca en collection 'users' por campo username y compara password.
+// Requiere que js/firebase-config.js ya haya cargado y creado window.db
 
-function waitForDb(maxAttempts = 30, delay = 100) {
+function waitForDb(maxAttempts = 40, delay = 100) {
   return new Promise((resolve, reject) => {
     let tries = 0;
-    const i = setInterval(() => {
+    const timer = setInterval(() => {
       if (window.db) {
-        clearInterval(i);
+        clearInterval(timer);
         resolve(window.db);
-      } else {
-        tries++;
-        if (tries >= maxAttempts) {
-          clearInterval(i);
-          reject(new Error("No se ha podido inicializar Firestore"));
-        }
+      } else if (++tries >= maxAttempts) {
+        clearInterval(timer);
+        reject(new Error("Firestore no inicializado"));
       }
     }, delay);
   });
@@ -37,31 +34,31 @@ function waitForDb(maxAttempts = 30, delay = 100) {
 
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    errorEl.textContent = "";
+    if (errorEl) { errorEl.textContent = ""; errorEl.style.color = ""; }
 
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
 
     if (!username || !password) {
-      errorEl.textContent = "Rellena usuario y contraseña.";
+      if (errorEl) errorEl.textContent = "Rellena usuario y contraseña.";
       return;
     }
 
     try {
-      // Buscamos en la colección `users` por el campo `username`
+      // Consulta por username (esto funciona aunque los documentos tengan ID automático)
       const q = await db.collection('users').where('username', '==', username).limit(1).get();
 
       if (q.empty) {
-        errorEl.textContent = "Usuario no encontrado.";
+        if (errorEl) errorEl.textContent = "Usuario no encontrado.";
         return;
       }
 
       const doc = q.docs[0];
       const data = doc.data();
 
-      // Comprobamos contraseña (nota: aquí se asume contraseña en texto plano)
+      // Comprobación de contraseña (texto plano; ver notas de seguridad más abajo)
       if (data.password === password) {
-        // Autenticación correcta -> guardamos sesión local y redirigimos
+        // Guardamos sesión simple en localStorage
         const session = {
           uid: doc.id,
           username: data.username,
@@ -70,15 +67,21 @@ function waitForDb(maxAttempts = 30, delay = 100) {
         };
 
         localStorage.setItem('portis_session', JSON.stringify(session));
-        // Redirigir al menú principal
-        window.location.href = 'menu.html';
+
+        if (errorEl) {
+          errorEl.style.color = "green";
+          errorEl.textContent = "Inicio de sesión correcto. Redirigiendo…";
+        }
+
+        // Redirigir al menú (puedes cambiar a menu.html)
+        setTimeout(() => window.location.href = 'menu.html', 700);
       } else {
-        errorEl.textContent = "Contraseña incorrecta.";
+        if (errorEl) errorEl.textContent = "Contraseña incorrecta.";
       }
 
     } catch (err) {
       console.error("Error login:", err);
-      errorEl.textContent = "Error en el inicio de sesión. Revisa la consola.";
+      if (errorEl) errorEl.textContent = "Error en el inicio de sesión. Revisa la consola.";
     }
   });
 })();
