@@ -1,0 +1,42 @@
+<!-- menu.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PortisApp - Menú</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <script defer src="js/firebase-config.js"></script>
+  <script defer src="js/menu.js"></script>
+</head>
+<body class="menu-page">
+  <header class="menu-header">
+    <div class="menu-brand">
+      <img src="assets/logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
+      <h1>Portis</h1>
+    </div>
+    <button id="logoutBtn" class="btn logout">Cerrar sesión</button>
+  </header>
+
+  <main class="menu-content">
+    <h2>Bienvenido, <span id="usernameDisplay">Usuario</span> 👋</h2>
+    <div class="menu-grid">
+      <a href="repairs.html" class="menu-card">
+        <div class="card-icon">🛠️</div>
+        <h3>Reparaciones</h3>
+        <p>Gestiona las reparaciones pendientes o completadas.</p>
+      </a>
+      <a href="records.html" class="menu-card">
+        <div class="card-icon">📋</div>
+        <h3>Registros</h3>
+        <p>Consulta el historial de reparaciones y mantenimientos.</p>
+      </a>
+    </div>
+  </main>
+
+  <footer class="menu-footer">
+    <small>© 2025 PortisApp</small>
+  </footer>
+</body>
+</html>
