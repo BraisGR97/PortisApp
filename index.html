@@ -1,68 +1,28 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inicio de Sesión Moderno</title>
-    <link rel="stylesheet" href="styles.css"> 
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PortisApp - Login</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/forms.css" />
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js"></script>
 </head>
-<body>
+<body class="login-page">
+  <div class="login-container">
+    <img src="assets/logo.png" alt="Logo" class="logo" />
+    <h2>Iniciar Sesión</h2>
+    <form id="loginForm">
+      <input type="email" id="email" placeholder="Correo electrónico" required />
+      <input type="password" id="password" placeholder="Contraseña" required />
+      <button type="submit" class="btn">Entrar</button>
+    </form>
+    <p>¿No tienes cuenta? <a href="register.html">Regístrate</a></p>
+  </div>
 
-    <div class="login-container">
-        
-        <img src="logo.png" alt="Logo de la Aplicación">
-        
-        <h2>Acceso al Sistema</h2>
-        
-        <div class="input-group">
-            <label for="login-email">Usuario (Email):</label>
-            <input type="text" id="login-email" placeholder="tu@email.com">
-        </div>
-        
-        <div class="input-group">
-            <label for="login-password">Contraseña:</label>
-            <input type="password" id="login-password" placeholder="********">
-        </div>
-        
-        <div class="button-group">
-            <button id="login-btn">Entrar</button>
-            <button id="register-prompt-btn">Registrarse</button>
-        </div>
-        
-    </div>
-
-    <div id="register-modal" class="modal">
-        <div class="modal-content">
-            <h3>Registro de Nuevo Usuario</h3>
-            
-            <div class="input-group">
-                <label for="reg-email">Nombre de Usuario (Email):</label>
-                <input type="text" id="reg-email" placeholder="nuevo@email.com">
-            </div>
-            
-            <div class="input-group">
-                <label for="reg-password">Contraseña:</label>
-                <input type="password" id="reg-password" placeholder="Mínimo 6 caracteres">
-            </div>
-            
-            <div class="input-group">
-                <label for="reg-confirm-password">Confirmar Contraseña:</label>
-                <input type="password" id="reg-confirm-password" placeholder="Repite la contraseña">
-            </div>
-            
-            <p id="reg-message" style="color: #dc3545; margin-top: 10px;"></p>
-
-            <div class="button-group">
-                <button id="back-btn">Volver</button>
-                <button id="register-submit-btn">Registrarse</button>
-            </div>
-        </div>
-    </div>
-    
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-
-    <script src="app.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/auth.js"></script>
 </body>
 </html>
