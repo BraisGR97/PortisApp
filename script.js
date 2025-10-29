@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Añade un 'escuchador' para el evento 'click'
         inicioBtn.addEventListener('click', function() {
             // Redirige al usuario a la página LogIn.html
-            window.location.href = 'LogIn.html';
+            window.location.href = 'LogIn/LogIn.html';
         });
     } else {
         console.error('Error: No se encontró el botón con el ID "inicioBtn".');

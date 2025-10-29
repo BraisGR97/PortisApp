@@ -8,14 +8,16 @@
     --text-color: #ffffff;
     --input-bg: rgba(255, 255, 255, 0.2); 
 
-    /* Paleta del Botón 'Entrar' (Rojo/Naranja) */
-    --button-color: #ff5252;
+    /* Paleta del Botón 'Registrarse' (Idéntico al Login) */
+    --button-color: #ff5252; /* Rojo */
     --button-shadow: rgba(255, 82, 82, 0.4);
     --button-hover: #e04444;
 
-    /* Colores para mensajes de estado */
-    --error-color: #f87171; /* Rojo suave para errores */
-    --success-color: #4ade80; /* Verde suave para éxito */
+    /* Colores para mensajes de estado y validación */
+    --error-color: #f87171; 
+    --success-color: #4ade80;
+    --border-mismatch: #ff5252; /* Rojo para no coincidir */
+    --border-match: #4ade80; /* Verde para coincidir */
 }
 
 /* -------------------------------------------------------------------------
@@ -25,7 +27,7 @@ body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     
-    /* Centrado del contenido en la pantalla */
+    /* Centrado del contenido */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -36,7 +38,6 @@ body {
     overflow: hidden; 
 }
 
-/* Contenedor alrededor de la tarjeta (para espaciado) */
 .card-container {
     padding: 20px;
 }
@@ -49,8 +50,8 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 300px; /* Ancho fijo para la tarjeta de login */
-    padding: 40px 30px;
+    width: 300px; 
+    padding: 30px 30px; 
     border-radius: 25px;
     
     /* Efecto Glassmorphism */
@@ -70,56 +71,58 @@ body {
 ------------------------------------------------------------------------- */
 h1 {
     color: var(--text-color);
-    font-size: 28px;
+    font-size: 26px; 
     font-weight: 500;
     margin-top: 0;
-    margin-bottom: 30px;
+    margin-bottom: 25px;
     text-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
 }
 
-/* Contenedor del formulario */
-#loginForm {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-/* Grupo de entrada (Usuario/Contraseña) */
 .input-group {
     width: 100%;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 }
 
 .input-group input {
-    width: calc(100% - 35px); /* 100% menos el padding */
+    width: calc(100% - 37px); /* 100% menos el padding y borde */
     padding: 15px;
-    border: none;
+    border: 1px solid transparent; /* Borde transparente por defecto */
     border-radius: 12px;
     background-color: var(--input-bg);
     color: var(--text-color);
     font-size: 16px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    transition: background-color 0.3s;
     padding-left: 20px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease; /* Transición para el efecto de borde */
 }
 
-/* Estilo del texto placeholder */
 .input-group input::placeholder {
     color: rgba(255, 255, 255, 0.7);
 }
 
-/* Estilo al enfocar (hacer click) en el input */
 .input-group input:focus {
     outline: none;
     background-color: rgba(255, 255, 255, 0.3);
 }
 
+/* ------------------- Validación de Borde (CONTRASENAS) ------------------- */
+/* Borde Rojo: Cuando NO coincide */
+.input-group input.input-mismatch {
+    border-color: var(--border-mismatch);
+    box-shadow: 0 0 8px var(--border-mismatch);
+}
+
+/* Borde Verde: Cuando SÍ coincide (en ambos inputs) */
+.input-group input.input-match {
+    border-color: var(--border-match);
+    box-shadow: 0 0 8px var(--border-match);
+}
+
 /* -------------------------------------------------------------------------
-   BOTÓN 'ENTRAR'
+   BOTÓN 'REGISTRARSE'
 ------------------------------------------------------------------------- */
-.btn-entrar {
-    background-color: var(--button-color);
+.btn-registro {
+    background-color: var(--button-color); /* Color rojo */
     color: var(--text-color);
     border: none;
     border-radius: 12px; 
@@ -131,24 +134,21 @@ h1 {
     transition: background-color 0.3s ease, transform 0.1s ease;
     width: 100%; 
     max-width: 250px; 
-    margin-top: 10px;
+    margin-top: 15px;
     user-select: none;
 }
 
-/* Efecto al pasar el mouse por encima */
-.btn-entrar:hover:not(:disabled) {
+.btn-registro:hover:not(:disabled) {
     background-color: var(--button-hover);
     transform: translateY(-2px);
 }
 
-/* Efecto al hacer clic */
-.btn-entrar:active:not(:disabled) {
+.btn-registro:active:not(:disabled) {
     transform: translateY(0);
     box-shadow: 0 2px 10px var(--button-shadow);
 }
 
-/* Estilo para botón deshabilitado (ej. mientras se comprueban credenciales) */
-.btn-entrar:disabled {
+.btn-registro:disabled {
     cursor: not-allowed;
     opacity: 0.6;
     transform: none;
@@ -156,24 +156,24 @@ h1 {
 }
 
 /* -------------------------------------------------------------------------
-   TEXTO Y ENLACE DE REGISTRO
+   TEXTO Y ENLACE DE LOGIN
 ------------------------------------------------------------------------- */
-.register-text {
-    margin-top: 25px;
+.login-text {
+    margin-top: 20px;
     color: rgba(255, 255, 255, 0.8);
     font-size: 14px;
 }
 
-.register-link {
+.login-link {
     color: var(--text-color);
     font-weight: bold;
-    text-decoration: underline; /* Subrayado solicitado */
+    text-decoration: underline;
     cursor: pointer;
     transition: color 0.3s;
 }
 
-.register-link:hover {
-    color: #ffd700; /* Color brillante al pasar el ratón */
+.login-link:hover {
+    color: #ffd700;
 }
 
 /* -------------------------------------------------------------------------
@@ -183,7 +183,7 @@ h1 {
     width: 100%;
     max-width: 290px;
     padding: 10px;
-    margin-top: 20px;
+    margin-top: 15px;
     border-radius: 8px;
     text-align: center;
     font-size: 14px;

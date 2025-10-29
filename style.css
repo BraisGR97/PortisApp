@@ -69,7 +69,26 @@ h1 {
     font-size: 28px;
     font-weight: 500;
     margin-top: 10px;
+    margin-bottom: 0px;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+h2 {
+    color: var(--text-color);
+    font-size: 28px;
+    font-weight: 500;
+    margin-top: 0px;
     margin-bottom: 40px;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+h3 {
+    color: var(--text-color);
+    font-size: 8px;
+    font-weight: 500;
+	justify-content: right;
+    margin-top: 20px;
+    margin-bottom: 0px;
     text-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
 }
 

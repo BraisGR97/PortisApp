@@ -3,40 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PortisApp - Iniciar Sesión</title>
-    <link rel="stylesheet" href="LogIn.css">
+    <title>PortisApp - Registrarse</title>
+    <link rel="stylesheet" href="SignIn.css">
 </head>
 <body>
     <div class="card-container">
         <div class="card">
-            <h1>Iniciar Sesión</h1>
+            <h1>Registro de Usuario</h1>
 
-            <form id="loginForm">
+            <form id="signInForm">
                 <div class="input-group">
-                    <input type="text" id="username" placeholder="Usuario" required>
+                    <input type="text" id="username" placeholder="Usuario (Ej: nuevo_usuario)" required>
                 </div>
                 
                 <div class="input-group">
                     <input type="password" id="password" placeholder="Contraseña" required>
                 </div>
                 
-                <button type="button" id="loginBtn" class="btn-entrar">Entrar</button>
+                <div class="input-group">
+                    <input type="password" id="confirmPassword" placeholder="Confirmar Contraseña" required>
+                </div>
+                
+                <button type="button" id="signInBtn" class="btn-registro">Registrarse</button>
             </form>
             
             <div id="messageBox" class="message-box hidden" role="alert" aria-live="assertive"></div>
 
-            <p class="register-text">
-                Puedes registrarte 
-                <a href="#" id="registerLink" class="register-link">aquí</a>
+            <p class="login-text">
+                ¿Ya tienes una cuenta? 
+                <a href="#" id="loginLink" class="login-link">Iniciar Sesión</a>
             </p>
 
         </div>
     </div>
 
     <script type="module">
+        // Importaciones de Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, query, where, getDocs, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         
         // --- Configuración de Firebase ---
         const firebaseConfig = {
@@ -54,19 +59,18 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
         
-        // La autenticación anónima es necesaria para que Firestore funcione sin Firebase Auth
+        // Autenticación anónima para permitir el acceso a Firestore
         signInAnonymously(auth).catch(error => console.error("Error en autenticación anónima:", error));
 
-        // Hacer las referencias globales para LogIn.js
+        // Hacer las referencias globales para SignIn.js
         window.db = db;
         window.collection = collection;
+        window.addDoc = addDoc; 
         window.query = query;
         window.where = where;
         window.getDocs = getDocs;
-        window.doc = doc;
-        window.setDoc = setDoc;
     </script>
     
-    <script src="LogIn.js"></script> 
+    <script src="SignIn.js"></script> 
 </body>
 </html>

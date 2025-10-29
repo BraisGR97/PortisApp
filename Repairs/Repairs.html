@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PortisApp - Reparaciones</title>
+    <link rel="stylesheet" href="Repairs.css"> 
+</head>
+<body>
+    <div class="card-container">
+        <div class="card">
+            
+            <h1>Lista de Reparaciones</h1>
+
+            <div class="header-buttons">
+                <button class="btn-secondary" id="backBtn">Volver</button>
+                <button class="btn-primary-action" id="addBtn">Añadir</button>
+            </div>
+
+            <div class="list-container" id="repairsList">
+                <p class="empty-list-message">Aún no hay reparaciones registradas. Pulsa "Añadir" para empezar.</p>
+                </div>
+            
+            <div id="listMessageBox" class="message-box hidden" role="alert" aria-live="assertive"></div>
+
+        </div>
+    </div>
+
+    <div id="addModal" class="modal-overlay hidden">
+        <div class="modal-content card">
+            
+            <button class="modal-close-btn" id="closeModalBtn">&times;</button>
+            
+            <h2>Nueva Reparación</h2>
+
+            <form id="addRepairForm">
+                <div class="input-group">
+                    <input type="text" id="ubicacion" placeholder="Ubicación" required>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="modelo" placeholder="Modelo" required>
+                </div>
+                
+                <div class="input-group">
+                    <input type="month" id="fecha" title="Selecciona Mes y Año" required>
+                </div>
+                
+                <div class="input-group">
+                    <select id="contrato" required>
+                        <option value="" disabled selected>Selecciona Contrato</option>
+                        <option value="mensual">Mensual</option>
+                        <option value="trimestral">Trimestral</option>
+                        <option value="anual">Anual</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <input type="text" id="llave" placeholder="Llave" required>
+                </div>
+                
+                <div class="input-group">
+                    <textarea id="averia" placeholder="Descripción de la Avería" rows="3" required></textarea>
+                </div>
+
+                <button type="submit" id="submitAddBtn" class="btn-submit-green">Añadir</button>
+            </form>
+
+            <div id="modalMessageBox" class="message-box hidden" role="alert" aria-live="assertive"></div>
+
+        </div>
+    </div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, getDocs, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        
+        // --- Configuración de Firebase ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyD_tC3KaK3UVyNOPiSsnI0s5k8Cd_qFJpg",
+            authDomain: "portisapp.firebaseapp.com",
+            projectId: "portisapp",
+            storageBucket: "portisapp.firebasestorage.app",
+            messagingSenderId: "38313359657",
+            appId: "1:38313359657:web:ae73a0f8f7556bed92df38",
+            measurementId: "G-HQ29Y8Z2DY"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        signInAnonymously(auth).catch(error => console.error("Error en autenticación anónima:", error));
+
+        // Referencias globales para Repairs.js
+        window.db = db;
+        window.collection = collection;
+        window.addDoc = addDoc; 
+        window.query = query;
+        window.where = where;
+        window.getDocs = getDocs;
+		window.doc = doc;
+        
+        // Placeholder para el ID de Usuario (Se usa el UID de la sesión anónima)
+        window.CURRENT_USER_ID = "LOADING..."; 
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                window.CURRENT_USER_ID = user.uid; 
+            }
+        });
+    </script>
+    
+    <script src="Repairs.js"></script>
+</body>
+</html>

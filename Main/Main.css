@@ -1,0 +1,164 @@
+/* -------------------------------------------------------------------------
+   CONFIGURACIÓN Y VARIABLES (Consistentes con LogIn)
+------------------------------------------------------------------------- */
+:root {
+    /* Paleta Glassmorphism */
+    --card-bg: rgba(255, 255, 255, 0.15); 
+    --card-border: rgba(255, 255, 255, 0.25);
+    --text-color: #ffffff;
+    --primary-color: #ff5252; /* Rojo principal de la aplicación */
+    --primary-hover: #e04444; 
+    --shadow-color: rgba(31, 38, 135, 0.37);
+    --primary-shadow: rgba(255, 82, 82, 0.4);
+}
+
+/* -------------------------------------------------------------------------
+   ESTRUCTURA GENERAL Y FONDO
+------------------------------------------------------------------------- */
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    
+    /* Centrado del contenido */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    
+    /* Fondo degradado */
+    background: linear-gradient(135deg, #a4c6e9 0%, #6e94e9 50%, #4667d6 100%);
+    overflow: hidden; 
+}
+
+.card-container {
+    padding: 20px;
+}
+
+/* -------------------------------------------------------------------------
+   ESTILO GLASSMORPHISM (TARJETA PRINCIPAL)
+------------------------------------------------------------------------- */
+.card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 350px; /* Un poco más ancha para los botones */
+    padding: 30px 40px;
+    border-radius: 25px;
+    
+    /* Efecto Glassmorphism */
+    background: var(--card-bg); 
+    box-shadow: 0 8px 32px 0 var(--shadow-color); 
+    backdrop-filter: blur(10px); 
+    -webkit-backdrop-filter: blur(10px);
+    
+    border: 1px solid var(--card-border);
+    border-top: 1px solid rgba(255, 255, 255, 0.5);
+    border-left: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* -------------------------------------------------------------------------
+   LOGO y TÍTULO
+------------------------------------------------------------------------- */
+.app-logo {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 10px;
+    border-radius: 50%; /* Si el logo es cuadrado, lo hacemos circular */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+h1 {
+    color: var(--text-color);
+    font-size: 24px;
+    font-weight: 500;
+    margin-top: 0;
+    margin-bottom: 30px;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+/* -------------------------------------------------------------------------
+   BOTONES DE MENÚ (GRID)
+------------------------------------------------------------------------- */
+.button-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px; /* Espacio entre los botones */
+    width: 100%;
+}
+
+.menu-btn {
+    background-color: var(--card-bg); /* Usa el fondo glassmorphism */
+    color: var(--text-color);
+    border: 1px solid var(--card-border);
+    border-radius: 15px; 
+    padding: 20px;
+    height: 100px; /* Altura fija para botones grandes */
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s;
+    
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.menu-btn:hover {
+    background-color: rgba(255, 255, 255, 0.25); /* Se vuelve un poco más sólido al pasar el ratón */
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px var(--shadow-color);
+}
+
+.menu-btn:active {
+    transform: translateY(0);
+}
+
+/* Título principal del botón */
+.btn-title {
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--primary-color); /* Destacado en el color principal */
+    margin-bottom: 5px;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Subtítulo del botón */
+.btn-subtitle {
+    font-size: 14px;
+    font-weight: normal;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.3;
+}
+
+/* -------------------------------------------------------------------------
+   NUEVO BOTÓN: CERRAR SESIÓN
+------------------------------------------------------------------------- */
+.btn-logout {
+    /* Estilos idénticos a los botones de acción del login */
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    border: none;
+    border-radius: 12px; 
+    padding: 12px 60px; /* Un poco más pequeño que el botón de Entrar */
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    
+    /* Animación y Sombra */
+    box-shadow: 0 4px 15px var(--primary-shadow);
+    transition: background-color 0.3s ease, transform 0.1s ease;
+    
+    width: 100%; 
+    max-width: 250px; /* Mismo ancho máximo que los campos de login/registro */
+    margin-top: 30px; /* Espacio superior para separarlo del grid */
+}
+
+.btn-logout:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+.btn-logout:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px var(--primary-shadow);
+}
