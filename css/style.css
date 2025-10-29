@@ -1,242 +1,40 @@
-/* css/style.css */
-:root{
-  --primary: #007AFF;
-  --accent: #00C6AE;
-  --bg: #F3F7FB;
-  --card: #FFFFFF;
-  --text: #111827;
-  --muted: #6B7280;
-  --danger: #FF6B6B;
-
-  --radius: 18px;
-  --max-width: 420px;
-  --glass-blur: 8px;
-  --shadow: 0 10px 30px rgba(16,24,40,0.08);
-  font-family: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-}
-
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
-  margin:0;
-  background: linear-gradient(180deg, rgba(0,122,255,0.06), rgba(0,198,174,0.03));
-  color:var(--text);
-  -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:24px;
-}
-
-/* Fondo grande con imagen sutil (opcional) */
-.page-bg{
-  width:100%;
-  max-width:1100px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:32px;
-}
-
-/* Container centrado */
-.login-container{
-  width:100%;
-  max-width:var(--max-width);
-  background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.82));
-  border-radius: calc(var(--radius) + 6px);
-  padding:28px;
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid rgba(17,24,39,0.04);
-}
-
-/* Brand */
-.brand{
-  display:flex;
-  align-items:center;
-  gap:12px;
-}
-.brand .logo{
-  width:46px;
-  height:46px;
-  object-fit:contain;
-  border-radius:10px;
-}
-.brand h1{
-  margin:0;
-  font-size:20px;
-  font-weight:700;
-  color:var(--primary);
-}
-
-/* Título */
-.title{
-  margin-top:18px;
-  margin-bottom:10px;
-  font-size:20px;
-  font-weight:600;
-}
-
-/* Responsive adjustments */
-@media (max-width:420px){
-  .login-container{ padding:20px }
-  .brand h1{ font-size:18px }
-}
-
-/* === MENU styles (si usas después menu.html) === */
-.menu-header{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:18px 24px;
-  background:white;
-  border-bottom:1px solid rgba(0,0,0,0.05);
-  box-shadow:0 2px 12px rgba(0,0,0,0.03);
-}
-
-.menu-brand{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-.menu-brand h1{
-  color:var(--primary);
-  font-weight:700;
-  font-size:20px;
-}
-.btn.logout{
-  background:var(--danger);
-  color:white;
-  padding:8px 14px;
-  border:none;
-  border-radius:12px;
-  font-weight:600;
-  cursor:pointer;
-}
-
-.menu-content{
-  padding:28px;
-  text-align:center;
-}
-.menu-content h2{
-  font-weight:600;
-  margin-bottom:26px;
-}
-
-.menu-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit, minmax(230px,1fr));
-  gap:18px;
-  justify-content:center;
-}
-.menu-card{
-  background:white;
-  border-radius:var(--radius);
-  padding:20px;
-  box-shadow:0 4px 14px rgba(0,0,0,0.05);
-  text-decoration:none;
-  color:var(--text);
-  transition:transform .1s, box-shadow .2s;
-}
-.menu-card:hover{
-  transform:translateY(-2px);
-  box-shadow:0 8px 20px rgba(0,0,0,0.08);
-}
-.card-icon{
-  font-size:36px;
-  margin-bottom:8px;
-}
-.menu-footer{
-  text-align:center;
-  padding:18px;
-  color:var(--muted);
-}
-
-/* Centrado del logo en login */
-.logo-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.logo-centered {
-  width: 90px;
-  height: 90px;
-  object-fit: contain;
-  border-radius: 18px;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
-}
-
-/* ===== Logo dentro del container de login ===== */
-.login-container img {
-  width: 120px;              /* Tamaño base del logo */
-  max-width: 80%;            /* Evita que se salga del container */
-  height: auto;              /* Mantiene proporciones */
-  display: block;
-  margin: 0 auto 20px auto;  /* Centrado con espacio debajo */
-  border-radius: 12px;       /* Esquinas redondeadas suaves */
-  object-fit: contain;
-}
-
-/* ======= Estilo general ======= */
-* {
+/* ===== Fondo general ===== */
+body, html {
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
   font-family: "Poppins", sans-serif;
-}
-
-body {
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: url("../assets/background.jpg") no-repeat center center/cover;
-  backdrop-filter: blur(3px);
+  height: 100%;
+  background: #121212;
   overflow: hidden;
 }
 
-/* Fondo oscuro translúcido detrás del container */
 .background {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url("../assets/background.jpg") center/cover no-repeat;
+  filter: brightness(0.4) blur(2px);
+  z-index: -1;
 }
 
-/* ======= Contenedor principal (login y registro) ======= */
+/* ===== Contenedor central ===== */
 .login-container {
   position: relative;
-  z-index: 1;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(15px);
+  max-width: 400px;
+  margin: 60px auto;
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   padding: 40px 30px;
-  width: 100%;
-  max-width: 380px;
-  color: #fff;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
-  animation: fadeIn 0.8s ease;
+  color: white;
+  backdrop-filter: blur(12px);
 }
 
-/* Animación de aparición */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(25px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* ======= Logo ======= */
+/* ===== Logo ===== */
 .login-container img {
-  width: 100px;
+  width: 120px;
   max-width: 80%;
   height: auto;
   display: block;
@@ -245,74 +43,62 @@ body {
   object-fit: contain;
 }
 
-/* ======= Título ======= */
-.login-container h2 {
-  text-align: center;
-  font-weight: 600;
-  margin-bottom: 20px;
-  color: #fff;
-}
-
-/* ======= Inputs ======= */
-.login-container input {
-  width: 100%;
-  padding: 12px 15px;
-  margin: 10px 0;
-  border: 2px solid #ccc;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  outline: none;
-  transition: border-color 0.3s, background 0.3s;
-}
-
-.login-container input:focus {
-  border-color: #4CAF50;
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* ======= Botones ======= */
-.login-container button {
-  width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: bold;
-  background: linear-gradient(135deg, #4CAF50, #2E7D32);
-  color: #fff;
-  transition: background 0.3s, transform 0.1s;
-}
-
-.login-container button:hover {
-  background: linear-gradient(135deg, #66BB6A, #388E3C);
-}
-
-.login-container button:active {
-  transform: scale(0.98);
-}
-
-.secondary-btn {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-}
-
-/* ======= Mensaje ======= */
-#registerMessage,
-#loginMessage {
-  text-align: center;
-  margin-top: 15px;
-  font-weight: 500;
-}
-
-/* ======= Responsive ======= */
+/* ===== Responsive ===== */
 @media (max-width: 600px) {
-  body {
-    padding: 20px;
-    background-position: center;
+  .login-container {
+    width: 90%;
+    padding: 30px 20px;
   }
 
-  .login-container {
-    padding: 30px 20px;
-   
+  .login-container img {
+    width: 100px;
+  }
+}
+
+.menu-logo {
+  width: 100px;
+  display: block;
+  margin: 0 auto 20px auto;
+}
+
+.menu-title {
+  text-align: center;
+  font-size: 1.5rem;
+  color: #ffffff;
+  margin-bottom: 10px;
+}
+
+.menu-subtitle {
+  text-align: center;
+  color: #cccccc;
+  margin-bottom: 20px;
+}
+
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.menu-buttons .btn {
+  background: #0078ff;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+
+.menu-buttons .btn:hover {
+  background: #005fcc;
+}
+
+.logout-btn {
+  background: #e63946;
+}
+
+.logout-btn:hover {
+  background: #b41f2e;
+}
