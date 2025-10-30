@@ -1,5 +1,7 @@
+/* Repairs.css - Estilos para la página de Lista de Reparaciones (Glassmorphism) */
+
 /* -------------------------------------------------------------------------
-   CONFIGURACIÓN Y VARIABLES
+    CONFIGURACIÓN Y VARIABLES
 ------------------------------------------------------------------------- */
 :root {
     /* Glassmorphism y Fondo */
@@ -10,9 +12,9 @@
     --shadow-color: rgba(31, 38, 135, 0.37);
     
     /* Colores de Botones */
-    --back-btn-color: #ff5252;       /* Rojo (para Volver, igual que Cerrar Sesión) */
+    --back-btn-color: #ff5252;      /* Rojo (para Volver, igual que Cerrar Sesión) */
     --back-btn-hover: #e04444;
-    --add-btn-color: #4ade80;        /* Verde (para Añadir/Acción positiva) */
+    --add-btn-color: #4ade80;       /* Verde (para Añadir/Acción positiva) */
     --add-btn-hover: #3ac06e;
     --shadow-primary: rgba(255, 82, 82, 0.4);
     --shadow-green: rgba(74, 222, 128, 0.4);
@@ -20,10 +22,15 @@
     /* Colores para mensajes de estado */
     --error-color: #f87171; 
     --success-color: #4ade80;
+
+    /* Color de acento para Prioridad */
+    --priority-bg: rgba(255, 150, 150, 0.1); /* Fondo suave para prioridad */
+    --priority-border: #ff5252; /* Borde de énfasis rojo */
+    --priority-indicator-color: #ff8c00; /* Naranja para el texto "(Prioritario)" */
 }
 
 /* -------------------------------------------------------------------------
-   ESTRUCTURA GENERAL Y FONDO
+    ESTRUCTURA GENERAL Y FONDO
 ------------------------------------------------------------------------- */
 body {
     margin: 0;
@@ -41,7 +48,7 @@ body {
 }
 
 /* -------------------------------------------------------------------------
-   ESTILO GLASSMORPHISM (TARJETA PRINCIPAL Y MODAL)
+    ESTILO GLASSMORPHISM (TARJETA PRINCIPAL Y MODAL)
 ------------------------------------------------------------------------- */
 .card {
     display: flex;
@@ -72,7 +79,7 @@ h1 {
 }
 
 /* -------------------------------------------------------------------------
-   BOTONES DE CABECERA (VOLVER y AÑADIR)
+    BOTONES DE CABECERA (VOLVER y AÑADIR)
 ------------------------------------------------------------------------- */
 .header-buttons {
     width: 100%;
@@ -121,7 +128,7 @@ h1 {
 }
 
 /* -------------------------------------------------------------------------
-   CONTENEDOR DE LISTA
+    CONTENEDOR DE LISTA
 ------------------------------------------------------------------------- */
 .list-container {
     width: 100%;
@@ -141,7 +148,7 @@ h1 {
     font-size: 16px;
 }
 
-/* Estilo para un elemento de la lista */
+/* Estilo base para un elemento de la lista */
 .list-item {
     background: rgba(255, 255, 255, 0.1);
     padding: 15px;
@@ -151,18 +158,70 @@ h1 {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
-}
-.list-item strong {
-    color: #ffd700; /* Color de acento para el título/ubicación */
-    font-size: 1.1em;
-}
-.list-item p {
-    margin: 5px 0 0 0;
-    font-size: 0.9em;
+    transition: background-color 0.2s, transform 0.1s;
 }
 
+/* Estilo para el elemento prioritario (si tiene AVERÍA) */
+.list-item.is-priority {
+    /* Mantiene la transparencia base, pero añade un sutil tono rojo */
+    background: var(--priority-bg); 
+    border-left: 5px solid var(--priority-border); /* Borde lateral rojo para mayor visibilidad */
+    box-shadow: 0 4px 15px rgba(255, 82, 82, 0.2); /* Sombra roja sutil */
+}
+
+/* Efecto hover consistente para todos los items */
+.list-item:hover {
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.5);
+}
+
+/* --- DETALLES DE LAS LÍNEAS DE LA LISTA --- */
+
+/* 1. Ubicación (Color de acento) */
+.ubicacion-text {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #ffd700; /* Dorado brillante para destacar la Ubicación */
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
+}
+
+/* Contenedor de la cabecera del item (Ubicación) */
+.list-item-header {
+    margin-bottom: 5px;
+}
+
+/* 2. Segunda Fila (Información Compacta) */
+.compact-info {
+    font-size: 0.9em;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 3px 0;
+    white-space: nowrap; /* Evita que los detalles se rompan en múltiples líneas */
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Tercera Fila (Texto de la Avería) */
+.averia-text {
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+/* 3. Indicador de Prioridad (Cuarta Fila) */
+.priority-indicator {
+    display: inline-block;
+    font-size: 0.9em;
+    font-weight: bold;
+    color: rgba(255, 0, 0, 0.8);
+    padding: 2px 8px;
+    border-radius: 5px;
+    margin-top: 5px;
+}
+
+
 /* -------------------------------------------------------------------------
-   MENSAJES DE ESTADO (Comunes a toda la app)
+    MENSAJES DE ESTADO (Comunes a toda la app)
 ------------------------------------------------------------------------- */
 .message-box {
     width: 100%;
@@ -172,21 +231,20 @@ h1 {
     text-align: center;
     font-size: 14px;
     font-weight: 500;
+    color: white; /* Color base para todos los mensajes */
 }
 .message-box.hidden {
     display: none;
 }
 .message-box.error {
     background-color: var(--error-color);
-    color: white;
 }
 .message-box.success {
     background-color: var(--success-color);
-    color: white;
 }
 
 /* -------------------------------------------------------------------------
-   ESTILOS DEL MODAL FLOTANTE
+    ESTILOS DEL MODAL FLOTANTE
 ------------------------------------------------------------------------- */
 .modal-overlay {
     position: fixed;
@@ -260,7 +318,7 @@ h1 {
 
 /* Estilo para el selector (Contrato) */
 .input-group select {
-    appearance: none;
+    appearance: none; 
     -webkit-appearance: none;
     background-image: url("data:image/svg+xml;utf8,<svg fill='white' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
     background-repeat: no-repeat;
@@ -291,8 +349,7 @@ h1 {
     cursor: pointer;
     box-shadow: 0 4px 15px var(--shadow-green);
     transition: background-color 0.3s ease, transform 0.1s ease;
-    width: 100%; 
-    max-width: 250px; 
+    width: 100%;  
     margin-top: 15px;
 }
 .btn-submit-green:hover:not(:disabled) {

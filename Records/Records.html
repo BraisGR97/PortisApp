@@ -3,9 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PortisApp - Registros</title>
+    <title>Historial de Registros</title>
+    <link rel="stylesheet" href="../Records/Records.css">
+    <script src="../../firebase-init.js"></script> 
 </head>
 <body>
-    <h1>Página de Listado de Tareas y Reparaciones Completadas</h1>
+    <div class="card-container">
+        <div class="card">
+            <h1>Historial de Registros</h1>
+            
+            <div class="header-buttons">
+                <button id="backBtn" class="btn-secondary">Volver al Menú</button>
+            </div>
+
+            <div id="listMessageBox" class="message-box hidden"></div>
+            
+            <div id="repairsList" class="list-container">
+                <p class="empty-list-message">Cargando...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="../Records/Records.js"></script>
 </body>
 </html>

@@ -1,7 +1,13 @@
-// Repairs.js - LÓGICA FINAL (Colección Raíz /repairs + Filtro por localStorage.username)
+// Repairs.js - LÓGICA FINAL (Colección Raíz /repairs + Filtro por username)
 
 // --- Utilidades del DOM ---
 
+/**
+ * Muestra un mensaje de estado temporal en la parte superior de la lista.
+ * @param {string} message - Mensaje a mostrar.
+ * @param {boolean} isError - Si es true, muestra un error; si es false, muestra éxito/informativo.
+ * @param {string} targetElementId - ID del elemento de mensaje (por defecto 'listMessageBox').
+ */
 function showMessageBox(message, isError = true, targetElementId = 'listMessageBox') {
     const msgBox = document.getElementById(targetElementId);
     if (!msgBox) return;
@@ -9,6 +15,7 @@ function showMessageBox(message, isError = true, targetElementId = 'listMessageB
     msgBox.textContent = message;
     msgBox.classList.remove('hidden', 'error', 'success');
     
+    // Muestra mensajes de carga y guardado sin temporizador
     if (message !== "Cargando lista..." && message !== "Guardando...") {
         if (isError) {
             msgBox.classList.add('error');
@@ -16,23 +23,65 @@ function showMessageBox(message, isError = true, targetElementId = 'listMessageB
             msgBox.classList.add('success');
         }
         
+        // Ocultar después de 5 segundos
         setTimeout(() => {
             msgBox.classList.add('hidden');
         }, 5000);
     }
 }
 
+/**
+ * Abre el modal para añadir una nueva reparación.
+ */
 function openModal() {
     document.getElementById('addModal').classList.remove('hidden');
     document.getElementById('addRepairForm').reset(); 
     document.getElementById('modalMessageBox').classList.add('hidden'); 
 }
 
+/**
+ * Cierra el modal de añadir reparación.
+ */
 function closeModal() {
     document.getElementById('addModal').classList.add('hidden');
 }
 
+/**
+ * Redirige a la página de detalle de la avería, pasando su ID.
+ * @param {Object} repairData - Datos completos de la reparación.
+ */
+function openDamagePage(repairData) {
+    const repairId = repairData.id;
+    // Redirige a la nueva página, pasando el ID de la avería como parámetro de consulta
+    window.location.href = `../Damage/Damage.html?id=${repairId}`;
+}
+
+
 // --- Lógica de Firestore y Lista ---
+
+/**
+ * Ordena las reparaciones: averiadas (Prioritarias) primero, y luego por fecha descendente.
+ * @param {Array<Object>} repairs - Lista de reparaciones.
+ * @returns {Array<Object>} Lista ordenada.
+ */
+function sortRepairs(repairs) {
+    return repairs.sort((a, b) => {
+        const dateA = new Date(a.fecha + '-01') || new Date('1900-01-01');
+        const dateB = new Date(b.fecha + '-01') || new Date('1900-01-01');
+        
+        // La prioridad se basa en si el campo 'averia' está lleno.
+        const tieneAveriaA = a.averia && a.averia.trim() !== '';
+        const tieneAveriaB = b.averia && b.averia.trim() !== '';
+
+        // 1. Prioridad: Elementos CON avería primero.
+        if (tieneAveriaA && !tieneAveriaB) return -1;
+        if (!tieneAveriaA && tieneAveriaB) return 1;
+
+        // 2. Desempate: Fecha más reciente primero (descendente)
+        return dateB - dateA; 
+    });
+}
+
 
 /**
  * Renderiza la lista de reparaciones en el DOM.
@@ -46,23 +95,42 @@ function renderRepairsList(repairs) {
         return;
     }
 
-    repairs.forEach(repair => {
+    const sortedRepairs = sortRepairs(repairs);
+
+    sortedRepairs.forEach(repair => {
         const item = document.createElement('div');
         item.classList.add('list-item');
         
-        // Asegurarse de que repair.fecha existe y tiene formato YYYY-MM
+        // Determinar si es PRIORITARIO (si el campo 'averia' tiene texto)
+        const isPriority = repair.averia && repair.averia.trim() !== '';
+        if (isPriority) {
+            item.classList.add('is-priority'); // Clase para el fondo rojo suave
+        }
+        
         const dateParts = repair.fecha ? repair.fecha.split('-') : [];
         const formattedDate = dateParts.length === 2 ? `${dateParts[1]}/${dateParts[0]}` : 'Fecha Desconocida';
 
         item.innerHTML = `
-            <strong>Ubicación: ${repair.ubicacion}</strong>
-            <p>Modelo: ${repair.modelo} | Llave: ${repair.llave}</p>
-            <p>Contrato: ${repair.contrato} | Fecha: ${formattedDate}</p>
-            <p>Avería: ${repair.averia}</p>
+            <div class="list-item-header">
+                <strong class="ubicacion-text">${repair.ubicacion}</strong>
+            </div>
+            
+            <p class="compact-info">
+                Modelo: ${repair.modelo} | Llave: ${repair.llave} | Contrato: ${repair.contrato} | Fecha: ${formattedDate}
+            </p>
+            
+            <p class="averia-text compact-info">Avería: ${isPriority ? repair.averia : 'N/A'}</p>
+            
+            ${isPriority ? '<p class="priority-indicator">Alta Prioridad</p>' : ''}
         `;
+        
+        // Asigna el evento de clic para redirigir a la página de detalle
+        item.addEventListener('click', () => openDamagePage(repair)); 
+        
         listContainer.appendChild(item);
     });
 }
+
 
 /**
  * Obtiene las reparaciones del usuario actual desde la colección raíz /repairs,
@@ -74,7 +142,6 @@ async function fetchRepairs() {
     
     if (!currentUser) {
         showMessageBox("Error: No se ha iniciado sesión. Volviendo a Login...", true);
-        // Redirigir si no hay usuario logueado
         setTimeout(() => window.location.href = '../LogIn/LogIn.html', 1500); 
         return;
     }
@@ -107,11 +174,13 @@ async function fetchRepairs() {
 }
 
 /**
- * Maneja el envío del formulario para añadir una nueva reparación,
- * guardando el 'username' actual.
+ * Maneja el envío del formulario para añadir una nueva reparación.
  */
 async function handleAddRepair(event) {
     event.preventDefault();
+    
+    // NOTA: La validación de campos obligatorios (ubicación y fecha)
+    // debe hacerse mediante el atributo 'required' en el HTML.
     
     const submitBtn = document.getElementById('submitAddBtn');
     submitBtn.disabled = true;
@@ -127,15 +196,16 @@ async function handleAddRepair(event) {
     
     showMessageBox("Guardando...", false, 'modalMessageBox');
 
-    // 2. CREAR EL OBJETO DE DATOS (INCLUYENDO EL USERNAME)
+    // 2. CREAR EL OBJETO DE DATOS (AVARIA SE INCLUYE VACÍA SI NO SE RELLENA)
     const data = {
         ubicacion: document.getElementById('ubicacion').value,
         modelo: document.getElementById('modelo').value,
         fecha: document.getElementById('fecha').value, 
         contrato: document.getElementById('contrato').value,
         llave: document.getElementById('llave').value,
-        averia: document.getElementById('averia').value,
-        username: currentUser, // <-- CAMBIO CLAVE: SE AÑADE EL USERNAME
+        // Si el campo está vacío, se guardará como una cadena vacía ""
+        averia: document.getElementById('averia').value, 
+        username: currentUser, 
         timestamp: new Date().toISOString()
     };
     
@@ -182,7 +252,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (backBtn) {
         backBtn.addEventListener('click', function() {
-            // CORREGIDO: Subir de nivel y entrar a Main.html
+            // Regresar al Main.html
             window.location.href = '../Main/Main.html'; 
         });
     }
