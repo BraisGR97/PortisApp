@@ -1,6 +1,6 @@
-// Repairs.js
+// Repairs.js - LÓGICA FINAL (Colección Raíz /repairs + Filtro por localStorage.username)
 
-// --- Utilidades del DOM (Se mantienen igual) ---
+// --- Utilidades del DOM ---
 
 function showMessageBox(message, isError = true, targetElementId = 'listMessageBox') {
     const msgBox = document.getElementById(targetElementId);
@@ -35,24 +35,7 @@ function closeModal() {
 // --- Lógica de Firestore y Lista ---
 
 /**
- * Espera a que el ID de usuario de Firebase esté disponible.
- * @returns {Promise<string>} El ID de usuario actual.
- */
-function waitForUserId() {
-    return new Promise((resolve, reject) => {
-        const check = () => {
-            if (window.CURRENT_USER_ID && window.CURRENT_USER_ID !== "LOADING...") {
-                resolve(window.CURRENT_USER_ID);
-            } else {
-                setTimeout(check, 100); 
-            }
-        };
-        check();
-    });
-}
-
-/**
- * Renderiza la lista de reparaciones en el DOM. (Se mantiene igual)
+ * Renderiza la lista de reparaciones en el DOM.
  */
 function renderRepairsList(repairs) {
     const listContainer = document.getElementById('repairsList');
@@ -67,8 +50,9 @@ function renderRepairsList(repairs) {
         const item = document.createElement('div');
         item.classList.add('list-item');
         
-        const [year, month] = repair.fecha.split('-');
-        const formattedDate = `${month}/${year}`;
+        // Asegurarse de que repair.fecha existe y tiene formato YYYY-MM
+        const dateParts = repair.fecha ? repair.fecha.split('-') : [];
+        const formattedDate = dateParts.length === 2 ? `${dateParts[1]}/${dateParts[0]}` : 'Fecha Desconocida';
 
         item.innerHTML = `
             <strong>Ubicación: ${repair.ubicacion}</strong>
@@ -81,31 +65,32 @@ function renderRepairsList(repairs) {
 }
 
 /**
- * Obtiene las reparaciones del usuario actual desde la subcolección.
- * CORREGIDO: Consulta en /users/{userId}/repairs
+ * Obtiene las reparaciones del usuario actual desde la colección raíz /repairs,
+ * filtrando por el campo 'username'.
  */
 async function fetchRepairs() {
-    let userId;
-    try {
-        showMessageBox("Cargando lista...", false, 'listMessageBox');
-        userId = await waitForUserId();
-    } catch (error) {
-        showMessageBox("Error crítico: No se pudo obtener el ID de usuario para cargar datos.", true, 'listMessageBox');
+    // 1. OBTENER EL USUARIO LOGUEADO DESDE LOCALSTORAGE
+    const currentUser = localStorage.getItem('portisAppUser');
+    
+    if (!currentUser) {
+        showMessageBox("Error: No se ha iniciado sesión. Volviendo a Login...", true);
+        // Redirigir si no hay usuario logueado
+        setTimeout(() => window.location.href = '../LogIn/LogIn.html', 1500); 
         return;
     }
+    
+    showMessageBox("Cargando lista...", false, 'listMessageBox');
 
     const db = window.db;
-    
-    // USANDO LA SUBCOLECCIÓN: users -> [userId] -> repairs
-    // Necesitas importar doc() en Repairs.html para esto
-    const repairsCollectionRef = window.collection(
-        window.doc(db, 'users', userId), 
-        'repairs'
-    );
+    const repairsCollectionRef = window.collection(db, 'repairs'); // Colección Raíz
 
     try {
-        // En una subcolección filtrada por ID de documento, no necesitas un where
-        const snapshot = await window.getDocs(repairsCollectionRef);
+        // 2. FILTRAR LA COLECCIÓN RAÍZ POR EL USERNAME
+        const q = window.query(
+            repairsCollectionRef, 
+            window.where('username', '==', currentUser) // <-- EL FILTRO CLAVE
+        );
+        const snapshot = await window.getDocs(q);
         
         const repairs = snapshot.docs.map(doc => ({
             id: doc.id,
@@ -122,8 +107,8 @@ async function fetchRepairs() {
 }
 
 /**
- * Maneja el envío del formulario para añadir una nueva reparación.
- * CORREGIDO: Guarda en /users/{userId}/repairs
+ * Maneja el envío del formulario para añadir una nueva reparación,
+ * guardando el 'username' actual.
  */
 async function handleAddRepair(event) {
     event.preventDefault();
@@ -131,16 +116,18 @@ async function handleAddRepair(event) {
     const submitBtn = document.getElementById('submitAddBtn');
     submitBtn.disabled = true;
 
-    let userId;
-    try {
-        showMessageBox("Guardando...", false, 'modalMessageBox');
-        userId = await waitForUserId(); 
-    } catch (error) {
-        showMessageBox("Error: ID de usuario no disponible para guardar.", true, 'modalMessageBox');
+    // 1. OBTENER EL USUARIO LOGUEADO DESDE LOCALSTORAGE
+    const currentUser = localStorage.getItem('portisAppUser');
+    
+    if (!currentUser) {
+        showMessageBox("Error: Sesión expirada. No se puede guardar.", true, 'modalMessageBox');
         submitBtn.disabled = false;
         return;
     }
     
+    showMessageBox("Guardando...", false, 'modalMessageBox');
+
+    // 2. CREAR EL OBJETO DE DATOS (INCLUYENDO EL USERNAME)
     const data = {
         ubicacion: document.getElementById('ubicacion').value,
         modelo: document.getElementById('modelo').value,
@@ -148,22 +135,19 @@ async function handleAddRepair(event) {
         contrato: document.getElementById('contrato').value,
         llave: document.getElementById('llave').value,
         averia: document.getElementById('averia').value,
-        // Ya no necesitamos 'userId' dentro del documento, ya que está en la ruta
+        username: currentUser, // <-- CAMBIO CLAVE: SE AÑADE EL USERNAME
         timestamp: new Date().toISOString()
     };
     
     const db = window.db;
-
-    // USANDO LA SUBCOLECCIÓN: users -> [userId] -> repairs
-    const repairsCollectionRef = window.collection(
-        window.doc(db, 'users', userId), 
-        'repairs'
-    );
+    const repairsCollectionRef = window.collection(db, 'repairs'); // Colección Raíz
 
     try {
+        // 3. GUARDAR EN LA COLECCIÓN RAÍZ /repairs (CON ID AUTOMÁTICO)
         await window.addDoc(repairsCollectionRef, data);
         showMessageBox("Reparación añadida con éxito.", false, 'modalMessageBox');
         
+        // Recargar la lista para mostrar el nuevo elemento
         await fetchRepairs();
         
         setTimeout(() => {
@@ -175,12 +159,17 @@ async function handleAddRepair(event) {
         console.error("Error al guardar en Firestore:", error);
         showMessageBox(`Error al guardar: ${error.message}`, true, 'modalMessageBox');
     } finally {
-        setTimeout(() => { submitBtn.disabled = false; }, 1000);
+        // Aseguramos que el botón se habilita de nuevo (si no se cerró el modal)
+        setTimeout(() => { 
+            if (document.getElementById('addModal') && !document.getElementById('addModal').classList.contains('hidden')) {
+                 submitBtn.disabled = false; 
+            }
+        }, 1000);
     }
 }
 
 
-// --- Inicialización (Se mantiene igual) ---
+// --- Inicialización ---
 
 document.addEventListener('DOMContentLoaded', function() {
     const backBtn = document.getElementById('backBtn');
@@ -189,11 +178,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const addRepairForm = document.getElementById('addRepairForm');
     const modalOverlay = document.getElementById('addModal');
     
-    fetchRepairs();
+    fetchRepairs(); // Carga la lista filtrada al iniciar
 
     if (backBtn) {
         backBtn.addEventListener('click', function() {
-            window.location.href = '../Main/Main.html';
+            // CORREGIDO: Subir de nivel y entrar a Main.html
+            window.location.href = '../Main/Main.html'; 
         });
     }
 

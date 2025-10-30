@@ -1,4 +1,4 @@
-// LogIn.js
+// LogIn.js - COMPLETO Y CORREGIDO
 
 // --- Funciones de Utilidad ---
 
@@ -113,6 +113,13 @@ async function handleLogin() {
             // Credenciales inválidas
             showMessage("Usuario o contraseña incorrectos.", true);
         } else {
+            
+            // --- ¡MODIFICACIÓN CLAVE! ---
+            // Guardamos el username en localStorage para usarlo en Repairs.js
+            localStorage.setItem('portisAppUser', username);
+            console.log(`Usuario '${username}' guardado en localStorage.`);
+            // ---------------------------
+
             // Login exitoso
             showMessage("Inicio de sesión exitoso. Redirigiendo...", false);
             
@@ -151,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (registerLink) {
         registerLink.addEventListener('click', function(event) {
             event.preventDefault(); 
-            // Desde LogIn/ debe ir a ../SigIn/SignIn.html
+            // Ruta corregida: Asumiendo que SignIn.html está en la raíz
             window.location.href = '../SignIn/SignIn.html'; 
         });
     }
