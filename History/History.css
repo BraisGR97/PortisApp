@@ -41,7 +41,6 @@ body {
 
 .card-container {
     padding: 20px;
-    
 }
 
 /* -------------------------------------------------------------------------
@@ -58,10 +57,10 @@ body {
 
     padding: 30px;
     border-radius: 20px;
-	min-width: 350px;
-    max-width: 400px;
-	min-height: 50vh; 
-    max-height: 120vh;
+	min-width: 500px;
+    max-width: 550px;
+	min-height: 65vh; 
+    max-height: 75vh;
     color: var(--text-color);
 }
 
@@ -148,73 +147,9 @@ hr {
     background-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Botón de Lápiz para Edición */
-.modal-edit-btn {
-    background: none;
-    border: none;
-    font-size: 1.5em; 
-    cursor: pointer;
-    line-height: 1;
-    padding: 0;
-    color: var(--text-color); 
-    transition: color 0.2s;
-    text-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-}
-
-/* Estilo para el lápiz cuando el modo edición está activo */
-.modal-edit-btn.active {
-    color: var(--success-color); /* Resalta el lápiz en el color de éxito */
-    text-shadow: 0 0 10px rgba(74, 222, 128, 0.7); 
-}
-
-.modal-edit-btn:hover {
-    color: #ffd700; /* Dorado brillante al pasar el ratón */
-}
-
 /* ------------------------------------ */
 /* --- 3. DETALLE Y FORMULARIO (INPUTS) --- */
 /* ------------------------------------ */
-
-/* Ocultar formulario de edición y botón de guardar si no está activo */
-#editDamageForm.hidden, #savePrimaryDetailsBtn.hidden {
-    display: none;
-}
-
-.detail-info {
-    margin-bottom: 20px;
-    line-height: 1.5;
-    padding: 10px;
-    border-radius: 10px;
-    background: rgba(0, 0, 0, 0.1); /* Fondo sutil para la zona de detalle */
-}
-
-.detail-info p {
-    margin: 8px 0;
-    font-size: 1em;
-}
-
-.detail-info strong {
-    color: var(--detail-label-color);
-    font-weight: bold;
-}
-
-.detail-inline-group {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 15px;
-}
-
-.detail-inline-group .detail-group {
-    flex: 1;
-}
-
-.detail-group label {
-    color: var(--detail-label-color);
-    display: block;
-    margin-bottom: 5px;
-    font-size: 0.9em;
-    font-weight: bold;
-}
 
 /* Estilo Glassmorphism aplicado a todos los inputs, selects y textareas */
 .detail-info input.detail-input,
@@ -237,11 +172,6 @@ textarea.detail-input /* <- Regla clave para las observaciones fuera del .detail
     resize: vertical; /* Permite redimensionar verticalmente */
 }
 
-#inputContrato option {
-    /* El menú desplegable usará fondo blanco y texto negro */
-    background-color: rgba(0, 20, 255, 0.2); 
-    color: #000000; 
-}
 /* Estilo específico para el campo de Observaciones */
 #detailObservaciones {
     min-height: 120px;
@@ -291,7 +221,7 @@ textarea.detail-input /* <- Regla clave para las observaciones fuera del .detail
     display: none !important;
 }
 
-/* Botones Eliminar y Completar (Fila y mismo tamaño) */
+/* Botones Eliminar(Fila y mismo tamaño) */
 .detail-actions-bottom.flex-row-equal {
     display: flex;
     justify-content: space-between;
@@ -309,17 +239,6 @@ textarea.detail-input /* <- Regla clave para las observaciones fuera del .detail
     font-size: 1em;
 }
 
-/* Estilo para el botón Completar (usa el color de éxito) */
-.btn-submit-green {
-    background-color: var(--success-color); 
-    color: var(--text-color);
-    border: none;
-    box-shadow: 0 4px 15px rgba(74, 222, 128, 0.4);
-}
-.btn-submit-green:hover {
-    background-color: #3cb86b;
-}
-
 /* Estilo para el botón Eliminar (usa el color de LogIn.css) */
 .btn-delete-action {
     background-color: var(--delete-color); 
@@ -329,124 +248,4 @@ textarea.detail-input /* <- Regla clave para las observaciones fuera del .detail
 }
 .btn-delete-action:hover {
     background-color: var(--delete-hover);
-}
-
-/* -------------------------------------------------------------------------
-    5. MODAL DE CONFIRMACIÓN (GLASSMORPHISM OVERLAY)
-------------------------------------------------------------------------- */
-
-/* Fondo oscurecido/blurred que cubre toda la pantalla */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.4); /* Oscurecimiento sutil */
-    backdrop-filter: blur(5px); /* CLAVE: Efecto Glassmorphism */
-    -webkit-backdrop-filter: blur(5px);
-    z-index: 10000; /* Asegura que esté por encima de todo */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    /* transition: opacity 0.3s ease; */ /* Si prefieres una animación de fade */
-}
-
-/* Tarjeta del modal flotante */
-.modal-card {
-    /* Mismos estilos base que .card para consistencia */
-    background: var(--card-bg);
-    box-shadow: 0 10px 40px 0 rgba(31, 38, 135, 0.5); /* Sombra más pronunciada */
-    backdrop-filter: blur(15px); /* Blur mayor para destacarse */
-    -webkit-backdrop-filter: blur(15px);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    
-    padding: 25px;
-    border-radius: 15px;
-    width: 90%;
-    max-width: 350px;
-    text-align: center;
-    color: var(--text-color);
-    
-    /* Animación de entrada/salida (Opcional, pero genial) */
-    transform: scale(1);
-    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
-}
-
-/* Estilos de Tipografía en el Modal */
-.modal-card h3 {
-    margin-bottom: 15px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--card-border);
-}
-
-.modal-card p {
-    font-size: 1.1em;
-    margin-bottom: 25px;
-    font-weight: 300;
-}
-
-/* Contenedor de botones (para Centrado y espaciado) */
-.modal-actions {
-    display: flex;
-    flex-wrap: wrap; /* Para que en móvil se puedan apilar */
-    justify-content: center;
-    gap: 10px;
-}
-
-/* Estilo base para los botones del modal */
-.modal-actions button {
-    padding: 10px 15px;
-    border-radius: 8px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    flex-grow: 1;
-    min-width: 100px; /* Ancho mínimo para que se vean bien */
-}
-
-/* ------------------ */
-/* Botón 'Sí' (Verde) */
-/* ------------------ */
-.btn-modal-yes {
-    background-color: var(--success-color); 
-    color: white;
-    border: none;
-    box-shadow: 0 4px 10px rgba(74, 222, 128, 0.6);
-}
-.btn-modal-yes:hover {
-    background-color: #3cb86b;
-}
-
-/* ------------------ */
-/* Botón 'No' (Rojo) */
-/* ------------------ */
-.btn-modal-no {
-    /* Usamos el color de delete para el "No" */
-    background-color: var(--delete-color); 
-    color: white;
-    border: none;
-    box-shadow: 0 4px 10px var(--delete-shadow);
-}
-.btn-modal-no:hover {
-    background-color: var(--delete-hover);
-}
-
-/* ---------------------- */
-/* Botón 'Cancelar' (Gris) */
-/* ---------------------- */
-.btn-modal-cancel {
-    /* Estilo Glassmorphism secundario (como el btn-secondary) */
-    background-color: rgba(255, 255, 255, 0.2);
-    color: var(--text-color);
-    border: 1px solid var(--card-border);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-}
-.btn-modal-cancel:hover {
-    background-color: rgba(255, 255, 255, 0.3);
-}
-
-/* Clase de utilidad de JavaScript (no hace falta repetir .hidden) */
-.hidden {
-    display: none !important;
 }

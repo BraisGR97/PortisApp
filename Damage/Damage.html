@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PortisApp - Detalle de Avería</title>
     <link rel="stylesheet" href="../Damage/Damage.css">
-</head>
+    </head>
 <body>
     <div class="card-container">
         <div class="card">
@@ -34,11 +34,11 @@
                     <div class="detail-inline-group">
                         <div class="detail-group">
                             <label for="inputModelo">Modelo:</label>
-                            <input type="text" id="inputModelo" class="detail-input" required>
+                            <input type="text" id="inputModelo" class="detail-input">
                         </div>
                         <div class="detail-group">
                             <label for="inputLlave">Llave:</label>
-                            <input type="text" id="inputLlave" class="detail-input" required>
+                            <input type="text" id="inputLlave" class="detail-input">
                         </div>
                     </div>
                     <div class="detail-inline-group">
@@ -57,7 +57,7 @@
                     </div>
                     <div class="detail-group">
                         <label for="inputAveria">Avería:</label>
-                        <textarea id="inputAveria" class="detail-input" rows="3" required></textarea>
+                        <textarea id="inputAveria" class="detail-input" rows="3"></textarea>
                     </div>
 
                     <button type="submit" id="savePrimaryDetailsBtn" class="btn-submit-green small hidden">Guardar Cambios</button>
@@ -83,10 +83,33 @@
         </div>
     </div>
     
+    <div id="confirmationModal" class="modal-overlay hidden">
+        <div id="modalCard" class="modal-card">
+            <h3 id="modalTitle"></h3>
+            <p id="modalMessage"></p>
+            
+            <div class="modal-actions">
+                <button id="btnYes" class="btn-modal-yes">
+                    Sí
+                </button>
+                
+                <button id="btnNo" class="btn-modal-no">
+                    No
+                </button>
+
+                <button id="btnCancel" class="btn-modal-cancel hidden">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../Damage/Damage.js"></script>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, getDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, getDoc, doc, updateDoc, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         
         // --- Configuración de Firebase ---
         const firebaseConfig = {
@@ -103,26 +126,41 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
         
-        // Exponer referencias necesarias a Damage.js
+        // Exponer referencias necesarias a Damage.js (Esto es vital)
         window.db = db;
         window.getDoc = getDoc;
         window.doc = doc;
         window.updateDoc = updateDoc;
         window.deleteDoc = deleteDoc;
-        
-        // Asegurar la autenticación
-        signInAnonymously(auth).catch(error => console.error("Error en autenticación anónima:", error));
+        window.collection = collection;
+        window.addDoc = addDoc;
+        // Se ha eliminado la llamada directa a window.initializePageLogic() de aquí
 
-        // Obtener el ID del usuario al cargar el estado
+        // Función para iniciar sesión anónimamente
+        function ensureAuth() {
+            signInAnonymously(auth).catch(error => console.error("Error en autenticación anónima:", error));
+        }
+                
+        // Obtener el ID del usuario AL CARGAR EL ESTADO
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 window.CURRENT_USER_ID = user.uid;
+                console.log(`DEBUG: Autenticación exitosa. UID: ${user.uid}`);
+                
+                // CLAVE: Llama a la inicialización de la página (que llama a loadDamageDetails)
+                // SOLO después de que el usuario esté listo, y ahora la función existe.
+                if (typeof window.initializePageLogic === 'function') {
+                    window.initializePageLogic();
+                }
+
             } else {
-                console.warn("Usuario no autenticado en Damage.html.");
+                console.warn("Usuario no autenticado. Intentando autenticar...");
+                ensureAuth();  
             }
         });
+
+        // Llamamos a ensureAuth por primera vez si la sesión no estaba persistida
+        ensureAuth();
     </script>
-    
-    <script src="../Damage/Damage.js"></script>
 </body>
 </html>

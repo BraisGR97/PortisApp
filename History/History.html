@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	 <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, getDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        
+        // --- Configuración de Firebase ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyD_tC3KaK3UVyNOPiSsnI0s5k8Cd_qFJpg",
+            authDomain: "portisapp.firebaseapp.com",
+            projectId: "portisapp",
+            storageBucket: "portisapp.firebasestorage.app",
+            messagingSenderId: "38313359657",
+            appId: "1:38313359657:web:ae73a0f8f7556bed92df38",
+            measurementId: "G-HQ29Y8Z2DY"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        // Exponer referencias necesarias a Damage.js
+        window.db = db;
+        window.getDoc = getDoc;
+        window.doc = doc;
+        window.updateDoc = updateDoc;
+        window.deleteDoc = deleteDoc;
+        
+        // Asegurar la autenticación
+        signInAnonymously(auth).catch(error => console.error("Error en autenticación anónima:", error));
+
+        // Obtener el ID del usuario al cargar el estado
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                window.CURRENT_USER_ID = user.uid;
+            } else {
+                console.warn("Usuario no autenticado en History.html.");
+            }
+        });
+    </script>
+    <title>PortisApp - Detalle de Avería</title>
+    <link rel="stylesheet" href="../History/History.css">
+</head>
+<body>
+    <div class="card-container">
+        <div class="card">
+            
+            <div class="card-header-controls"> 
+                <button class="btn-secondary" id="backBtn">Volver a Historial</button>
+            </div>
+            
+            <h2>Detalle de la Avería</h2>
+            <div id="historyMessageBox" class="message-box hidden" role="alert" aria-live="assertive"></div>
+            
+            <div id="detailView" class="detail-info"> 
+                <p><strong>Ubicación:</strong> <span id="detailUbicacion">Cargando...</span></p>
+                <p><strong>Modelo:</strong> <span id="detailModelo"></span> | <strong>Llave:</strong> <span id="detailLlave"></span></p>
+                <p><strong>Contrato:</strong> <span id="detailContrato"></span> | <strong>Mes/Año:</strong> <span id="detailFecha"></span></p>
+				<p><strong>Registrado el:</strong> <span id="detailcompletedAt"></span></p>
+                <p><strong>Avería:</strong> <span id="detailAveria"></span></p>
+            </div>
+            
+            <hr>
+
+            <form id="saveObservationsForm">
+                <h3>Observaciones</h3>
+    
+                <div class="input-group">
+                    <textarea id="detailObservaciones" class="detail-input" placeholder="Añadir observaciones, notas o seguimiento." rows="4"></textarea> 
+                </div>
+    
+                <button type="submit" id="saveObservationsBtn" class="btn-submit-green small hidden">Guardar Observaciones</button>
+            </form>
+
+            <div class="button-group detail-actions-bottom flex-row-equal">
+                <button id="deleteHistoryBtn" class="btn-delete-action">Eliminar Registro</button> 
+            </div>
+        </div>
+    </div>
+    <script src="../History/History.js"></script>
+</body>
+</html>

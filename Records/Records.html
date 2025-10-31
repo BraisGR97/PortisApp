@@ -3,17 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historial de Registros</title>
+    <title>PortisApp - Historial de Registros</title>
     <link rel="stylesheet" href="../Records/Records.css">
-    <script src="../../firebase-init.js"></script> 
-</head>
+    </head>
 <body>
     <div class="card-container">
         <div class="card">
-            <h1>Historial de Registros</h1>
-            
+            <div class="header-with-search">
+    <h2>Historial de mantenimientos</h2>
+    <button id="searchToggleBtn" class="icon-btn" aria-label="Abrir buscador">🔍</button>
+</div>
+<div id="searchContainer" class="search-box hidden">
+    <input type="text" id="searchInput" placeholder="Buscar por ubicación, modelo, llave, contrato o avería..." class="detail-input">
+</div>
             <div class="header-buttons">
-                <button id="backBtn" class="btn-secondary">Volver al Menú</button>
+                <button id="backBtn" class="btn-secondary">Volver</button>
             </div>
 
             <div id="listMessageBox" class="message-box hidden"></div>
@@ -24,6 +28,45 @@
         </div>
     </div>
 
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, getDocs, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        
+        // --- Configuración de Firebase ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyD_tC3KaK3UVyNOPiSsnI0s5k8Cd_qFJpg",
+            authDomain: "portisapp.firebaseapp.com",
+            projectId: "portisapp",
+            storageBucket: "portisapp.firebasestorage.app",
+            messagingSenderId: "38313359657",
+            appId: "1:38313359657:web:ae73a0f8f7556bed92df38",
+            measurementId: "G-HQ29Y8Z2DY"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        // Iniciar sesión anónimamente (Si no usas Login/Password)
+        signInAnonymously(auth).catch(error => console.error("Error en autenticación anónima:", error));
+
+        // Referencias globales para Records.js
+        window.db = db;
+        window.collection = collection;
+        window.addDoc = addDoc; 
+        window.query = query;
+        window.where = where;
+        window.getDocs = getDocs;
+        window.doc = doc;
+        
+        // Opcional: Si necesitas el UID anónimo y no el 'portisAppUser' de localStorage
+        // auth.onAuthStateChanged((user) => {
+        //     if (user) {
+        //         window.CURRENT_USER_ID = user.uid; 
+        //     }
+        // });
+    </script>
     <script src="../Records/Records.js"></script>
 </body>
 </html>

@@ -3,35 +3,38 @@
 document.addEventListener('DOMContentLoaded', function() {
     const repairsBtn = document.getElementById('repairsBtn');
     const recordsBtn = document.getElementById('recordsBtn');
-    const logoutBtn = document.getElementById('logoutBtn'); // <--- NUEVO
+    const sharedBtn = document.getElementById('sharedBtn'); // <--- NUEVA VARIABLE
+    const logoutBtn = document.getElementById('logOutBtn'); // Corregido: Usar 'logOutBtn' del HTML
 
-    // 1. Botón 'Reparaciones' (Ruta corregida a la raíz)
+    // 1. Botón 'Reparaciones'
     if (repairsBtn) {
         repairsBtn.addEventListener('click', function() {
-            // Desde /Main/Main.js sube un nivel (..) y va al archivo en la raíz
             window.location.href = '../Repairs/Repairs.html';
         });
     }
 
-    // 2. Botón 'Registros' (Ruta corregida a la raíz)
+    // 2. Botón 'Registros'
     if (recordsBtn) {
         recordsBtn.addEventListener('click', function() {
-            // Desde /Main/Main.js sube un nivel (..) y va al archivo en la raíz
             window.location.href = '../Records/Records.html';
         });
     }
     
-    // 3. Botón 'Cerrar Sesión' (¡CON CAMBIOS!)
+    // 3. Botón 'Compartidos' (¡NUEVO!)
+    if (sharedBtn) {
+        sharedBtn.addEventListener('click', function() {
+            window.location.href = '../Shared/Shared.html'; // <--- NUEVA RUTA
+        });
+    }
+    
+    // 4. Botón 'Cerrar Sesión'
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function() {
             
-            // --- ¡MODIFICACIÓN CLAVE! ---
             // Limpiamos el username guardado al cerrar sesión.
             localStorage.removeItem('portisAppUser');
             console.log("Usuario eliminado de localStorage (Sesión cerrada).");
-            // ---------------------------
-
-            // Desde /Main/ debe subir a la raíz (..) y luego entrar en LogIn/
+            
             window.location.href = '../LogIn/LogIn.html';
         });
     }

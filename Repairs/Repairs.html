@@ -10,7 +10,14 @@
     <div class="card-container">
         <div class="card">
             
-            <h1>Lista de Reparaciones</h1>
+            <div class="header-with-search">
+    <h2>Lista de Reparaciones</h2>
+    <button id="searchToggleBtn" class="icon-btn" aria-label="Abrir buscador">🔍</button>
+</div>
+
+<div id="searchContainer" class="search-box hidden">
+    <input type="text" id="searchInput" placeholder="Buscar por ubicación, modelo, llave, contrato o avería..." class="detail-input">
+</div>
 
             <div class="header-buttons">
                 <button class="btn-secondary" id="backBtn">Volver</button>

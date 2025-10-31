@@ -54,10 +54,11 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 90vw; 
-    max-width: 600px; 
-    min-height: 70vh; 
+    min-width: 510px;
+    max-width: 600px;  
     padding: 30px 40px;
+	min-height: 50vh; 
+    max-height: 70vh;
     border-radius: 25px;
     background: var(--card-bg); 
     box-shadow: 0 8px 32px 0 var(--shadow-color); 
@@ -68,14 +69,101 @@ body {
     border-left: 1px solid rgba(255, 255, 255, 0.5);
 }
 
-h1 {
-    color: var(--text-color);
+/* 1. Ocultar completamente la barra de desplazamiento en Chrome, Safari, y Edge */
+
+/* El ancho de la barra (establecer a 0) */
+.list-container::-webkit-scrollbar {
+    width: 0.1em; /* Un valor muy pequeño para que sea casi invisible */
+    background: transparent; /* Asegura que el fondo sea transparente */
+}
+
+/* La pista (el camino por donde pasa el pulgar) */
+.list-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* El pulgar (la barra que el usuario arrastra) */
+.list-container::-webkit-scrollbar-thumb {
+    background: transparent; 
+}
+
+/* 2. Estilo para Firefox */
+
+.list-container {
+    /* CLAVE: Establece el modo de visualización a 'none' (oculto) o 'thin' (delgado) */
+    scrollbar-width: none; /* Oculta completamente la barra, pero mantiene el scroll */
+    /* Para hacerlo delgado, usarías: scrollbar-width: thin; */
+}
+
+/* Opcional: Para evitar que el fondo parpadee en Firefox */
+.list-container {
+    overflow-y: auto; /* Mantener la propiedad original */
+}
+
+/* Estructura para el título y la lupa */
+.header-with-search {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1px;
+	color: var(--text-color);
     font-size: 24px;
     font-weight: 500;
     margin-top: 0;
-    margin-bottom: 25px;
     text-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
     align-self: flex-start;
+}
+
+/* Estilo para el botón de icono (la lupa) */
+.icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.5rem; /* Ajusta el tamaño del emoji */
+    color: var(--text-color, white);
+    padding: 0;
+    margin-left: 100px;
+}
+
+/* Contenedor del input de búsqueda */
+.search-box {
+    margin-bottom: 20px;
+    padding: 10px;
+    border-radius: 8px;
+    transition: all 0.3s ease-in-out;
+    
+    /* ************************************** */
+    /* CLAVES para el efecto Glassmorphism: */
+    /* ************************************** */
+    
+    /* 1. Fondo semitransparente (Blanco con 10% de opacidad) */
+    background: rgba(255, 255, 255, 0.1); 
+    
+    /* 2. Borde sutil */
+    border: 1px solid rgba(255, 255, 255, 0.1); 
+    
+    /* 3. Desenfoque (Glass effect) */
+    backdrop-filter: blur(5px); 
+    -webkit-backdrop-filter: blur(5px); /* Soporte para navegadores Webkit */
+}
+
+/* Opcional: Estilo para el campo de input dentro de la caja */
+#searchInput {
+    /* El input necesita un fondo transparente para que se vea la caja semitransparente */
+    background: transparent; 
+    border: none; /* Quitar borde si lo tuviera */
+    color: white; /* Asegurar que el texto sea visible */
+}
+/* El input de búsqueda usará el estilo base detail-input */
+.search-box .detail-input {
+    width: 100%;
+    box-sizing: border-box;
+    /* Ajustes para el input en el contexto de búsqueda */
+}
+
+/* Utilidad para ocultar elementos */
+.hidden {
+    display: none !important;
 }
 
 /* -------------------------------------------------------------------------

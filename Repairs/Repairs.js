@@ -1,5 +1,7 @@
 // Repairs.js - LÓGICA FINAL (Colección Raíz /repairs + Filtro por username)
 
+let allRepairs = []; // CLAVE: Variable global para almacenar todas las reparaciones cargadas.
+
 // --- Utilidades del DOM ---
 
 /**
@@ -57,6 +59,56 @@ function openDamagePage(repairData) {
 }
 
 
+// --- Lógica de Búsqueda y Filtro ---
+
+/**
+ * Togglea la visibilidad del campo de búsqueda.
+ */
+function toggleSearch() {
+    const searchContainer = document.getElementById('searchContainer');
+    const searchInput = document.getElementById('searchInput');
+
+    searchContainer.classList.toggle('hidden');
+
+    if (!searchContainer.classList.contains('hidden')) {
+        searchInput.focus(); // Enfoca el input al abrir
+    } else {
+        // Al ocultar, limpiar el campo y restaurar la lista completa
+        searchInput.value = ''; 
+        filterRepairs(''); 
+    }
+}
+
+/**
+ * Filtra y re-renderiza la lista de reparaciones basándose en el texto de búsqueda.
+ * @param {string} searchTerm - El texto introducido por el usuario.
+ */
+function filterRepairs(searchTerm) {
+    const term = searchTerm.toLowerCase().trim();
+
+    if (term === '') {
+        // Si el término está vacío, renderiza la lista completa
+        renderRepairsList(allRepairs);
+        return;
+    }
+
+    const filtered = allRepairs.filter(repair => {
+        // Combina los campos relevantes en una sola cadena para buscar coincidencias
+        const dataString = [
+            repair.ubicacion,
+            repair.modelo,
+            repair.llave,
+            repair.contrato,
+            repair.averia || '' // Usar cadena vacía si no existe el campo 'averia'
+        ].join(' ').toLowerCase();
+
+        return dataString.includes(term);
+    });
+
+    renderRepairsList(filtered);
+}
+
+
 // --- Lógica de Firestore y Lista ---
 
 /**
@@ -91,7 +143,12 @@ function renderRepairsList(repairs) {
     listContainer.innerHTML = ''; 
     
     if (!repairs || repairs.length === 0) {
-        listContainer.innerHTML = '<p class="empty-list-message">Aún no hay reparaciones registradas. Pulsa "Añadir" para empezar.</p>';
+        // Verificar si la lista vacía es por filtro o por datos totales
+        const emptyMessage = (document.getElementById('searchInput') && document.getElementById('searchInput').value.trim() !== '') 
+            ? 'No se encontraron resultados para la búsqueda actual.' 
+            : 'Aún no hay reparaciones registradas. Pulsa "Añadir" para empezar.';
+
+        listContainer.innerHTML = `<p class="empty-list-message">${emptyMessage}</p>`;
         return;
     }
 
@@ -164,6 +221,11 @@ async function fetchRepairs() {
             ...doc.data()
         }));
         
+        // ************************************************
+        // * CLAVE: Almacenar los datos cargados globalmente
+        // ************************************************
+        allRepairs = repairs; 
+        
         renderRepairsList(repairs);
         document.getElementById('listMessageBox').classList.add('hidden'); 
         
@@ -178,9 +240,6 @@ async function fetchRepairs() {
  */
 async function handleAddRepair(event) {
     event.preventDefault();
-    
-    // NOTA: La validación de campos obligatorios (ubicación y fecha)
-    // debe hacerse mediante el atributo 'required' en el HTML.
     
     const submitBtn = document.getElementById('submitAddBtn');
     submitBtn.disabled = true;
@@ -217,27 +276,23 @@ async function handleAddRepair(event) {
         await window.addDoc(repairsCollectionRef, data);
         showMessageBox("Reparación añadida con éxito.", false, 'modalMessageBox');
         
-        // Recargar la lista para mostrar el nuevo elemento
+        // Recargar la lista, que ACTUALIZA la variable global 'allRepairs'
         await fetchRepairs();
+        
+        submitBtn.disabled = false;
         
         setTimeout(() => {
             closeModal();
             showMessageBox("Lista de reparaciones actualizada.", false);
-        }, 1000);
+        }, 500);
         
     } catch (error) {
         console.error("Error al guardar en Firestore:", error);
         showMessageBox(`Error al guardar: ${error.message}`, true, 'modalMessageBox');
-    } finally {
-        // Aseguramos que el botón se habilita de nuevo (si no se cerró el modal)
-        setTimeout(() => { 
-            if (document.getElementById('addModal') && !document.getElementById('addModal').classList.contains('hidden')) {
-                 submitBtn.disabled = false; 
-            }
-        }, 1000);
-    }
+        // Aseguramos que el botón se habilita si hay un error
+        submitBtn.disabled = false; 
+    } 
 }
-
 
 // --- Inicialización ---
 
@@ -247,6 +302,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeModalBtn = document.getElementById('closeModalBtn');
     const addRepairForm = document.getElementById('addRepairForm');
     const modalOverlay = document.getElementById('addModal');
+    
+    // Elementos de Búsqueda
+    const searchToggleBtn = document.getElementById('searchToggleBtn');
+    const searchInput = document.getElementById('searchInput'); // Asumimos que este ID está en tu HTML
     
     fetchRepairs(); // Carga la lista filtrada al iniciar
 
@@ -272,6 +331,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // ************************************************
+    // * CLAVE: Listeners para la funcionalidad de búsqueda
+    // ************************************************
+    if (searchToggleBtn) {
+        searchToggleBtn.addEventListener('click', toggleSearch);
+    }
+    
+    if (searchInput) {
+        // El evento 'input' dispara el filtro en tiempo real
+        searchInput.addEventListener('input', (e) => {
+            filterRepairs(e.target.value);
+        });
+    }
+    // ************************************************
 
     if (addRepairForm) {
         addRepairForm.addEventListener('submit', handleAddRepair);

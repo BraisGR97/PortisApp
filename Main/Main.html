@@ -4,34 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PortisApp - Menú Principal</title>
-    <link rel="stylesheet" href="Main.css">
+    <link rel="stylesheet" href="../Main/Main.css">
 </head>
 <body>
     <div class="card-container">
         <div class="card">
             
-            <img src="../assets/logo.png" alt="Logo de PortisApp" class="app-logo">
+            <div class="app-logo"></div>           
             
-            <h1>Menú Principal</h1>
+            <div id="mainMessageBox" class="message-box hidden"></div>
 
-            <div class="button-grid">
+            <div class="menu-button-group">
                 
-                <button class="menu-btn" id="repairsBtn">
-                    <span class="btn-title">Reparaciones</span>
-                    <span class="btn-subtitle">Lista de Mantenimiento y seguimiento de reparaciones.</span>
-                </button>
+                <div class="menu-item" id="repairsBtn">
+                    <button>
+                        <span class="btn-title">Mantenimientos</span>
+                        <span class="btn-subtitle">Lista de mantenimientos y averías pendientes.</span>
+                    </button>
+                </div>
+                
+                <div class="menu-item" id="recordsBtn">
+                    <button>
+                        <span class="btn-title">Historial</span>
+                        <span class="btn-subtitle">Mantenimientos completados y historial de averías.</span>
+                    </button>
+                </div>
+                
+                <div class="menu-item" id="sharedBtn">
+                    <button>
+                        <span class="btn-title">Compartidos</span>
+                        <span class="btn-subtitle">Lista de tareas compartidas y asignadas.</span>
+                    </button>
+                </div>
 
-                <button class="menu-btn" id="recordsBtn">
-                    <span class="btn-title">Registros</span>
-                    <span class="btn-subtitle">Listado de tareas y reparaciones completadas.</span>
-                </button>
+                <div class="menu-item" id="logOutBtn">
+                    <button>Cerrar Sesión</button>
+                </div>
+
             </div>
-            
-            <button id="logoutBtn" class="btn-logout">Cerrar Sesión</button>
-
         </div>
     </div>
-
-    <script src="Main.js"></script>
+    
+    <script src="../Main/Main.js"></script>
 </body>
 </html>
