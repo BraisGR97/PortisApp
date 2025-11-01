@@ -10,8 +10,8 @@
     <div class="card-container">
         <div class="card">
             <div class="header-with-search">
-    <h2>Historial de mantenimientos</h2>
-    <button id="searchToggleBtn" class="icon-btn" aria-label="Abrir buscador">🔍</button>
+    <h2>Historial de Mantenimientos</h2>
+    <button id="searchToggleBtn" class="icon-btn" aria-label="Abrir buscador">🔎</button>
 </div>
 <div id="searchContainer" class="search-box hidden">
     <input type="text" id="searchInput" placeholder="Buscar por ubicación, modelo, llave, contrato o avería..." class="detail-input">
@@ -33,7 +33,7 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, where, getDocs, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         
-        // --- Configuración de Firebase ---
+        // --- Configuraci贸n de Firebase ---
         const firebaseConfig = {
             apiKey: "AIzaSyD_tC3KaK3UVyNOPiSsnI0s5k8Cd_qFJpg",
             authDomain: "portisapp.firebaseapp.com",
@@ -48,7 +48,7 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
         
-        // Iniciar sesión anónimamente (Si no usas Login/Password)
+        // Iniciar sesi贸n an贸nimamente (Si no usas Login/Password)
         signInAnonymously(auth).catch(error => console.error("Error en autenticación anónima:", error));
 
         // Referencias globales para Records.js
@@ -60,7 +60,7 @@
         window.getDocs = getDocs;
         window.doc = doc;
         
-        // Opcional: Si necesitas el UID anónimo y no el 'portisAppUser' de localStorage
+        // Opcional: Si necesitas el UID an贸nimo y no el 'portisAppUser' de localStorage
         // auth.onAuthStateChanged((user) => {
         //     if (user) {
         //         window.CURRENT_USER_ID = user.uid; 

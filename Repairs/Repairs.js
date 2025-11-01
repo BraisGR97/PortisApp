@@ -158,14 +158,29 @@ function renderRepairsList(repairs) {
         const item = document.createElement('div');
         item.classList.add('list-item');
         
-        // Determinar si es PRIORITARIO (si el campo 'averia' tiene texto)
-        const isPriority = repair.averia && repair.averia.trim() !== '';
+        // 1. Determinar si es PRIORITARIO y si tiene texto de avería
+        const averiaText = repair.averia ? repair.averia.trim() : '';
+        const isPriority = averiaText !== '';
+        
         if (isPriority) {
             item.classList.add('is-priority'); // Clase para el fondo rojo suave
         }
         
         const dateParts = repair.fecha ? repair.fecha.split('-') : [];
         const formattedDate = dateParts.length === 2 ? `${dateParts[1]}/${dateParts[0]}` : 'Fecha Desconocida';
+
+        // 2. CONSTRUCCIÓN DEL CONTENIDO HTML
+        
+        // Creamos la línea de la avería si existe, si no, es una cadena vacía.
+        const averiaHtml = isPriority 
+            ? `<p class="averia-text compact-info">Avería: ${averiaText}</p>` 
+            : ''; 
+
+        // Creamos el indicador de prioridad si existe, si no, es una cadena vacía.
+        const priorityIndicatorHtml = isPriority 
+            ? '<p class="priority-indicator">Alta Prioridad</p>' 
+            : '';
+
 
         item.innerHTML = `
             <div class="list-item-header">
@@ -176,9 +191,9 @@ function renderRepairsList(repairs) {
                 Modelo: ${repair.modelo} | Llave: ${repair.llave} | Contrato: ${repair.contrato} | Fecha: ${formattedDate}
             </p>
             
-            <p class="averia-text compact-info">Avería: ${isPriority ? repair.averia : 'N/A'}</p>
+            ${averiaHtml}
             
-            ${isPriority ? '<p class="priority-indicator">Alta Prioridad</p>' : ''}
+            ${priorityIndicatorHtml}
         `;
         
         // Asigna el evento de clic para redirigir a la página de detalle
@@ -187,7 +202,6 @@ function renderRepairsList(repairs) {
         listContainer.appendChild(item);
     });
 }
-
 
 /**
  * Obtiene las reparaciones del usuario actual desde la colección raíz /repairs,

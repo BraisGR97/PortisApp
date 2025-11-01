@@ -1,36 +1,35 @@
-/* Repairs.css - Estilos para la página de Lista de Reparaciones (Glassmorphism) */
+/* =========================================================================
+   REPAIRS.CSS - ESTILOS PRINCIPALES DE LISTA (GLASSMORPHISM)
+   ========================================================================= */
 
 /* -------------------------------------------------------------------------
-    CONFIGURACIÓN Y VARIABLES
+   1. CONFIGURACIÓN Y VARIABLES GLOBALES
 ------------------------------------------------------------------------- */
 :root {
-    /* Glassmorphism y Fondo */
-    --card-bg: rgba(255, 255, 255, 0.15); 
-    --card-border: rgba(255, 255, 255, 0.25);
-    --text-color: #ffffff;
+    /* Glassmorphism y Paleta Base */
+    --color-text: #ffffff;
+    --color-primary-accent: #ffd700; /* Dorado para destacar Ubicación */
+    --glass-bg: rgba(255, 255, 255, 0.15); 
+    --glass-border: rgba(255, 255, 255, 0.25);
     --input-bg: rgba(255, 255, 255, 0.2);
-    --shadow-color: rgba(31, 38, 135, 0.37);
+    --shadow-main: rgba(31, 38, 135, 0.37);
     
-    /* Colores de Botones */
-    --back-btn-color: #ff5252;      /* Rojo (para Volver, igual que Cerrar Sesión) */
-    --back-btn-hover: #e04444;
-    --add-btn-color: #4ade80;       /* Verde (para Añadir/Acción positiva) */
-    --add-btn-hover: #3ac06e;
-    --shadow-primary: rgba(255, 82, 82, 0.4);
-    --shadow-green: rgba(74, 222, 128, 0.4);
+    /* Colores de Acción */
+    --color-action-add: #4ade80;        /* Verde (Acción principal) */
+    --color-action-add-hover: #3ac06e;
+    --color-action-back: #ff5252;       /* Rojo (Volver/Secundario) */
+    --color-action-back-hover: #e04444;
     
-    /* Colores para mensajes de estado */
-    --error-color: #f87171; 
-    --success-color: #4ade80;
-
-    /* Color de acento para Prioridad */
-    --priority-bg: rgba(255, 150, 150, 0.1); /* Fondo suave para prioridad */
-    --priority-border: #ff5252; /* Borde de énfasis rojo */
-    --priority-indicator-color: #ff8c00; /* Naranja para el texto "(Prioritario)" */
+    /* Prioridad y Estado */
+    --color-priority-indicator: #f87171; /* Rojo para el texto "Prioritario" */
+    --bg-priority-item: rgba(255, 150, 150, 0.1); /* Fondo suave de item prioritario */
+    --border-priority-item: #ff5252; 
+    --color-error: #f87171;    
+    --color-success: #4ade80;
 }
 
 /* -------------------------------------------------------------------------
-    ESTRUCTURA GENERAL Y FONDO
+   2. ESTRUCTURA Y FONDO
 ------------------------------------------------------------------------- */
 body {
     margin: 0;
@@ -39,8 +38,10 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    /* Fondo Azul Gradiente */
     background: linear-gradient(135deg, #a4c6e9 0%, #6e94e9 50%, #4667d6 100%);
     overflow: hidden; 
+    color: var(--color-text); /* Color de texto por defecto */
 }
 
 .card-container {
@@ -48,7 +49,7 @@ body {
 }
 
 /* -------------------------------------------------------------------------
-    ESTILO GLASSMORPHISM (TARJETA PRINCIPAL Y MODAL)
+   3. ESTILO GLASSMORPHISM (TARJETA PRINCIPAL Y MODAL)
 ------------------------------------------------------------------------- */
 .card {
     display: flex;
@@ -57,117 +58,82 @@ body {
     min-width: 510px;
     max-width: 600px;  
     padding: 30px 40px;
-	min-height: 50vh; 
+    min-height: 50vh; 
     max-height: 70vh;
     border-radius: 25px;
-    background: var(--card-bg); 
-    box-shadow: 0 8px 32px 0 var(--shadow-color); 
+    background: var(--glass-bg); 
+    box-shadow: 0 8px 32px 0 var(--shadow-main); 
     backdrop-filter: blur(10px); 
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid var(--card-border);
+    border: 1px solid var(--glass-border);
     border-top: 1px solid rgba(255, 255, 255, 0.5);
     border-left: 1px solid rgba(255, 255, 255, 0.5);
 }
 
-/* 1. Ocultar completamente la barra de desplazamiento en Chrome, Safari, y Edge */
-
-/* El ancho de la barra (establecer a 0) */
-.list-container::-webkit-scrollbar {
-    width: 0.1em; /* Un valor muy pequeño para que sea casi invisible */
-    background: transparent; /* Asegura que el fondo sea transparente */
-}
-
-/* La pista (el camino por donde pasa el pulgar) */
-.list-container::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-/* El pulgar (la barra que el usuario arrastra) */
-.list-container::-webkit-scrollbar-thumb {
-    background: transparent; 
-}
-
-/* 2. Estilo para Firefox */
-
-.list-container {
-    /* CLAVE: Establece el modo de visualización a 'none' (oculto) o 'thin' (delgado) */
-    scrollbar-width: none; /* Oculta completamente la barra, pero mantiene el scroll */
-    /* Para hacerlo delgado, usarías: scrollbar-width: thin; */
-}
-
-/* Opcional: Para evitar que el fondo parpadee en Firefox */
-.list-container {
-    overflow-y: auto; /* Mantener la propiedad original */
-}
-
-/* Estructura para el título y la lupa */
-.header-with-search {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1px;
-	color: var(--text-color);
-    font-size: 24px;
-    font-weight: 500;
-    margin-top: 0;
+h2 {
+    color: var(--color-text);
     text-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-    align-self: flex-start;
 }
 
-/* Estilo para el botón de icono (la lupa) */
-.icon-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1.5rem; /* Ajusta el tamaño del emoji */
-    color: var(--text-color, white);
-    padding: 0;
-    margin-left: 100px;
-}
-
-/* Contenedor del input de búsqueda */
-.search-box {
-    margin-bottom: 20px;
-    padding: 10px;
-    border-radius: 8px;
-    transition: all 0.3s ease-in-out;
-    
-    /* ************************************** */
-    /* CLAVES para el efecto Glassmorphism: */
-    /* ************************************** */
-    
-    /* 1. Fondo semitransparente (Blanco con 10% de opacidad) */
-    background: rgba(255, 255, 255, 0.1); 
-    
-    /* 2. Borde sutil */
-    border: 1px solid rgba(255, 255, 255, 0.1); 
-    
-    /* 3. Desenfoque (Glass effect) */
-    backdrop-filter: blur(5px); 
-    -webkit-backdrop-filter: blur(5px); /* Soporte para navegadores Webkit */
-}
-
-/* Opcional: Estilo para el campo de input dentro de la caja */
-#searchInput {
-    /* El input necesita un fondo transparente para que se vea la caja semitransparente */
-    background: transparent; 
-    border: none; /* Quitar borde si lo tuviera */
-    color: white; /* Asegurar que el texto sea visible */
-}
-/* El input de búsqueda usará el estilo base detail-input */
-.search-box .detail-input {
-    width: 100%;
-    box-sizing: border-box;
-    /* Ajustes para el input en el contexto de búsqueda */
-}
-
-/* Utilidad para ocultar elementos */
 .hidden {
     display: none !important;
 }
 
+
 /* -------------------------------------------------------------------------
-    BOTONES DE CABECERA (VOLVER y AÑADIR)
+   4. CABECERA Y BÚSQUEDA
+------------------------------------------------------------------------- */
+.header-with-search {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%; /* Asegura que ocupe todo el ancho de la tarjeta */
+    margin-bottom: 5px;
+}
+.header-with-search h2 {
+    font-size: 24px;
+    font-weight: 500;
+    margin: 0;
+    flex-grow: 1; /* Permite que el título ocupe espacio */
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.5rem; 
+    color: var(--color-text);
+    padding: 0;
+    margin-left: 10px; /* Reducido para mejor alineación */
+}
+
+/* Contenedor del input de búsqueda (Glass effect) */
+.search-box {
+    width: 100%;
+    margin-bottom: 20px;
+    padding: 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1); 
+    border: 1px solid rgba(255, 255, 255, 0.1); 
+    backdrop-filter: blur(5px); 
+    -webkit-backdrop-filter: blur(5px);
+}
+
+#searchInput {
+    width: 100%;
+    box-sizing: border-box;
+    background: transparent; 
+    border: none; 
+    color: var(--color-text);
+    font-size: 16px;
+}
+#searchInput::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+
+/* -------------------------------------------------------------------------
+   5. BOTONES DE ACCIÓN PRINCIPAL
 ------------------------------------------------------------------------- */
 .header-buttons {
     width: 100%;
@@ -185,47 +151,51 @@ body {
     font-size: 16px;
     font-weight: bold;
     cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s;
-    color: var(--text-color);
+    transition: all 0.3s ease;
+    color: var(--color-text);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
-/* Estilo para el botón de Añadir (Verde) */
+/* Botón de Añadir (Acción positiva) */
 .btn-primary-action {
-    background-color: var(--add-btn-color); 
+    background-color: var(--color-action-add); 
 }
 .btn-primary-action:hover {
-    background-color: var(--add-btn-hover);
-    transform: translateY(-1px);
-}
-.btn-primary-action:active {
-    transform: translateY(0);
+    background-color: var(--color-action-add-hover);
+    transform: translateY(-2px);
 }
 
-/* Estilo para el botón secundario (Volver) - Rojo */
+/* Botón de Volver (Acción secundaria) */
 .btn-secondary {
-    background-color: var(--back-btn-color); 
-    box-shadow: 0 4px 10px var(--shadow-primary);
+    background-color: var(--color-action-back); 
 }
 .btn-secondary:hover {
-    background-color: var(--back-btn-hover);
-    transform: translateY(-1px);
+    background-color: var(--color-action-back-hover);
+    transform: translateY(-2px);
 }
-.btn-secondary:active {
+.btn-primary-action:active, .btn-secondary:active {
     transform: translateY(0);
 }
 
+
 /* -------------------------------------------------------------------------
-    CONTENEDOR DE LISTA
+   6. LISTA DE ELEMENTOS
 ------------------------------------------------------------------------- */
 .list-container {
     width: 100%;
     flex-grow: 1; 
     overflow-y: auto;
     padding: 10px;
+    /* Estilo de la pista del scroll (transparente) */
     background: rgba(255, 255, 255, 0.05); 
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    
+    /* OCULTAR BARRA DE SCROLL */
+    scrollbar-width: none; /* Firefox */
+}
+.list-container::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Edge */
 }
 
 .empty-list-message {
@@ -236,80 +206,81 @@ body {
     font-size: 16px;
 }
 
-/* Estilo base para un elemento de la lista */
+/* -- Item de la Lista -- */
 .list-item {
     background: rgba(255, 255, 255, 0.1);
     padding: 15px;
     border-radius: 8px;
     margin-bottom: 10px;
-    color: var(--text-color);
+    color: var(--color-text);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
-    transition: background-color 0.2s, transform 0.1s;
-}
-
-/* Estilo para el elemento prioritario (si tiene AVERÍA) */
-.list-item.is-priority {
-    /* Mantiene la transparencia base, pero añade un sutil tono rojo */
-    background: var(--priority-bg); 
-    border-left: 5px solid var(--priority-border); /* Borde lateral rojo para mayor visibilidad */
-    box-shadow: 0 4px 15px rgba(255, 82, 82, 0.2); /* Sombra roja sutil */
-}
-
-/* Efecto hover consistente para todos los items */
-.list-item:hover {
+    transition: all 0.2s ease;
     cursor: pointer;
+}
+
+/* Item Seleccionado (útil en modales) */
+.list-item.selected {
+    background: rgba(164, 255, 200, 0.2); /* Tono verde suave */
+    border: 1px solid var(--color-action-add);
+}
+
+.list-item:hover {
     background: rgba(255, 255, 255, 0.25);
     transform: translateY(-2px);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.5);
 }
 
-/* --- DETALLES DE LAS LÍNEAS DE LA LISTA --- */
+/* Item Prioritario (con Avería) */
+.list-item.is-priority {
+    background: var(--bg-priority-item); 
+    border-left: 5px solid var(--border-priority-item); 
+    box-shadow: 0 4px 15px rgba(255, 82, 82, 0.2);
+}
 
-/* 1. Ubicación (Color de acento) */
+/* --- Estructura de la Información --- */
+
+.list-item-header {
+    margin-bottom: 5px;
+    font-size: 1em;
+}
+
 .ubicacion-text {
     font-size: 1.1em;
     font-weight: bold;
-    color: #ffd700; /* Dorado brillante para destacar la Ubicación */
+    color: var(--color-primary-accent); 
     text-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
 }
 
-/* Contenedor de la cabecera del item (Ubicación) */
-.list-item-header {
-    margin-bottom: 5px;
-}
-
-/* 2. Segunda Fila (Información Compacta) */
 .compact-info {
     font-size: 0.9em;
     color: rgba(255, 255, 255, 0.8);
     margin: 3px 0;
-    white-space: nowrap; /* Evita que los detalles se rompan en múltiples líneas */
+    white-space: nowrap; 
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-/* Tercera Fila (Texto de la Avería) */
 .averia-text {
     font-weight: 500;
     margin-bottom: 5px;
 }
 
-/* 3. Indicador de Prioridad (Cuarta Fila) */
 .priority-indicator {
     display: inline-block;
     font-size: 0.9em;
     font-weight: bold;
-    color: rgba(255, 0, 0, 0.8);
+    color: var(--color-priority-indicator);
     padding: 2px 8px;
     border-radius: 5px;
     margin-top: 5px;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 
 /* -------------------------------------------------------------------------
-    MENSAJES DE ESTADO (Comunes a toda la app)
+   7. MENSAJES DE ESTADO
 ------------------------------------------------------------------------- */
 .message-box {
     width: 100%;
@@ -319,20 +290,19 @@ body {
     text-align: center;
     font-size: 14px;
     font-weight: 500;
-    color: white; /* Color base para todos los mensajes */
-}
-.message-box.hidden {
-    display: none;
+    color: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 .message-box.error {
-    background-color: var(--error-color);
+    background-color: var(--color-error);
 }
 .message-box.success {
-    background-color: var(--success-color);
+    background-color: var(--color-success);
 }
 
+
 /* -------------------------------------------------------------------------
-    ESTILOS DEL MODAL FLOTANTE
+   8. ESTILOS DEL MODAL (COMPARTIR/AÑADIR)
 ------------------------------------------------------------------------- */
 .modal-overlay {
     position: fixed;
@@ -340,71 +310,50 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.7); /* Fondo oscuro transparente */
+    background-color: rgba(0, 0, 0, 0.7); 
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
 }
 
-.modal-overlay.hidden {
-    display: none;
-}
-
 .modal-content {
-    /* Reutilizamos la clase .card para el estilo glassmorphism */
-    position: relative;
-    width: 90%;
+    /* Reutiliza .card pero con tamaño más pequeño */
     max-width: 450px;
+    min-width: 300px; 
     min-height: auto; 
     padding: 30px;
 }
 
 .modal-content h2 {
-    color: var(--text-color);
-    margin-top: 0;
-    margin-bottom: 20px;
     font-size: 22px;
-    text-align: center;
+    margin-bottom: 20px;
 }
 
-.modal-close-btn {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: none;
-    border: none;
-    color: var(--text-color);
-    font-size: 24px;
-    cursor: pointer;
-    opacity: 0.7;
-    transition: opacity 0.2s;
-}
-.modal-close-btn:hover {
-    opacity: 1;
-}
-
-/* Estilos de Formulario (inputs y selector) */
-#addRepairForm {
-    width: 100%;
-}
+/* --- Formulario y Controles del Modal --- */
 .input-group {
     margin-bottom: 15px;
+    width: 100%;
+}
+.input-group label {
+    color: var(--color-text);
+    margin-bottom: 5px;
+    display: block; /* Asegura que la etiqueta esté en su propia línea */
 }
 .input-group input, 
 .input-group select,
 .input-group textarea {
-    width: calc(100% - 25px); 
+    width: 100%; /* Ajuste a 100% */
+    box-sizing: border-box; /* Crucial para incluir padding y border en el width */
     padding: 12px;
     border: none;
     border-radius: 8px;
     background-color: var(--input-bg);
-    color: var(--text-color);
+    color: var(--color-text);
     font-size: 16px;
     resize: vertical;
 }
 
-/* Estilo para el selector (Contrato) */
 .input-group select {
     appearance: none; 
     -webkit-appearance: none;
@@ -417,17 +366,46 @@ body {
     color: #000; 
     background: #fff;
 }
-.input-group input::placeholder, .input-group textarea::placeholder {
-    color: rgba(255, 255, 255, 0.7);
-}
-.input-group input:focus, .input-group select:focus, .input-group textarea:focus {
-    outline: none;
-    background-color: rgba(255, 255, 255, 0.3);
+
+/* Botones dentro del Modal */
+.modal-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 20px;
 }
 
-/* Botón verde animado "Añadir" (dentro del modal) */
+.btn-modal-primary, .btn-modal-secondary {
+    flex-grow: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 12px; 
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: var(--color-text);
+}
+
+.btn-modal-primary {
+    background-color: var(--color-action-add);
+    box-shadow: 0 4px 15px rgba(74, 222, 128, 0.4);
+}
+.btn-modal-secondary {
+    background-color: var(--color-action-back);
+    box-shadow: 0 4px 15px rgba(255, 82, 82, 0.4);
+}
+
+.btn-modal-primary:hover, .btn-modal-secondary:hover {
+    transform: translateY(-2px);
+}
+.btn-modal-primary:active, .btn-modal-secondary:active {
+    transform: translateY(0);
+}
+
+/* Estilo para el botón de submit principal del modal (usado en "Añadir") */
 .btn-submit-green {
-    background-color: var(--add-btn-color);
+    background-color: var(--color-action-add);
     color: white;
     border: none;
     border-radius: 12px; 
@@ -435,22 +413,17 @@ body {
     font-size: 18px;
     font-weight: bold;
     cursor: pointer;
-    box-shadow: 0 4px 15px var(--shadow-green);
-    transition: background-color 0.3s ease, transform 0.1s ease;
-    width: 100%;  
+    box-shadow: 0 4px 15px rgba(74, 222, 128, 0.4);
+    transition: all 0.3s ease;
+    width: 100%; 
     margin-top: 15px;
 }
 .btn-submit-green:hover:not(:disabled) {
-    background-color: var(--add-btn-hover);
+    background-color: var(--color-action-add-hover);
     transform: translateY(-2px);
-}
-.btn-submit-green:active:not(:disabled) {
-    transform: translateY(0);
-    box-shadow: 0 2px 10px var(--shadow-green);
 }
 .btn-submit-green:disabled {
     cursor: not-allowed;
     opacity: 0.6;
     transform: none;
-    box-shadow: none;
 }

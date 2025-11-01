@@ -1,7 +1,85 @@
-// History.js - Lógica para la página de detalle de una sola avería
+// History.js - Lógica para la página de detalle de un registro de historial
 
 let currentHistoryId = null;
 let currentInitialObservations = ''; // Nueva variable para almacenar el valor inicial
+
+// --- Lógica del Modal de Confirmación ---
+let modal, modalTitle, modalMessage, btnYes, btnNo, btnCancel; // Referencias al DOM del modal
+
+function initializeModalReferences() {
+    modal = document.getElementById('confirmationModal'); 
+    modalTitle = document.getElementById('modalTitle');
+    modalMessage = document.getElementById('modalMessage');
+    btnYes = document.getElementById('btnYes');
+    btnNo = document.getElementById('btnNo');
+    btnCancel = document.getElementById('btnCancel');
+}
+
+/** Muestra el modal de confirmación para eliminar. */
+function showDeleteConfirmationModal() {
+    if (!modal) return;
+    
+    modalTitle.textContent = '¡ATENCIÓN! Eliminar Registro';
+    modalMessage.textContent = 'Estás seguro de que deseas ELIMINAR permanentemente este registro del historial?';
+    btnYes.textContent = 'Sí, Eliminar';
+    btnNo.textContent = 'No';
+    btnCancel.classList.add('hidden'); 
+    btnNo.style.display = 'inline-block';
+    
+    modal.classList.remove('hidden'); 
+    modal.focus();
+}
+
+/** Oculta el modal de confirmación. */
+function hideConfirmationModal() {
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+/** * Maneja la respuesta del modal.
+ * @param {boolean} confirmed - true si pulsa Sí; false si pulsa No.
+ */
+function handleConfirmation(confirmed) {
+    hideConfirmationModal(); // Cerrar el modal inmediatamente
+
+    if (confirmed) {
+        handleDeleteRecord();
+    } 
+    // Si pulsa 'No' (confirmed es false), simplemente se cierra el modal.
+}
+
+
+// --- Lógica de Eliminación de Firestore ---
+
+async function handleDeleteRecord() {
+    const recordId = currentHistoryId;
+
+    if (!recordId) {
+        showMessageBox("Error: ID de registro no encontrado.", true);
+        return;
+    }
+
+    const db = window.db; // Asumiendo que 'db' se expone globalmente desde el script de Firebase
+    const recordDocRef = window.doc(db, 'records', recordId); // Colección 'records'
+    
+    showMessageBox("Eliminando registro del historial...", false);
+
+    try {
+        await window.deleteDoc(recordDocRef);
+        
+        showMessageBox("✅ Registro de historial eliminado con éxito. Redirigiendo...", false);
+        
+        // Redirigir a Records.html (Requisito)
+        setTimeout(() => {
+            window.location.href = '../Records/Records.html'; 
+        }, 1500); 
+        
+    } catch (error) {
+        console.error("FIREBASE ERROR: Error al eliminar el registro:", error);
+        showMessageBox(`❌ Error al eliminar: ${error.message}`, true);
+    }
+}
 
 // --- Utilidades del DOM ---
 
@@ -14,8 +92,10 @@ function showMessageBox(message, isError = true) {
     
     if (!isError) {
         msgBox.classList.add('success');
+        msgBox.classList.remove('error'); // Asegurar que se elimina 'error'
     } else {
         msgBox.classList.add('error');
+        msgBox.classList.remove('success'); // Asegurar que se elimina 'success'
     }
     
     // Ocultar mensaje después de 5 segundos
@@ -31,6 +111,17 @@ function fillDetailView(data) {
     const dateParts = data.fecha ? data.fecha.split('-') : [];
     const formattedDate = dateParts.length === 2 ? `${dateParts[1]}/${dateParts[0]}` : 'Fecha Desconocida';
 
+    // Formatear la fecha de completado (ISO String)
+    let completedAtDate = 'N/A';
+    if (data.completedAt) {
+        try {
+            // Crea un objeto Date y lo formatea (ej: 01/11/2025 12:00)
+            const date = new Date(data.completedAt);
+            completedAtDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        } catch (e) {
+            console.error("Error al parsear completedAt:", e);
+        }
+    }
 
 
     document.getElementById('detailUbicacion').textContent = data.ubicacion || 'N/A';
@@ -39,14 +130,13 @@ function fillDetailView(data) {
     document.getElementById('detailContrato').textContent = data.contrato || 'N/A';
     document.getElementById('detailFecha').textContent = formattedDate;
     document.getElementById('detailAveria').textContent = data.averia || 'N/A';
-	document.getElementById('detailcompletedAt').textContent = data.completedAt || 'N/A';
+	document.getElementById('detailcompletedAt').textContent = completedAtDate;
 }
 
 /**
  * Rellena los campos de input (editables) con los datos.
  */
 function fillInputFields(data) {
-    // Rellena y captura el valor inicial de observaciones
     const observationsTextarea = document.getElementById('detailObservaciones');
     observationsTextarea.value = data.observaciones || '';
     currentInitialObservations = observationsTextarea.value; 
@@ -83,7 +173,6 @@ async function loadHistoryDetails() {
         
         if (docSnap.exists()) {
             const data = docSnap.data();
-            // Llenar los campos de vista y edición
             fillDetailView(data);
             fillInputFields(data);
         } else {
@@ -137,78 +226,60 @@ async function handleSaveObservations(event) {
     }
 }
 
-/**
- * Maneja la eliminación de la avería.
- */
-async function handleDeleteHistory() {
-    if (!currentHistoryId) return;
-    
-    const confirmed = confirm("¿Estás seguro de que quieres ELIMINAR esta avería? Esta acción es irreversible.");
-    
-    if (confirmed) {
-        const db = window.db;
-        const recordDocRef = window.doc(db, 'records', currentHistoryId);
-        
-        try {
-            showMessageBox("Eliminando...", false);
-            await window.deleteDoc(recordDocRef);
-            
-            alert("Avería eliminada con éxito.");
-            window.location.href = '../Records/Records.html'; 
-            
-        } catch (error) {
-            console.error("Error al eliminar:", error);
-            showMessageBox(`Error al eliminar: ${error.message}`, true);
-        }
-    }
-}
-
-// ... (dentro de tu función de carga, ej: loadRecordDetails) ...
-// Ejemplo: cuando cargas los detalles, almacena los datos en la variable global:
-/* async function loadHistoryDetails() {
-    // ... lógica de carga ...
-    currentRecordData = { id: doc.id, ...doc.data() };
-    // ...
-}
-*/
 
 // --- Inicialización ---
 
 document.addEventListener('DOMContentLoaded', function() {
+    
+    // Inicializar referencias al DOM del modal (CLAVE)
+    initializeModalReferences(); 
+    
     const backBtn = document.getElementById('backBtn');
-    const editDetailsBtn = document.getElementById('editDetailsBtn'); 
     const deleteBtn = document.getElementById('deleteHistoryBtn'); 
-    const completeBtn = document.getElementById('completeHistoryBtn');
     const saveObservationsForm = document.getElementById('saveObservationsForm');
-    const editHistoryForm = document.getElementById('editHistoryForm');
     const observationsTextarea = document.getElementById('detailObservaciones');
     const saveObservationsBtn = document.getElementById('saveObservationsBtn');
 
-    // Navegación
+    // --- Listeners de Navegación y Observaciones ---
     if (backBtn) {
         backBtn.addEventListener('click', function() {
             window.location.href = '../Records/Records.html'; 
         });
     }
     
-    // Guardar Observaciones
     if (saveObservationsForm) {
         saveObservationsForm.addEventListener('submit', handleSaveObservations);
     }
     
     // Control de visibilidad del botón Guardar Observaciones
     if (observationsTextarea && saveObservationsBtn) {
-        
-        // Se usa 'input' para detectar cualquier cambio (teclado, pegar, eliminar)
         observationsTextarea.addEventListener('input', function() {
             const currentValue = this.value;
-            // Usa la variable global actualizada
             if (currentValue !== currentInitialObservations) { 
                 saveObservationsBtn.classList.remove('hidden');
             } else {
                 saveObservationsBtn.classList.add('hidden');
             }
         });
+    }
+
+    // --- Listeners del Modal ---
+
+    // 1. Botón para abrir el modal de eliminación
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', showDeleteConfirmationModal);
+    }
+
+    // 2. Botones de respuesta del modal
+    if (btnYes) {
+        btnYes.addEventListener('click', () => handleConfirmation(true));
+    }
+    if (btnNo) {
+        btnNo.addEventListener('click', () => handleConfirmation(false)); // Cierra el modal
+    }
+    // btnCancel no es necesario, pero lo mantenemos si lo necesitas más tarde:
+    if (btnCancel) { 
+        btnCancel.addEventListener('click', hideConfirmationModal);
     }
 
     // Cargar los detalles de la avería

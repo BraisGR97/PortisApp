@@ -50,7 +50,6 @@ function showConfirmationModal(actionType) {
 function hideConfirmationModal() {
     if (modal) {
         modal.classList.add('hidden');
-        // 🔥 IMPORTANTE: Eliminamos el reset de currentAction de aquí.
     }
 }
 
@@ -62,8 +61,6 @@ function handleConfirmation(confirmed) {
     // 1. Cerrar Modal
     hideConfirmationModal(); 
 
-    console.log(`DEBUG: currentAction después de cerrar modal: ${currentAction}`); // Log para depurar
-
     if (!currentRepairData) {
         showMessageBox("Error: Datos de avería no cargados.", true);
         currentAction = ''; // Resetear antes de salir por error
@@ -72,63 +69,49 @@ function handleConfirmation(confirmed) {
 
     if (currentAction === 'delete') {
         if (confirmed) {
-            // **CLAVE:** Si es 'delete' y 'Sí', ejecuta la eliminación
             handleDeleteDamage(true); 
         } else {
-            // Si el modal es de eliminación y el usuario pulsa 'No'
             showMessageBox('Eliminación cancelada.', false);
         }
     } else if (currentAction === 'complete') {
-        // ... Lógica de Completado ...
+        // Ejecuta la lógica de completar/registrar
         completeRepair(confirmed, currentRepairData);
     }
 
-    // 2. 🔥 CORRECCIÓN: Resetear la acción al final, después de que se haya procesado.
+    // 2. Resetear la acción al final
     currentAction = ''; 
 }
 
-// --- LÓGICA DE ELIMINACIÓN (Ahora con mensajes y redirección) ---
+// --- LÓGICA DE ELIMINACIÓN ---
 
 /** Maneja la eliminación de la avería.
  * @param {boolean} isConfirmedByModal - Indica si la acción ha sido confirmada por el modal.
  */
 async function handleDeleteDamage(isConfirmedByModal) {
-    console.log("DEBUG: Entrando a handleDeleteDamage. Confirmado:", isConfirmedByModal); 
-    console.log("DEBUG: currentDamageId actual:", currentDamageId);
     
-    // 1. Validar que la acción fue confirmada y que tenemos un ID
     if (!currentDamageId || !isConfirmedByModal) {
-        console.error("ERROR: No se puede eliminar. currentDamageId es nulo o la acción no fue confirmada.");
         showMessageBox("❌ Error interno: No se encontró la ID de la avería para eliminar.", true);
         return; 
     }
 
     const db = window.db;
-    // La colección 'repairs' y el ID del documento
     const repairDocRef = window.doc(db, 'repairs', currentDamageId);
     
     try {
-        // 2. Mostrar mensaje de "Eliminando..."
         showMessageBox("Eliminando avería...", false);
         
-        // 3. Eliminar de Firestore
         await window.deleteDoc(repairDocRef);
         
-        // 4. Mostrar mensaje de éxito
         showMessageBox("✅ Avería eliminada con éxito. Redirigiendo...", false);
         
-        // 5. Redirigir a Repairs.html después de 1.5 segundos
+        // Redirigir a Repairs.html
         setTimeout(() => {
             window.location.href = '../Repairs/Repairs.html'; 
         }, 1500); 
         
     } catch (error) {
         console.error("FIREBASE ERROR: Error al eliminar:", error);
-        // Manejo de errores específicos y genéricos
         let errorMessage = `Error al eliminar: ${error.message}`;
-        if (error.message.includes('Missing or insufficient permissions')) {
-             errorMessage = "Error de Permisos: Revisa las reglas de Firestore (allow delete).";
-        }
         showMessageBox(`❌ ${errorMessage}`, true);
     }
 }
@@ -151,15 +134,19 @@ function showMessageBox(message, isError = true) {
         msgBox.classList.remove('success');
     }
     
+    // Si es un mensaje de éxito/redirección, mantenlo más tiempo.
+    const duration = message.includes("éxito") ? 5000 : 3000;
+    
     setTimeout(() => {
         msgBox.classList.add('hidden');
-    }, 5000);
+    }, duration);
 }
 
 /** Rellena los elementos de vista (no editables) con los datos. */
 function fillDetailView(data) {
     const dateParts = data.fecha ? data.fecha.split('-') : [];
-    const formattedDate = dateParts.length === 2 ? `${dateParts[1]}/${dateParts[0]}` : 'Fecha Desconocida';
+    // Formato de fecha para la vista: MM/YYYY
+    const formattedDate = dateParts.length === 2 ? `${dateParts[1]}/${dateParts[0]}` : 'Fecha Desconocida'; 
 
     const ubicacion = document.getElementById('detailUbicacion');
     const modelo = document.getElementById('detailModelo');
@@ -201,7 +188,6 @@ function fillInputFields(data) {
 
 /** Habilita/Deshabilita el modo edición para los campos principales. */
 function enableEditMode(enable) {
-    // Obtenemos las referencias del DOM en cada llamada para mayor seguridad
     const detailView = document.getElementById('detailView');
     const editForm = document.getElementById('editDamageForm');
     const savePrimaryBtn = document.getElementById('savePrimaryDetailsBtn');
@@ -254,13 +240,12 @@ async function loadDamageDetails() {
         if (docSnap.exists()) {
             const data = docSnap.data();
             
-            // CLAVE: Almacenar los datos completos globalmente
+            // Almacenar los datos completos globalmente
             currentRepairData = { id: docSnap.id, ...data }; 
             
             fillDetailView(data);
             fillInputFields(data);
             
-            // Asegurarse de que al cargar, siempre se inicie en modo NO edición.
             enableEditMode(false); 
         } else {
             const ubicacion = document.getElementById('detailUbicacion');
@@ -278,7 +263,7 @@ async function handleSavePrimaryDetails(event) {
     event.preventDefault();
     const repairId = currentDamageId;
     const submitBtn = document.getElementById('savePrimaryDetailsBtn');
-    if (!submitBtn) return; // Validación defensiva
+    if (!submitBtn) return; 
     submitBtn.disabled = true;
 
     if (!repairId) {
@@ -307,7 +292,6 @@ async function handleSavePrimaryDetails(event) {
         
         showMessageBox("Cambios guardados con éxito.", false);
         
-        // IMPORTANTE: Actualizar la variable global
         currentRepairData = { ...currentRepairData, ...updatedData };
         
         enableEditMode(false);
@@ -326,7 +310,7 @@ async function handleSaveObservations(event) {
     event.preventDefault();
     const repairId = currentDamageId;
     const submitBtn = document.getElementById('saveObservationsBtn');
-    if (!submitBtn) return; // Validación defensiva
+    if (!submitBtn) return; 
     submitBtn.disabled = true;
 
     if (!repairId) {
@@ -353,7 +337,6 @@ async function handleSaveObservations(event) {
         document.getElementById('saveObservationsBtn')?.classList.add('hidden');
         currentInitialObservations = newObservations;
         
-        // IMPORTANTE: Actualizar la variable global
         if (currentRepairData) {
             currentRepairData.observaciones = newObservations;
         }
@@ -368,7 +351,7 @@ async function handleSaveObservations(event) {
 
 // --- Lógica de Completar Reparación ---
 
-/** Calcula la nueva fecha de la próxima reparación/mantenimiento. */
+/** Calcula la nueva fecha de la próxima reparación/mantenimiento (YYYY-MM). */
 function calculateNewDate(currentFecha, contrato) {
     if (!currentFecha || !contrato) return currentFecha;
 
@@ -379,9 +362,9 @@ function calculateNewDate(currentFecha, contrato) {
     let monthsToAdd = 0;
     switch (contrato.toLowerCase()) {
         case 'anual': monthsToAdd = 12; break;
-        case 'semestral': monthsToAdd = 6; break;
         case 'trimestral': monthsToAdd = 3; break;
-        default: monthsToAdd = 1; break;
+        case 'mensual':
+        default: monthsToAdd = 1; break; // Cubre 'mensual' y cualquier otro valor por defecto
     }
 
     let newMonth = currentMonth + monthsToAdd;
@@ -396,14 +379,16 @@ function calculateNewDate(currentFecha, contrato) {
     return `${newYear}-${newMonthStr}`;
 }
 
-/** Maneja el proceso de completar o registrar la avería en el historial. */
+/** * Maneja el proceso de completar o registrar la avería en el historial.
+ * @param {boolean} isCompleted - true (Botón SI) si fue resuelta, false (Botón NO) si solo se registra.
+ * @param {object} currentRepairData - Datos de la avería.
+ */
 async function completeRepair(isCompleted, currentRepairData) {
     const db = window.db;
     const repairId = currentRepairData.id;
     const currentFecha = currentRepairData.fecha;
     const contrato = currentRepairData.contrato;
-    const currentUser = window.CURRENT_USER_ID || 'anonimo'; 
-
+    
     showMessageBox("Procesando registro y actualización...", false);
 
     try {
@@ -412,11 +397,14 @@ async function completeRepair(isCompleted, currentRepairData) {
             ...currentRepairData,
             completedAt: new Date().toISOString(), 
             isCompletedSuccessfully: isCompleted, 
-            username: currentUser, 
+            
+            // 🔥 CORRECCIÓN CLAVE: Usamos el username (nick) que ya estaba en la avería original.
+            username: currentRepairData.username || 'Usuario Desconocido',
         };
-        delete recordData.id; // Eliminar ID original para que Firestore genere uno nuevo
+        delete recordData.id; 
 
         // --- 2. PREPARAR DATOS PARA LA ACTUALIZACIÓN DE LA REPARACIÓN (/repairs) ---
+        
         const newFecha = calculateNewDate(currentFecha, contrato);
 
         let updateData = {
@@ -425,9 +413,7 @@ async function completeRepair(isCompleted, currentRepairData) {
         };
 
         if (isCompleted) {
-            // Si pulsa 'Sí', se borra el contenido de 'averia' y 'observaciones'
             updateData.averia = "";
-            updateData.observaciones = "";
         }
         
         // --- 3. EJECUTAR LA TRANSACCIÓN DE FIREBASE ---
@@ -437,32 +423,28 @@ async function completeRepair(isCompleted, currentRepairData) {
         const repairDocRef = window.doc(db, 'repairs', repairId);
         await window.updateDoc(repairDocRef, updateData);
         
-        // --- 4. FINALIZACIÓN ---
-        const completionStatus = isCompleted ? "y la avería fue resuelta" : "sin modificar el estado de la avería";
+        // --- 4. FINALIZACIÓN Y REDIRECCIÓN ---
+        const completionStatus = isCompleted ? "y la avería fue resuelta (campo avería limpiado)" : "sin modificar el estado de la avería";
         
-        showMessageBox(`Registro completado con éxito. Fecha actualizada a ${newFecha}, ${completionStatus}.`, false);
+        showMessageBox(`✅ Avería completada con éxito. Fecha actualizada a ${newFecha}, ${completionStatus}. Redirigiendo...`, false);
         
-        // Recargar la página para mostrar los datos actualizados
         setTimeout(() => {
-            window.location.reload(); 
+            window.location.href = '../Repairs/Repairs.html'; 
         }, 1500);
 
     } catch (error) {
         console.error("Error al completar la reparación:", error);
-        showMessageBox(`Error al procesar: ${error.message}. Intenta de nuevo.`, true);
+        showMessageBox(`❌ Error al procesar: ${error.message}. Intenta de nuevo.`, true);
     }
 }
 
 
-// --- Inicialización (Nueva estructura para el script de Firebase) ---
+// --- Inicialización ---
 
-/** * Función global que encapsula toda la lógica de inicialización y listeners. 
- * Esta función es llamada por el script de Firebase solo después de que 
- * la autenticación anónima se ha completado.
- */
+/** Función global que encapsula toda la lógica de inicialización y listeners. */
 window.initializePageLogic = function() {
     
-    // 1. Inicialización de las referencias al DOM del modal (CLAVE)
+    // 1. Inicialización de las referencias al DOM
     modal = document.getElementById('confirmationModal'); 
     modalTitle = document.getElementById('modalTitle');
     modalMessage = document.getElementById('modalMessage');
@@ -470,7 +452,6 @@ window.initializePageLogic = function() {
     btnNo = document.getElementById('btnNo');
     btnCancel = document.getElementById('btnCancel');
     
-    // Referencias a botones principales
     const backBtn = document.getElementById('backBtn');
     const editDetailsBtn = document.getElementById('editDetailsBtn'); 
     const deleteBtn = document.getElementById('deleteDamageBtn'); 
@@ -482,14 +463,12 @@ window.initializePageLogic = function() {
 
     // --- 2. ASIGNACIÓN DE EVENT LISTENERS ---
 
-    // Navegación
     if (backBtn) {
         backBtn.addEventListener('click', function() {
             window.location.href = '../Repairs/Repairs.html'; 
         });
     }
 
-    // Toggle de Modo Edición
     if (editDetailsBtn) {
         editDetailsBtn.addEventListener('click', function() {
             const isActive = this.classList.contains('active');
@@ -499,17 +478,14 @@ window.initializePageLogic = function() {
         console.error("ERROR CRÍTICO: No se encontró el botón de Edición ('editDetailsBtn'). Verifica el HTML.");
     }
     
-    // Guardar Edición Principal
     if (editDamageForm) {
         editDamageForm.addEventListener('submit', handleSavePrimaryDetails);
     }
     
-    // Guardar Observaciones
     if (saveObservationsForm) {
         saveObservationsForm.addEventListener('submit', handleSaveObservations);
     }
     
-    // Control de visibilidad del botón Guardar Observaciones
     if (observationsTextarea && saveObservationsBtn) {
         observationsTextarea.addEventListener('input', function() {
             const currentValue = this.value;
@@ -521,7 +497,6 @@ window.initializePageLogic = function() {
         });
     }
 
-    // Botones de ACCIÓN PRINCIPALES (Abrir Modal)
     if (deleteBtn) {
         deleteBtn.addEventListener('click', function() {
             showConfirmationModal('delete');
@@ -534,16 +509,13 @@ window.initializePageLogic = function() {
         });
     }
 
-    // Botones dentro del MODAL (Manejar Confirmación)
     if (btnYes) {
         btnYes.addEventListener('click', function() {
-            console.log("DEBUG: Botón SI pulsado. Lanzando handleConfirmation(true)");
             handleConfirmation(true); 
         });
     }
     if (btnNo) {
         btnNo.addEventListener('click', function() {
-            console.log("DEBUG: Botón NO pulsado. Lanzando handleConfirmation(false)");
             handleConfirmation(false);
         });
     }

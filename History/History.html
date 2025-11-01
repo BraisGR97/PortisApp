@@ -6,9 +6,10 @@
 	 <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        // 馃敟 Importamos 'collection' aunque no se use en esta p谩gina, puede ser 煤til.
         import { getFirestore, collection, getDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         
-        // --- Configuración de Firebase ---
+        // --- Configuraci贸n de Firebase ---
         const firebaseConfig = {
             apiKey: "AIzaSyD_tC3KaK3UVyNOPiSsnI0s5k8Cd_qFJpg",
             authDomain: "portisapp.firebaseapp.com",
@@ -23,14 +24,14 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
         
-        // Exponer referencias necesarias a Damage.js
+        // Exponer referencias necesarias a History.js
         window.db = db;
         window.getDoc = getDoc;
         window.doc = doc;
         window.updateDoc = updateDoc;
         window.deleteDoc = deleteDoc;
         
-        // Asegurar la autenticación
+        // Asegurar la autenticaci贸n
         signInAnonymously(auth).catch(error => console.error("Error en autenticación anónima:", error));
 
         // Obtener el ID del usuario al cargar el estado
@@ -53,7 +54,7 @@
                 <button class="btn-secondary" id="backBtn">Volver a Historial</button>
             </div>
             
-            <h2>Detalle de la Avería</h2>
+            <h2>Detalle del Registro</h2>
             <div id="historyMessageBox" class="message-box hidden" role="alert" aria-live="assertive"></div>
             
             <div id="detailView" class="detail-info"> 
@@ -81,6 +82,28 @@
             </div>
         </div>
     </div>
+    
+    <div id="confirmationModal" class="modal-overlay hidden">
+        <div id="modalCard" class="modal-card">
+            <h3 id="modalTitle"></h3>
+            <p id="modalMessage"></p>
+            
+            <div class="modal-actions">
+                <button id="btnYes" class="btn-modal-yes">
+                    Sí
+                </button>
+                
+                <button id="btnNo" class="btn-modal-no">
+                    No
+                </button>
+
+                <button id="btnCancel" class="btn-modal-cancel hidden">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="../History/History.js"></script>
 </body>
 </html>
