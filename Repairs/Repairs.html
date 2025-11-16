@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PortisApp | Mantenimientos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+    
+    <link rel="stylesheet" href="./Repairs.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
+    <script>
+        // Configuración de Firebase, accesible globalmente antes del script principal
+        window.firebaseConfig = {
+            apiKey: "AIzaSyD_tC3KaK3UVyNOPiSsnI0s5k8Cd_qFJpg",
+            authDomain: "portisapp.firebaseapp.com",
+            projectId: "portisapp",
+            storageBucket: "portisapp.firebasestorage.app",
+            messagingSenderId: "38313359657",
+            appId: "1:38313359657:web:ae73a0f8f7556bed92df38",
+            measurementId: "G-HQ29Y8Z2DY"
+        };
+    </script>
+</head>
+<body class="antialiased">
+    <div id="geometric-wrapper"></div>
+
+    <div class="app-layout">
+        <header id="top-navbar" class="sticky top-0 z-40 p-4 flex justify-between items-center bg-opacity-95 backdrop-blur-sm">
+            <button onclick="window.location.href='../Main/Main.html'" class="text-xl p-2 rounded-full secondary-icon-btn">
+                <i class="ph ph-arrow-left"></i>
+            </button>
+            <h1 class="text-xl font-bold text-center">Gestión de Mantenimientos</h1>
+            <div id="current-user-display" class="user-id-display">Cargando...</div>
+        </header>
+
+        <main id="app-content" class="overflow-y-auto w-full max-w-4xl mx-auto">
+            
+            <div id="new-repair-card" class="card-container default-split mb-8 hidden">
+                <div class="card-inner-content">
+                    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2" style="color: var(--color-text-light);">
+                        <i class="ph ph-wrench-fill" style="color: var(--color-accent-red);"></i> 
+                        Reportar Nuevo Mantenimiento
+                    </h2>
+                    <form id="new-repair-form" class="space-y-4 form-content">
+                        
+                        <div>
+                            <label for="location" class="block text-sm font-medium mb-1" style="color: var(--color-text-secondary);">Ubicación <span class="text-red-500">*</span></label>
+                            <input type="text" id="location" placeholder="Ejem: Puerta principal, Almacén X" required class="minimal-input w-full">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="model" class="block text-sm font-medium mb-1" style="color: var(--color-text-secondary);">Modelo</label>
+                                <input type="text" id="model" placeholder="Ejem: KABA, SALTO XS4" class="minimal-input w-full">
+                            </div>
+                            <div>
+                                <label for="key_id" class="block text-sm font-medium mb-1" style="color: var(--color-text-secondary);">Llave/TAG</label>
+                                <input type="text" id="key_id" placeholder="ID de la llave o TAG" class="minimal-input w-full">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="contract" class="block text-sm font-medium mb-1" style="color: var(--color-text-secondary);">Contrato <span class="text-red-500">*</span></label>
+                            <select id="contract" required class="minimal-input w-full">
+                                <option value="" class="bg-gray-800" disabled selected>Selecciona un tipo de contrato</option>
+                                <option value="Mensual" class="bg-gray-800">Mensual</option>
+                                <option value="Bimensual" class="bg-gray-800">Bimensual</option>
+                                <option value="Trimestral" class="bg-gray-800">Trimestral</option>
+                                <option value="Cuatrimestral" class="bg-gray-800">Cuatrimestral</option>
+                                <option value="Anual" class="bg-gray-800">Anual</option>
+                            </select>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="month" class="block text-sm font-medium mb-1" style="color: var(--color-text-secondary);">Mes <span class="text-red-500">*</span></label>
+                                <input type="number" id="month" min="1" max="12" placeholder="Mes (1-12)" required class="minimal-input w-full">
+                            </div>
+                            <div>
+                                <label for="year" class="block text-sm font-medium mb-1" style="color: var(--color-text-secondary);">Año <span class="text-red-500">*</span></label>
+                                <input type="number" id="year" min="2000" max="2100" placeholder="Año (YYYY)" required class="minimal-input w-full">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="description" class="block text-sm font-medium mb-1" style="color: var(--color-text-secondary);">Descripción de la Avería/Trabajo</label>
+                            <textarea id="description" placeholder="Detalle del problema o trabajo realizado..." class="minimal-input w-full resize-none h-24"></textarea>
+                        </div>
+                        
+                        <div>
+                            <label for="priority" class="block text-sm font-medium mb-1" style="color: var(--color-text-secondary);">Prioridad</label>
+                            <select id="priority" required class="minimal-input w-full">
+                                <option value="Media" class="bg-gray-800" selected>Media</option>
+                                <option value="Alta" class="bg-gray-800 text-red-400">Alta</option>
+                                <option value="Baja" class="bg-gray-800 text-green-400">Baja</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="primary-btn w-full py-3 mt-4 rounded-lg text-lg">
+                            <i class="ph ph-floppy-disk mr-2"></i> 
+                            Guardar Mantenimiento
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card-container inverted-split">
+                <div class="card-inner-content">
+                    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2" style="color: var(--color-text-light);">
+                        <i class="ph ph-list-checks" style="color: var(--color-accent-red);"></i>
+                        Mantenimientos Reportados
+                    </h2>
+                    
+                    <div id="repairs-list" class="space-y-3">
+                        <div class="loading-spinner"></div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <button id="show-repair-form-fab" onclick="toggleNewRepairForm()" 
+        class="fixed bottom-8 right-4 z-50 p-4 rounded-full primary-btn transition-transform duration-300 hover:scale-110 shadow-xl shadow-red-900/50">
+        <i class="ph ph-plus text-2xl"></i>
+    </button>
+
+    <script src="./Repairs.js"></script>
+</body>
+</html>

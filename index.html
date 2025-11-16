@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portis - Autenticación</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+</head>
+<body class="text-gray-900 split-base">
+
+    <div id="geometric-wrapper"></div>
+
+    <div id="app-container" class="flex items-center justify-center h-screen w-full p-4">
+
+        <section id="home-screen" class="screen w-full max-w-md flex items-center justify-center" style="display: flex;">
+            <div id="home-card" class="card-container text-center default-split">
+                <div class="card-inner-content flex flex-col justify-center items-center h-full">
+                    
+                    <svg class="mb-4" width="60" height="60" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7V17L12 22L22 17V7L12 2Z" fill="url(#mainGradient)" stroke="url(#mainGradient)" stroke-width="1.5"/>
+                        <path d="M12 2L12 22" stroke="white" stroke-width="1.5" stroke-opacity="0.3"/>
+                        <path d="M2 7L22 17" stroke="white" stroke-width="1.5" stroke-opacity="0.3"/>
+                        <path d="M22 7L2 17" stroke="white" stroke-width="1.5" stroke-opacity="0.3"/>
+                        <defs>
+                            <linearGradient id="mainGradient" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#FF5722"/>
+                                <stop offset="1" stop-color="#E91E63"/> 
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <h1 class="text-6xl font-extrabold mb-4 text-white">Portis</h1> 
+                    <p class="text-lg mb-12" style="color: var(--color-text-secondary);">El diseño que te mereces.</p>
+                    
+                    <button id="start-btn" class="primary-btn w-full py-3 rounded-xl">
+                        <span>INICIAR</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="login-screen" class="screen w-full max-w-md flex items-center justify-center" style="display: none;">
+            <div id="login-card" class="card-container text-center default-split">
+                <div class="card-inner-content">
+                    <div class="form-content">
+                        <h2 class="text-3xl font-bold mb-8 text-center text-white">Iniciar Sesión</h2> 
+                        
+                        <div id="login-message" class="message-box w-full" style="display: none;"></div>
+
+                        <input id="login-email" type="text" placeholder="Usuario o Correo electrónico" autocomplete="username" class="minimal-input w-full mb-6">
+                        <input id="login-password" type="password" placeholder="Contraseña" autocomplete="current-password" class="minimal-input w-full mb-8">
+                        
+                        <button id="login-btn" class="primary-btn w-full py-3 rounded-xl mb-6">
+                            <span>Entrar</span>
+                        </button>
+
+                        <div class="w-full flex justify-between text-sm">
+                            <button id="go-to-forgot-btn" class="link-button transition">Recuperar Contraseña</button>
+                            <button id="go-to-register-btn" class="link-button transition">Regístrate</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="register-screen" class="screen w-full max-w-md flex items-center justify-center" style="display: none;">
+            <div id="register-card" class="card-container text-center inverted-split">
+                <div class="card-inner-content">
+                    <div class="form-content">
+                        <h2 class="text-3xl font-bold mb-8 text-center text-white">Crear Cuenta</h2>
+                        
+                        <div id="register-message" class="message-box w-full" style="display: none;"></div>
+                        
+                        <input id="register-username" type="text" placeholder="Nombre de usuario" autocomplete="nickname" class="minimal-input w-full mb-6">
+                        <input id="register-email" type="email" placeholder="Correo electrónico" autocomplete="email" class="minimal-input w-full mb-6">
+                        <input id="register-password" type="password" placeholder="Contraseña (mín. 6 caracteres)" autocomplete="new-password" class="minimal-input w-full mb-6">
+                        <input id="register-password-confirm" type="password" placeholder="Confirmar contraseña" autocomplete="new-password" class="minimal-input w-full mb-8">
+
+                        <button id="register-btn" class="primary-btn w-full py-3 rounded-xl mb-6">
+                            <span>Crear Cuenta</span>
+                        </button>
+
+                        <button id="go-to-login-from-register-btn" class="link-button text-sm transition">¿Ya tienes cuenta? Inicia Sesión</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="forgot-password-screen" class="screen w-full max-w-md flex items-center justify-center" style="display: none;">
+            <div id="forgot-card" class="card-container text-center default-split">
+                <div class="card-inner-content">
+                    <div class="form-content">
+                        <h2 class="text-3xl font-bold mb-8 text-center text-white">Recuperar Contraseña</h2>
+                        <p class="text-sm mb-6 text-left" style="color: var(--color-text-secondary);">Introduce tu correo para recibir un enlace de restablecimiento.</p>
+
+                        <div id="forgot-message" class="message-box w-full" style="display: none;"></div>
+
+                        <input id="forgot-email" type="email" placeholder="Correo electrónico" autocomplete="email" class="minimal-input w-full mb-8">
+                        
+                        <button id="reset-password-btn" class="primary-btn w-full py-3 rounded-xl mb-6">
+                            <span>Enviar Enlace</span>
+                        </button>
+
+                        <button id="go-to-login-from-forgot-btn" class="link-button text-sm transition">Volver a Iniciar Sesión</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
+    
+    <script src="script.js"></script> 
+</body>
+</html>

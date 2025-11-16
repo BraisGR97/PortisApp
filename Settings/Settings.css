@@ -1,0 +1,300 @@
+/* =====================================================
+# 1. PALETA DE COLORES (Variables)
+=====================================================
+*/
+:root {
+    /* --- DARK MODE PALETTE (Default) --- */
+    --color-bg-primary: #12121e;     /* Fondo Principal (Muy Oscuro) */
+    --color-bg-secondary: #1f1f33;    /* Fondo de Tarjeta/Input */
+    --color-text-light: #f0f0f5;      /* Texto principal */
+    --color-text-secondary: #9999aa; /* Texto secundario/Placeholder */
+    --color-accent-red: #E91E63;      /* Rojo/Magenta Vibrante */
+    --color-accent-gradient: linear-gradient(135deg, #FF5722, #E91E63);
+    --color-shadow-dark: rgba(0, 0, 0, 0.4); 
+    --split-color-dark: var(--color-bg-secondary);
+    --split-color-accent: var(--color-accent-red);
+    --split-angle: 140deg; 
+    --split-angle-inverted: -40deg;
+}
+
+/* --- LIGHT MODE PALETTE --- */
+.light-mode {
+    --color-bg-primary: #f0f0f5;      /* Fondo Principal (Claro) */
+    --color-bg-secondary: #ffffff;    /* Fondo de Tarjeta/Input (Blanco) */
+    --color-text-light: #1f1f33;      /* Texto principal (Oscuro) */
+    --color-text-secondary: #555566;  /* Texto secundario/Placeholder */
+    --color-shadow-dark: rgba(0, 0, 0, 0.15); 
+    --split-color-dark: var(--color-bg-secondary);
+    --split-color-accent: #FF5722;   /* Acento Naranja para Light Mode */
+    
+    /* Adaptamos el color del texto en el cuerpo principal */
+    color: var(--color-text-light);
+}
+.light-mode #geometric-wrapper {
+    background: radial-gradient(circle at 10% 20%, #e0e0e0 0%, #f0f0f5 100%);
+}
+.light-mode .user-id-display {
+    background-color: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+.light-mode #top-navbar {
+    background-color: var(--color-bg-primary);
+    box-shadow: 0 5px 20px var(--color-shadow-dark);
+}
+.light-mode .secondary-icon-btn {
+    background-color: #f0f0f5;
+    color: var(--color-text-secondary);
+}
+.light-mode .secondary-icon-btn:hover {
+    background-color: #e0e0e0;
+    color: var(--color-accent-red);
+}
+
+
+/* =====================================================
+# 2. ESTILOS BASE Y GENERALES
+=====================================================
+*/
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-light);
+    transition: background-color 0.5s;
+}
+
+/* Scrollbar (Ocultar pero permitir scroll) */
+.overflow-y-auto::-webkit-scrollbar {
+    display: none;
+}
+.overflow-y-auto {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Fondo Geométrico Fijo */
+#geometric-wrapper {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: -1;
+    background: radial-gradient(circle at 10% 20%, #1a1a2e 0%, #12121e 100%);
+    transition: background 0.5s;
+}
+
+/* =====================================================
+# 3. LAYOUT Y NAVEGACIÓN
+=====================================================
+*/
+.app-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+#app-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 1rem 0;
+    padding-bottom: 5rem;
+}
+
+#top-navbar {
+    background-color: var(--color-bg-primary);
+    box-shadow: 0 5px 20px var(--color-shadow-dark); 
+    transition: background-color 0.5s;
+}
+
+.user-id-display {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    /* Resto de estilos... */
+}
+
+/* =====================================================
+# 4. TARJETAS (Glassmorphism)
+=====================================================
+*/
+.card-container {
+    box-shadow: 0 10px 40px var(--color-shadow-dark); 
+    /* Resto de estilos... */
+    margin: 1rem;
+}
+
+.card-inner-content {
+    background-color: var(--color-bg-secondary); 
+    /* Resto de estilos... */
+    transition: background-color 0.5s;
+}
+
+/* Gradientes Diagonales con Sombra de Relieve */
+.default-split .card-inner-content {
+    background-image: 
+        linear-gradient(
+            var(--split-angle),
+            var(--split-color-accent) 0%,
+            var(--split-color-accent) 44.5%,
+            rgba(0, 0, 0, 0.2) 45%,
+            var(--split-color-dark) 45.5%,
+            var(--split-color-dark) 100%
+        );
+}
+
+.inverted-split .card-inner-content {
+    background-image: 
+        linear-gradient(
+            var(--split-angle-inverted),
+            var(--split-color-accent) 0%,
+            var(--split-color-accent) 44.5%,
+            rgba(0, 0, 0, 0.2) 45%,
+            var(--split-color-dark) 45.5%,
+            var(--split-color-dark) 100%
+        );
+}
+
+/* --- Estilos Específicos de Ajustes --- */
+
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+}
+
+.setting-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-light);
+}
+
+/* =====================================================
+# 5. CONTROLES Y MODAL
+=====================================================
+*/
+
+/* TOGGLE SWITCH */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--color-bg-primary); /* Fondo del toggle (apagado) */
+    transition: 0.4s;
+    border: 2px solid var(--color-text-secondary);
+}
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 2px;
+    background-color: var(--color-text-light); /* Círculo del toggle */
+    transition: 0.4s;
+}
+input:checked + .slider {
+    background-color: var(--color-accent-red); /* Fondo del toggle (encendido) */
+    border: 2px solid var(--color-accent-red);
+}
+input:focus + .slider {
+    box-shadow: 0 0 1px var(--color-accent-red);
+}
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+.slider.round {
+    border-radius: 34px;
+}
+.slider.round:before {
+    border-radius: 50%;
+}
+
+/* BOTONES y INPUTS */
+.minimal-input {
+    border: none;
+    border-bottom: 2px solid var(--color-bg-primary); 
+    background-color: var(--color-bg-primary);
+    padding: 0.75rem 0.5rem;
+    color: var(--color-text-light); 
+    transition: border-bottom-color 0.3s ease, background-color 0.3s;
+    border-radius: 0.5rem;
+}
+.minimal-input:focus {
+    outline: none;
+    border-bottom-color: var(--color-accent-red);
+    background-color: #2a2a40; 
+}
+.light-mode .minimal-input {
+    background-color: #ffffff;
+    border-bottom: 2px solid #e0e0e0;
+    color: var(--color-text-light);
+}
+.light-mode .minimal-input:focus {
+     background-color: #f5f5f5;
+}
+
+
+.primary-btn {
+    background-image: var(--color-accent-gradient);
+    color: var(--color-text-light);
+    font-weight: 700;
+    /* Resto de estilos... */
+}
+.secondary-icon-btn {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-secondary);
+    /* Resto de estilos... */
+}
+
+/* MODAL */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: var(--color-bg-secondary);
+    padding: 2rem;
+    border-radius: 1rem;
+    max-width: 400px;
+    width: 90%;
+    color: var(--color-text-light);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .card-container {
+        margin: 0 1rem;
+    }
+    .card-inner-content {
+        padding: 1.5rem; 
+    }
+}
