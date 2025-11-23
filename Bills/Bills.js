@@ -381,63 +381,107 @@ function renderBills(bills, updateCache = true) {
         return;
     }
 
+    // 2. Ordenar por fecha (más reciente primero)
+    filteredBills.sort((a, b) => {
+        const dateA = a.bill_date && a.bill_date.toDate ? a.bill_date.toDate() : new Date(a.bill_date);
+        const dateB = b.bill_date && b.bill_date.toDate ? b.bill_date.toDate() : new Date(b.bill_date);
+        return dateB - dateA;
+    });
+
+    // 3. Agrupar por mes
+    const billsByMonth = {};
+
     filteredBills.forEach(bill => {
-        // Maneja la conversión de la fecha
         const dateRaw = bill.bill_date && bill.bill_date.toDate ? bill.bill_date.toDate() : new Date(bill.bill_date);
-        const formattedDate = dateRaw.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }).replace('.', '');
+        // Clave de agrupación: "Noviembre 2023"
+        const monthKey = dateRaw.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+        // Capitalizar primera letra
+        const formattedMonthKey = monthKey.charAt(0).toUpperCase() + monthKey.slice(1);
 
-        // Estilos similares a Repairs
-        const card = document.createElement('div');
-        card.className = 'bill-card p-4 rounded-xl shadow-sm border relative group cursor-pointer transition-all duration-200 hover:shadow-md';
-        card.setAttribute('data-id', bill.id);
-        card.style.backgroundColor = 'var(--color-card-bg)';
-        card.style.borderColor = 'var(--color-border)';
+        if (!billsByMonth[formattedMonthKey]) {
+            billsByMonth[formattedMonthKey] = {
+                bills: [],
+                total: 0
+            };
+        }
 
-        const billHtml = `
-            <div class="flex justify-between items-start mb-2">
-                <h3 class="font-bold text-lg truncate pr-8" style="color: var(--color-text-primary);">${bill.concept}</h3>
-                <span class="text-xs font-medium px-2 py-1 rounded-full ${bill.status === 'Pagado' ? 'text-green-500 bg-green-100 dark:bg-green-900/30' : 'text-orange-500 bg-orange-100 dark:bg-orange-900/30'}">
-                    ${bill.status || 'Pendiente'}
-                </span>
-            </div>
-            
-            <div class="text-sm mb-3 space-y-1" style="color: var(--color-text-secondary);">
-                <p class="flex items-center gap-2">
-                    <i class="ph ph-calendar-blank"></i>
-                    ${formattedDate}
-                </p>
-                <p class="flex items-center gap-2 italic">
-                    <i class="ph ph-note"></i>
-                    ${bill.notes ? (bill.notes.length > 40 ? bill.notes.substring(0, 40) + '...' : bill.notes) : 'Sin notas.'}
-                </p>
-            </div>
+        billsByMonth[formattedMonthKey].bills.push(bill);
+        billsByMonth[formattedMonthKey].total += parseFloat(bill.cost) || 0;
+    });
 
-            <div class="flex justify-between items-center mt-3 pt-3 border-t" style="border-color: var(--color-border);">
-                <span class="text-xl font-bold" style="color: #4CAF50;">
-                    ${bill.cost} €
-                </span>
-                
-                <div class="flex gap-2">
-                    ${bill.status !== 'Pagado' ? `
-                    <button data-action="pay" data-id="${bill.id}"
-                        class="action-btn pay-btn p-2 rounded-full hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-green-500" 
-                        title="Marcar como Pagado" 
-                        aria-label="Pagar presupuesto ${bill.concept}">
-                        <i class="ph ph-check-circle text-lg pointer-events-none"></i>
-                    </button>
-                    ` : ''}
-                    <button data-action="delete" data-id="${bill.id}"
-                        class="action-btn delete-btn p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-500" 
-                        title="Eliminar presupuesto" 
-                        aria-label="Eliminar presupuesto ${bill.concept}">
-                        <i class="ph ph-trash text-lg pointer-events-none"></i>
-                    </button>
-                </div>
-            </div>
+    // 4. Renderizar grupos
+    Object.keys(billsByMonth).forEach(monthKey => {
+        const group = billsByMonth[monthKey];
+
+        // Header del mes
+        const monthHeader = document.createElement('div');
+        monthHeader.className = 'flex justify-between items-center px-2 py-3 mt-4 mb-2 border-b border-dashed';
+        monthHeader.style.borderColor = 'var(--color-border)';
+        monthHeader.innerHTML = `
+            <h3 class="text-lg font-bold" style="color: var(--color-text-primary);">${monthKey}</h3>
+            <span class="text-sm font-semibold px-3 py-1 rounded-full" style="background-color: var(--color-bg-tertiary); color: var(--color-accent-blue);">
+                Total: ${group.total.toFixed(2)} €
+            </span>
         `;
+        listContainer.appendChild(monthHeader);
 
-        card.innerHTML = billHtml;
-        listContainer.appendChild(card);
+        // Lista de facturas del mes
+        group.bills.forEach(bill => {
+            const dateRaw = bill.bill_date && bill.bill_date.toDate ? bill.bill_date.toDate() : new Date(bill.bill_date);
+            const formattedDate = dateRaw.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }).replace('.', '');
+
+            const card = document.createElement('div');
+            card.className = 'bill-card p-4 rounded-xl shadow-sm border relative group cursor-pointer transition-all duration-200 hover:shadow-md mb-3';
+            card.setAttribute('data-id', bill.id);
+            card.style.backgroundColor = 'var(--color-bg-secondary)';
+            card.style.borderColor = 'var(--color-border)';
+
+            const billHtml = `
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="font-bold text-lg truncate pr-8" style="color: var(--color-text-primary);">${bill.concept}</h3>
+                    <span class="text-xs font-medium px-2 py-1 rounded-full ${bill.status === 'Pagado' ? 'text-green-500 bg-green-100 dark:bg-green-900/30' : 'text-orange-500 bg-orange-100 dark:bg-orange-900/30'}">
+                        ${bill.status || 'Pendiente'}
+                    </span>
+                </div>
+                
+                <div class="text-sm mb-3 space-y-1" style="color: var(--color-text-secondary);">
+                    <p class="flex items-center gap-2">
+                        <i class="ph ph-calendar-blank"></i>
+                        ${formattedDate}
+                    </p>
+                    <p class="flex items-center gap-2 italic">
+                        <i class="ph ph-note"></i>
+                        ${bill.notes ? (bill.notes.length > 40 ? bill.notes.substring(0, 40) + '...' : bill.notes) : 'Sin notas.'}
+                    </p>
+                </div>
+
+                <div class="flex justify-between items-center mt-3 pt-3 border-t" style="border-color: var(--color-border);">
+                    <span class="text-xl font-bold" style="color: #4CAF50;">
+                        ${bill.cost} €
+                    </span>
+                    
+                    <div class="flex gap-2">
+                        ${bill.status !== 'Pagado' ? `
+                        <button data-action="pay" data-id="${bill.id}"
+                            class="action-btn pay-btn p-2 rounded-full hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-green-500" 
+                            title="Marcar como Pagado" 
+                            aria-label="Pagar presupuesto ${bill.concept}">
+                            <i class="ph ph-check-circle text-lg pointer-events-none"></i>
+                        </button>
+                        ` : ''}
+                        <button data-action="delete" data-id="${bill.id}"
+                            class="action-btn delete-btn p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-500" 
+                            title="Eliminar presupuesto" 
+                            aria-label="Eliminar presupuesto ${bill.concept}">
+                            <i class="ph ph-trash text-lg pointer-events-none"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            card.innerHTML = billHtml;
+            listContainer.appendChild(card);
+        });
     });
 }
 

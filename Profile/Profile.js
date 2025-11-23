@@ -1,13 +1,10 @@
 /**
  * ====================================================================
- * Profile.js - L¨®gica de la p¨¢gina de Perfil y configuraci¨®n
+ * Profile.js - Lógica de la página de Perfil y configuración
  * ====================================================================
  */
 
-// ?? CORRECCI¨®N: Se eliminaron las declaraciones 'const firebaseConfig = window.firebaseConfig;'
-// y 'const IS_MOCK_MODE = window.IS_MOCK_MODE;' para evitar el error de redeclaraci¨®n.
-
-// Las variables globales (firebaseConfig, IS_MOCK_MODE) est¨¢n disponibles directamente en 'window'.
+// Las variables globales (firebaseConfig, IS_MOCK_MODE) están disponibles directamente en 'window'.
 
 const appId = window.firebaseConfig ? window.firebaseConfig.projectId : 'mock-app-id';
 const initialAuthToken = null;
@@ -16,15 +13,15 @@ let app;
 let db;
 let auth;
 
-// ?? Obtener el UID y el nombre de la sesi¨®n
+// Obtener el UID y el nombre de la sesión
 let userId = sessionStorage.getItem('portis-user-identifier') || null;
 let userDisplayName = sessionStorage.getItem('portis-user-display-name') || null;
 
 let isAuthReady = false;
 let initialUsername = ''; // Para detectar si el nombre de usuario ha cambiado
-let userEmail = ''; // Para el modal de restablecimiento de contrase?a
+let userEmail = ''; // Para el modal de restablecimiento de contraseña
 
-// --- FUNCI¨®N DE INICIALIZACI¨®N PRINCIPAL ---
+// --- FUNCIÓN DE INICIALIZACIÓN PRINCIPAL ---
 
 /**
  * Inicializa Firebase, autentica al usuario y establece el listener de estado.
@@ -32,15 +29,15 @@ let userEmail = ''; // Para el modal de restablecimiento de contrase?a
 async function initializeAppAndAuth() {
     const displayElement = document.getElementById('current-user-display');
 
-    // 1. Verificar la sesi¨®n local (Redirigir si no hay sesi¨®n v¨¢lida)
+    // 1. Verificar la sesión local (Redirigir si no hay sesión válida)
     if (!userId || !userDisplayName) {
-        console.warn("Sesi¨®n no v¨¢lida o caducada. Redirigiendo a Index.");
+        console.warn("Sesión no válida o caducada. Redirigiendo a Index.");
         // RUTA CORRECTA: '../index.html'
         window.location.href = '../index.html';
         return;
     }
 
-    // Rellenar la UI con el nombre de sesi¨®n inmediatamente
+    // Rellenar la UI con el nombre de sesión inmediatamente
     if (displayElement) {
         displayElement.textContent = userDisplayName;
     }
@@ -60,35 +57,35 @@ async function initializeAppAndAuth() {
         return;
     }
 
-    // 3. Inicializaci¨®n de Firebase
+    // 3. Inicialización de Firebase
     try {
         if (!window.firebaseConfig || !window.firebaseConfig.apiKey) { // Usa window.firebaseConfig
-            throw new Error("La configuraci¨®n de Firebase est¨¢ incompleta.");
+            throw new Error("La configuración de Firebase está incompleta.");
         }
 
         app = firebase.initializeApp(window.firebaseConfig);
         auth = firebase.auth();
         db = firebase.firestore();
 
-        // Observador de estado de autenticaci¨®n
+        // Observador de estado de autenticación
         auth.onAuthStateChanged((user) => {
             if (user && user.uid === userId) {
-                // Caso 1: Usuario autenticado y coincide con la sesi¨®n
+                // Caso 1: Usuario autenticado y coincide con la sesión
                 userId = user.uid;
                 isAuthReady = true;
                 displayUserData(user);
                 loadAndCalculateStats();
             } else {
-                // Caso 2: El usuario no coincide o ha cerrado sesi¨®n
-                console.warn("Sesi¨®n de Firebase no v¨¢lida o caducada. Redirigiendo.");
+                // Caso 2: El usuario no coincide o ha cerrado sesión
+                console.warn("Sesión de Firebase no válida o caducada. Redirigiendo.");
                 window.location.href = '../index.html';
             }
         });
 
     } catch (error) {
         console.error("Error al inicializar Firebase o al autenticar:", error);
-        alert("Error cr¨ªtico al cargar el m¨®dulo de perfil. Verifique la consola.");
-        displayElement.textContent = `Error de Conexi¨®n`;
+        alert("Error crítico al cargar el módulo de perfil. Verifique la consola.");
+        displayElement.textContent = `Error de Conexión`;
         loadAndCalculateStats(true);
     }
 }
@@ -106,10 +103,10 @@ function displayUserData(user) {
     initialUsername = currentUsername;
 
     // 2. Manejo del Email (para el modal)
-    userEmail = user.email || (user.isAnonymous ? 'Cuenta An¨®nima' : 'Correo no disponible');
+    userEmail = user.email || (user.isAnonymous ? 'Cuenta Anónima' : 'Correo no disponible');
     document.getElementById('password').placeholder = user.email || 'Click para restablecer';
 
-    // 3. Listener para mostrar el bot¨®n de guardar
+    // 3. Listener para mostrar el botón de guardar
     usernameInput.removeEventListener('input', toggleSaveButton);
     usernameInput.addEventListener('input', toggleSaveButton);
 
@@ -125,10 +122,10 @@ function displayUserData(user) {
     }
 }
 
-// --- GESTI¨®N DE INTERFAZ Y DATOS ---
+// --- GESTIÓN DE INTERFAZ Y DATOS ---
 
 /**
- * Muestra/Oculta el bot¨®n de guardar cambios si el username ha cambiado.
+ * Muestra/Oculta el botón de guardar cambios si el username ha cambiado.
  */
 function toggleSaveButton() {
     const usernameInput = document.getElementById('username');
@@ -144,7 +141,7 @@ function toggleSaveButton() {
 }
 
 /**
- * Maneja la edici¨®n del perfil (s¨®lo nombre de usuario) y guarda en Firestore/Auth.
+ * Maneja la edición del perfil (sólo nombre de usuario) y guarda en Firestore/Auth.
  */
 async function handleProfileEdit() {
     const usernameInput = document.getElementById('username');
@@ -153,7 +150,7 @@ async function handleProfileEdit() {
 
     if (newUsername === initialUsername) return;
     if (!newUsername) {
-        alert('El nombre de usuario no puede estar vac¨ªo.');
+        alert('El nombre de usuario no puede estar vacío.');
         return;
     }
 
@@ -171,7 +168,7 @@ async function handleProfileEdit() {
     try {
         const user = auth.currentUser;
         if (!user || user.isAnonymous) {
-            throw new Error("La edici¨®n de perfil requiere una cuenta autenticada (no an¨®nima).");
+            throw new Error("La edición de perfil requiere una cuenta autenticada (no anónima).");
         }
 
         // 1. Actualizar el displayName en Firebase Auth
@@ -188,7 +185,7 @@ async function handleProfileEdit() {
         initialUsername = newUsername;
         sessionStorage.setItem('portis-user-display-name', newUsername);
 
-        alert(`Perfil actualizado con ¨¦xito. Nuevo nombre: ${newUsername}`);
+        alert(`Perfil actualizado con éxito. Nuevo nombre: ${newUsername}`);
 
         // Recargar para reflejar el cambio en el navbar inmediatamente
         window.location.reload();
@@ -199,51 +196,51 @@ async function handleProfileEdit() {
     } finally {
         saveButton.innerHTML = '<i class="ph ph-floppy-disk-fill mr-2"></i> Guardar Cambios';
         saveButton.disabled = false;
-        toggleSaveButton(); // Ocultar despu¨¦s de guardar
+        toggleSaveButton(); // Ocultar después de guardar
     }
 }
 
 
-// --- L¨®GICA DEL MODAL DE CONTRASE?A ---
+// --- LÓGICA DEL MODAL DE CONTRASEÑA ---
 
 /**
- * Abre el modal de cambio de contrase?a.
+ * Abre el modal de cambio de contraseña.
  */
 function openPasswordModal() {
     if (window.IS_MOCK_MODE) {
-        alert('Funcionalidad de restablecimiento de contrase?a deshabilitada en Modo Mock.');
+        alert('Funcionalidad de restablecimiento de contraseña deshabilitada en Modo Mock.');
         return;
     }
 
     const user = auth.currentUser;
 
     if (!user) {
-        alert('Autenticaci¨®n no inicializada.');
+        alert('Autenticación no inicializada.');
         return;
     }
 
     if (user.isAnonymous) {
-        alert('Las cuentas an¨®nimas no tienen un correo electr¨®nico asociado para restablecer la contrase?a.');
+        alert('Las cuentas anónimas no tienen un correo electrónico asociado para restablecer la contraseña.');
         return;
     }
 
     const email = user.email;
     if (!email) {
-        alert('No se encontr¨® un correo electr¨®nico v¨¢lido asociado a tu cuenta.');
+        alert('No se encontró un correo electrónico válido asociado a tu cuenta.');
         return;
     }
 
     document.getElementById('reset-email-display').textContent = email;
     document.getElementById('modal-message').setAttribute('hidden', true);
 
-    // Mostrar el modal con transici¨®n
+    // Mostrar el modal con transición
     document.getElementById('password-modal').classList.remove('hidden');
     const modalContent = document.querySelector('#password-modal > div');
     setTimeout(() => modalContent.classList.remove('scale-95'), 10);
 }
 
 /**
- * Cierra el modal de cambio de contrase?a.
+ * Cierra el modal de cambio de contraseña.
  */
 function closePasswordModal() {
     const modalContent = document.querySelector('#password-modal > div');
@@ -252,7 +249,7 @@ function closePasswordModal() {
 }
 
 /**
- * Env¨ªa el correo electr¨®nico de restablecimiento de contrase?a.
+ * Envía el correo electrónico de restablecimiento de contraseña.
  */
 async function sendPasswordReset() {
     if (window.IS_MOCK_MODE) return;
@@ -265,7 +262,7 @@ async function sendPasswordReset() {
     const email = auth.currentUser?.email;
 
     if (!email) {
-        modalMessage.textContent = 'Error: No se encontr¨® un correo electr¨®nico para enviar el restablecimiento.';
+        modalMessage.textContent = 'Error: No se encontró un correo electrónico para enviar el restablecimiento.';
         modalMessage.className = 'p-3 mb-4 rounded-lg text-sm font-medium text-center bg-red-800 text-white';
         return;
     }
@@ -283,10 +280,10 @@ async function sendPasswordReset() {
     }
 }
 
-// --- GESTI¨®N DE ESTAD¨ªSTICAS ---
+// --- GESTIÓN DE ESTADÍSTICAS ---
 
 async function loadAndCalculateStats(isMock = false) {
-    if (!isAuthReady || !userId) return console.warn("Autenticaci¨®n no lista para cargar stats.");
+    if (!isAuthReady || !userId) return console.warn("Autenticación no lista para cargar stats.");
 
     if (isMock) {
         // Simular datos en modo mock
@@ -316,29 +313,32 @@ async function loadAndCalculateStats(isMock = false) {
             }
         });
 
-        // Renderizar las estad¨ªsticas
+        // Renderizar las estadísticas
         document.getElementById('stat-repairs-count').textContent = repairsCount;
         document.getElementById('stat-total-records').textContent = repairsCount + billsCount;
         document.getElementById('stat-total-cost').textContent = `${totalCost.toFixed(2)} €`;
 
     } catch (error) {
-        console.error("Error al cargar y calcular estad¨ªsticas:", error);
+        console.error("Error al cargar y calcular estadísticas:", error);
         document.getElementById('stat-total-cost').textContent = `Error`;
     }
 }
 
 
-// --- Ejecuci¨®n ---
+// --- Ejecución ---
 window.addEventListener('load', () => {
-    // ?? Aplicar el tema (Arreglo de CSS)
+    // Aplicar el tema (Arreglo de CSS)
     if (typeof window.applyColorMode === 'function') {
         window.applyColorMode();
     }
 
     initializeAppAndAuth();
 
-    // Listener para el bot¨®n de edici¨®n
-    document.getElementById('save-changes-btn').addEventListener('click', handleProfileEdit);
+    // Listener para el botón de edición
+    const saveBtn = document.getElementById('save-changes-btn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', handleProfileEdit);
+    }
 
     // Hacer que las funciones del modal sean globales para el onclick del HTML
     window.openPasswordModal = openPasswordModal;

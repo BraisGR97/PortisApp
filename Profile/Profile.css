@@ -1,69 +1,47 @@
-/* =====================================================
-# 1. PALETA DE COLORES (Variables)
-=====================================================
-*/
 :root {
-    /* --- DARK MODE PALETTE --- */
+    /* 🛑 CAMBIO 2: Paleta de colores de Main.css (DARK DEFAULT) */
     --color-bg-primary: #12121e;
-    /* Fondo Principal (Muy Oscuro) */
     --color-bg-secondary: #1f1f33;
-    /* Fondo de Tarjeta/Input (Un poco más claro) */
-    --color-text-light: #f0f0f5;
-    /* Texto principal */
+    --color-bg-tertiary: #2a2a3e;
+    --color-text-primary: #f0f0f5;
     --color-text-secondary: #9999aa;
-    /* Texto secundario/Placeholder */
-    --color-accent-red: #E91E63;
-    /* Rojo/Magenta Vibrante */
-    --color-accent-gradient: linear-gradient(135deg, #FF5722, #E91E63);
-    /* Gradiente de acento */
-    --color-shadow-dark: rgba(0, 0, 0, 0.4);
-    --border-thickness: 2px;
+    --color-text-light: #ffffff;
 
-    /* --- GLASS MORPHISM SPLIT --- */
-    --split-color-dark: var(--color-bg-secondary);
-    --split-color-accent: var(--color-accent-red);
-    --split-angle: 140deg;
-    --split-angle-inverted: -40deg;
+    /* 🛑 CAMBIO: Bordes y Acentos Magenta para Dark Mode */
+    --color-border: #632b3e;
+    /* Borde Magenta Oscuro sutil */
+    --color-shadow: rgba(0, 0, 0, 0.5);
+
+    /* 🛑 CAMBIO: Acento Principal ahora es Magenta en Dark Mode */
+    --color-accent-blue: #E91E63;
+
+    --color-accent-red: #ef4444;
+
+    /* 🛑 RESTAURADO: Gradiente Naranja/Rojo original */
+    --gradient-primary: linear-gradient(135deg, #FF5722, #E91E63);
 }
 
 /* --- LIGHT MODE PALETTE --- */
 body.light-mode {
-    --color-bg-primary: #f8f8f8;
-    /* Fondo Principal (Blanco Roto) */
+    --color-bg-primary: #f8f9fa;
     --color-bg-secondary: #ffffff;
-    /* Fondo de Tarjeta/Input (Blanco Puro) */
-    --color-text-light: #333333;
-    /* Texto principal (Gris Oscuro) */
-    --color-text-secondary: #666666;
-    /* Texto secundario/Placeholder (Gris Medio) */
-    --color-shadow-dark: rgba(0, 0, 0, 0.15);
-
-    /* Adaptar Glassmorphism a Light Mode */
-    --split-color-dark: var(--color-bg-secondary);
-    --split-color-accent: var(--color-accent-red);
-}
-
-/* =====================================================
-# 2. ESTILOS BASE Y GENERALES
-=====================================================
-*/
-html,
-body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
+    --color-bg-tertiary: #e9ecef;
+    --color-text-primary: #212529;
+    --color-text-secondary: #6c757d;
+    --color-text-light: #212529;
+    --color-border: #dee2e6;
+    --color-shadow: rgba(0, 0, 0, 0.1);
+    --color-accent-blue: #0d6efd;
+    /* Mantenemos azul en light mode por legibilidad, o cambiar si se pide */
+    --color-accent-red: #dc3545;
+    --gradient-primary: linear-gradient(135deg, #FF5722, #E91E63);
 }
 
 body {
-    font-family: 'Inter', sans-serif;
     background-color: var(--color-bg-primary);
-    color: var(--color-text-light);
-    transition: background-color 0.5s, color 0.5s;
-}
-
-/* Scrollbar (Ocultar pero permitir scroll) */
-.overflow-y-auto::-webkit-scrollbar {
-    display: none;
+    color: var(--color-text-primary);
+    transition: background-color 0.3s, color 0.3s;
+    min-height: 100vh;
 }
 
 .overflow-y-auto {
@@ -71,124 +49,86 @@ body {
     scrollbar-width: none;
 }
 
-/* Colores de texto global */
-.text-gray-900,
-.text-gray-500 {
-    color: var(--color-text-light) !important;
-}
-
-/* Fondo Geométrico Fijo */
-#geometric-wrapper {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: -1;
-    background: radial-gradient(circle at 10% 20%, #1a1a2e 0%, #12121e 100%);
-    transition: background 0.5s;
-    animation: none;
-}
-
-/* Estilo Light Mode para el fondo */
-body.light-mode #geometric-wrapper {
-    background: radial-gradient(circle at 90% 80%, #ffffff 0%, #f0f0f5 100%);
-}
-
-/* =====================================================
-# 3. LAYOUT Y NAVEGACIÓN
-=====================================================
-*/
 .app-layout {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
 }
 
-#app-content {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 1rem 0;
-    padding-bottom: 5rem;
-}
-
 #top-navbar {
-    transition: transform 0.3s ease-out;
-    box-shadow: 0 5px 20px var(--color-shadow-dark);
     background-color: var(--color-bg-primary);
-    transition: background-color 0.5s, box-shadow 0.5s, transform 0.3s ease-out;
+    border-bottom: 1px solid var(--color-border);
 }
 
-.user-id-display {
-    background-color: var(--color-bg-primary);
-    color: var(--color-text-secondary);
-    font-size: 0.75rem;
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    border: 1px solid var(--color-text-secondary)30;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 150px;
-    margin-right: 0.5rem;
-    transition: background-color 0.3s;
+#app-content {
+    padding: 1rem;
+    flex-grow: 1;
+    padding-bottom: 5rem;
+    /* Espacio para el FAB */
 }
 
-/* Ajuste del hover para Dark/Light */
-body.light-mode .user-id-display:hover {
-    background-color: #ededed;
-}
-
-body:not(.light-mode) .user-id-display:hover {
-    background-color: #2a2a40;
-}
-
-/* =====================================================
-# 4. TARJETAS (Glassmorphism)
-=====================================================
-*/
+/* Card styles */
 .card-container {
-    position: relative;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 1rem;
+    box-shadow: 0 4px 10px var(--color-shadow);
     overflow: hidden;
-    padding: 0;
-    border-radius: 1.5rem;
-    box-shadow: 0 10px 40px var(--color-shadow-dark);
-    transform: none;
-    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.5, 1), opacity 0.4s ease-in-out;
-    margin: 1rem;
 }
 
 .card-inner-content {
-    position: relative;
-    z-index: 20;
-    padding: 2.5rem;
-    border-radius: 1.5rem;
-    background-color: var(--color-bg-secondary);
-    backdrop-filter: blur(8px);
-    transition: background-image 0.6s ease-in-out, background-color 0.5s, box-shadow 0.5s;
-    box-shadow:
-        inset 0 0 10px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
 }
 
-/* Gradientes Diagonales con Sombra de Relieve */
-.default-split .card-inner-content {
-    background-image:
-        linear-gradient(var(--split-angle),
-            var(--split-color-accent) 0%,
-            var(--split-color-accent) 44.5%,
-            rgba(0, 0, 0, 0.1) 45%,
-            var(--split-color-dark) 45.5%,
-            var(--split-color-dark) 100%);
+/* 🛑 Input/Form styles con borde negro fino por defecto, y magenta al seleccionar */
+.minimal-input {
+    background-color: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    /* Borde fino */
+    color: var(--color-text-light);
+    padding: 0.6rem 0.8rem;
+    border-radius: 0.5rem;
+    transition: border-color 0.2s, background-color 0.2s;
 }
 
-.inverted-split .card-inner-content {
-    background-image:
-        linear-gradient(var(--split-angle-inverted),
-            var(--split-color-accent) 0%,
-            var(--split-color-accent) 44.5%,
-            rgba(0, 0, 0, 0.1) 45%,
-            var(--split-color-dark) 45.5%,
-            var(--split-color-dark) 100%);
+.minimal-input:focus {
+    border-color: var(--color-accent-blue);
+    /* Magenta al enfocar */
+    outline: none;
+    box-shadow: 0 0 0 1px var(--color-accent-blue);
+}
+
+.minimal-input::placeholder {
+    color: var(--color-text-secondary);
+}
+
+/* Button styles */
+.primary-btn {
+    background-image: var(--gradient-primary);
+    color: var(--color-text-light);
+    font-weight: 600;
+    padding: 0.6rem 1rem;
+    border-radius: 0.5rem;
+    border: none;
+    transition: opacity 0.2s;
+}
+
+.primary-btn:hover {
+    opacity: 0.9;
+}
+
+.secondary-icon-btn {
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.secondary-icon-btn:hover {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-light);
+    border-color: var(--color-accent-blue);
+    /* Borde magenta al hover */
 }
 
 /* --- Estilos Específicos de Perfil --- */
@@ -200,8 +140,8 @@ body:not(.light-mode) .user-id-display:hover {
     background-color: var(--color-bg-primary);
     display: block;
     object-fit: contain;
-    border: 3px solid var(--color-accent-red);
-    box-shadow: 0 0 10px rgba(233, 30, 99, 0.5);
+    border: 3px solid var(--color-accent-blue);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
     cursor: pointer;
     transition: transform 0.2s, background-color 0.3s;
 }
@@ -211,16 +151,11 @@ body:not(.light-mode) .user-id-display:hover {
 }
 
 .stat-item {
-    background-color: var(--color-bg-primary);
+    background-color: var(--color-bg-tertiary);
     padding: 1rem;
     border-radius: 0.75rem;
-    box-shadow: inset 0 0 10px var(--color-shadow-dark);
-    transition: background-color 0.3s, box-shadow 0.3s;
-}
-
-/* Sombra de relieve en Light Mode más sutil */
-body.light-mode .stat-item {
-    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--color-border);
+    transition: background-color 0.3s, border-color 0.3s;
 }
 
 .stat-label {
@@ -237,84 +172,27 @@ body.light-mode .stat-item {
 }
 
 #stat-total-cost {
-    color: #4CAF50;
+    color: #10b981;
+    /* Green */
 }
 
-
-/* =====================================================
-# 5. FORMULARIOS Y BOTONES
-=====================================================
-*/
-.minimal-input {
-    border: none;
-    border-bottom: 2px solid var(--color-text-secondary);
-    background-color: var(--color-bg-primary);
-    padding: 0.75rem 0.5rem;
-    color: var(--color-text-light);
-    transition: border-bottom-color 0.3s ease, background-color 0.3s;
-    border-radius: 0.5rem;
-}
-
-/* Foco y Hover adaptado a Light/Dark */
-.minimal-input:focus {
-    outline: none;
-    border-bottom-color: var(--color-accent-red);
-}
-
-body:not(.light-mode) .minimal-input:focus {
-    background-color: #2a2a40;
-}
-
-body.light-mode .minimal-input:focus {
-    background-color: #e8e8e8;
-}
-
-.minimal-input::placeholder {
+.user-id-display {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    background-color: var(--color-bg-tertiary);
     color: var(--color-text-secondary);
-}
-
-.primary-btn {
-    background-image: var(--color-accent-gradient);
-    color: var(--color-text-light);
-    font-weight: 700;
-    border: none;
-    position: relative;
+    max-width: 100px;
     overflow: hidden;
-    z-index: 1;
-    transition: transform 0.1s, box-shadow 0.3s;
-    box-shadow: 0 4px 15px rgba(233, 30, 99, 0.4);
-}
-
-.primary-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(233, 30, 99, 0.6);
-}
-
-.secondary-icon-btn {
-    background-color: var(--color-bg-primary);
-    color: var(--color-text-secondary);
-    transition: color 0.3s, background-color 0.3s;
-}
-
-/* Ajuste del hover del botón secundario para Light Mode */
-body.light-mode .secondary-icon-btn:hover {
-    background-color: #e0e0e0;
-    color: var(--color-accent-red);
-}
-
-body:not(.light-mode) .secondary-icon-btn:hover {
-    background-color: #2a2a40;
-    color: var(--color-accent-red);
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Responsive */
 @media (max-width: 640px) {
-    .card-container {
-        margin: 0 1rem;
-    }
-
-    .card-inner-content {
-        padding: 1.5rem;
+    body {
+        padding: 0;
     }
 
     #stats-grid {
