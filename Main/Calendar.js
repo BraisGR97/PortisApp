@@ -1,0 +1,621 @@
+// Se asume que Firebase (compatibilidad) está disponible globalmente desde los scripts CDN de Main.html
+// Se asume que window.firebaseReadyPromise, window.db, y window.auth serán establecidos por Main.js.
+
+(function () { // ⬅️ INICIO: IIFE para aislar el ámbito y evitar conflictos de declaración.
+
+    // =======================================================
+    // 1. VARIABLES LOCALES Y CONFIGURACIÓN (Lectura de window)
+    // =======================================================
+
+    const IS_MOCK_MODE = window.IS_MOCK_MODE; // Leer la variable global de Mock Mode
+
+    // 🔑 CLAVE: Leer el UID del usuario desde sessionStorage (gestionado por Main.js)
+    const userId = sessionStorage.getItem('portis-user-identifier') || null;
+
+    var calendarEvents = {}; // Clave: fechaString (YYYY-MM-DD), Valor: EventoData
+    var isFirebaseReady = false;
+
+    let currentCalendarDate = new Date();
+    let selectedDateForEvent = null;
+
+    const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+    const ANNUAL_VACATION_QUOTA = 28; // El cupo anual de días de vacaciones
+
+    // --- [Funciones Auxiliares] ---
+
+    // Usaremos la función global showAppMessage de config.js
+    function showMessage(type, message) {
+        if (typeof window.showAppMessage === 'function') {
+            window.showAppMessage(message, type);
+        } else {
+            console.log(`[${type.toUpperCase()}] Notificación: ${message}`);
+        }
+    }
+
+    // =======================================================
+    // 2. CONFIGURACIÓN FIREBASE Y LISTENERS
+    // =======================================================
+
+    /**
+     * Inicializa el listener de Firestore, ESPERANDO a que Main.js inicialice Firebase.
+     */
+    async function setupFirebaseAndListeners() {
+        // 1. Detectar Modo Mock (Prioridad máxima)
+        if (IS_MOCK_MODE) {
+            console.warn("Calendar.js: Modo MOCK activado.");
+            isFirebaseReady = true;
+            loadMockEvents(userId || 'mock-user');
+            renderCalendar();
+            updateSummary();
+            updateHolidayQuota();
+            return;
+        }
+
+        // 2. Esperar la señal de Firebase Ready (CRÍTICO)
+        if (typeof window.firebaseReadyPromise !== 'undefined') {
+            console.log("Calendar.js: Esperando señal de Firebase Ready...");
+            await window.firebaseReadyPromise;
+        } else {
+            console.error("Calendar.js: Error. window.firebaseReadyPromise no encontrado. Fallback a Mock Mode.");
+            window.IS_MOCK_MODE = true; // Forzamos modo mock si la promesa no existe.
+            setupFirebaseAndListeners(); // Intentamos de nuevo en Mock Mode
+            return;
+        }
+
+        // 3. Verificar estado después de la espera
+        if (!userId || typeof window.db === 'undefined' || window.db === null) {
+            console.error("Calendar.js: Error. No hay ID de usuario o DB no está disponible después de la promesa.");
+            showMessage('error', 'Error de sesión. Intente iniciar sesión nuevamente.');
+            return;
+        }
+
+        // 4. Iniciar Listener
+        isFirebaseReady = true;
+        console.log(`Calendar.js: Conexión con Firestore (window.db) establecida. User ID: ${userId}`);
+        setupEventsListener();
+    }
+
+
+    /**
+     * Obtiene la referencia a la colección de eventos
+     * con la ruta simplificada: users/{userId}/calendar
+     */
+    function getEventsCollectionRef() {
+        // Aseguramos que DB esté inicializada y que haya un ID de usuario válido
+        if (typeof window.db === 'undefined' || !userId || !isFirebaseReady) return null;
+
+        // Nueva ruta simplificada
+        const path = `users/${userId}/calendar`;
+
+        return window.db.collection(path);
+    }
+
+    function setupEventsListener() {
+        if (!isFirebaseReady || IS_MOCK_MODE) return;
+
+        const eventsQuery = getEventsCollectionRef();
+        if (!eventsQuery) return;
+
+        // Escuchar solo los eventos del usuario actual
+        eventsQuery.onSnapshot((snapshot) => {
+            const newEvents = {};
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                newEvents[data.date] = { ...data, id: doc.id };
+            });
+
+            calendarEvents = newEvents;
+
+            console.log(`Firestore: ${Object.keys(calendarEvents).length} eventos cargados.`);
+
+            renderCalendar();
+            updateSummary();
+            updateHolidayQuota();
+
+        }, (error) => {
+            console.error("Firestore: Error al escuchar eventos:", error);
+            showMessage('error', 'Error al cargar eventos. Usando datos mock.');
+            // Fallback en caso de error de Firestore
+            loadMockEvents(userId || 'mock-user');
+            renderCalendar();
+            updateSummary();
+            updateHolidayQuota();
+        });
+    }
+
+    /**
+     * Guarda o actualiza un evento en Firestore o LocalStorage (Mock).
+     */
+    async function saveEventToFirestore(dateStr, eventType, hours = null) {
+
+        const isMock = IS_MOCK_MODE;
+
+        if (isMock) {
+            saveEventToLocalStorage(dateStr, eventType, hours, userId || 'mock-user');
+            showMessage('success', `${eventType} registrado localmente para el ${dateStr}. (Mock Mode)`);
+            return;
+        }
+
+        if (!isFirebaseReady || !window.db || !userId) {
+            showMessage('error', 'El sistema de base de datos no está listo. Inténtelo de nuevo.');
+            return;
+        }
+
+        const eventData = {
+            date: dateStr,
+            type: eventType,
+            // Aseguramos que firebase.firestore.FieldValue esté disponible
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            hours: hours ? parseFloat(hours) : null,
+        };
+
+        try {
+            await getEventsCollectionRef().add(eventData);
+            showMessage('success', `Evento de ${eventType} guardado exitosamente.`);
+        } catch (error) {
+            console.error("Firestore: Error al guardar evento:", error);
+            showMessage('error', 'Error al guardar el evento en la base de datos.');
+        }
+    }
+
+    // --- FUNCIÓN: Eliminar Evento ---
+    async function deleteEventFromFirestore(dateStr) {
+        const isMock = IS_MOCK_MODE;
+        const event = calendarEvents[dateStr];
+
+        if (!event) {
+            showMessage('error', 'No hay evento registrado para esta fecha.');
+            return;
+        }
+
+        // 🔑 Uso de closeModal global
+        if (typeof window.closeModal === 'function') window.closeModal('event-modal');
+
+        if (isMock) {
+            deleteEventFromLocalStorage(dateStr);
+            showMessage('success', `Evento del ${dateStr} eliminado localmente. (Mock Mode)`);
+            return;
+        }
+
+        if (!isFirebaseReady || !window.db || !userId) {
+            showMessage('error', 'El sistema de base de datos no está listo. Inténtelo de nuevo.');
+            return;
+        }
+
+        if (event.id) {
+            try {
+                // Eliminamos el documento por su ID dentro de la subcolección
+                await getEventsCollectionRef().doc(event.id).delete();
+                showMessage('success', `Evento del ${dateStr} eliminado exitosamente.`);
+            } catch (error) {
+                console.error("Firestore: Error al eliminar evento:", error);
+                showMessage('error', 'Error al eliminar el evento en la base de datos.');
+            }
+        }
+    }
+    // Hacemos la función global para que sea llamada desde el HTML
+    window.deleteEvent = deleteEventFromFirestore;
+
+
+    // --- MOCK MODE: Funciones de almacenamiento local (Se mantienen) ---
+    function loadMockEvents(mockUserId) {
+        let mockEvents = JSON.parse(localStorage.getItem('mockCalendarEvents') || '{}');
+        if (Object.keys(mockEvents).length === 0) {
+            const today = new Date();
+            const y = today.getFullYear();
+            const m = (today.getMonth() + 1).toString().padStart(2, '0');
+            const d = (today.getDate()).toString().padStart(2, '0');
+
+            // Eventos mock iniciales: Guardia hoy, guardia mañana, extra pasado mañana
+            const dPlus1 = (today.getDate() + 1).toString().padStart(2, '0');
+            const dPlus3 = (today.getDate() + 3).toString().padStart(2, '0');
+
+            mockEvents[`${y}-${m}-${d}`] = { date: `${y}-${m}-${d}`, type: 'Guardia', userId: mockUserId };
+            mockEvents[`${y}-${m}-${dPlus1}`] = { date: `${y}-${m}-${dPlus1}`, type: 'Guardia', userId: mockUserId };
+            mockEvents[`${y}-${m}-${dPlus3}`] = { date: `${y}-${m}-${dPlus3}`, type: 'Extra', hours: 4, userId: mockUserId };
+
+            localStorage.setItem('mockCalendarEvents', JSON.stringify(mockEvents));
+        }
+        calendarEvents = mockEvents;
+    }
+
+    function saveEventToLocalStorage(dateStr, eventType, hours, mockUserId) {
+        let mockEvents = JSON.parse(localStorage.getItem('mockCalendarEvents') || '{}');
+        // Elimina el evento si ya existe antes de guardar el nuevo (para actualización)
+        delete mockEvents[dateStr];
+
+        if (eventType !== 'Borrar') {
+            mockEvents[dateStr] = { date: dateStr, type: eventType, hours: hours || null, userId: mockUserId };
+        }
+
+        localStorage.setItem('mockCalendarEvents', JSON.stringify(mockEvents));
+        calendarEvents = mockEvents;
+        renderCalendar();
+        updateSummary();
+        updateHolidayQuota();
+    }
+
+    function deleteEventFromLocalStorage(dateStr) {
+        let mockEvents = JSON.parse(localStorage.getItem('mockCalendarEvents') || '{}');
+        delete mockEvents[dateStr];
+        localStorage.setItem('mockCalendarEvents', JSON.stringify(mockEvents));
+        calendarEvents = mockEvents;
+        renderCalendar();
+        updateSummary();
+        updateHolidayQuota();
+    }
+
+
+    // =======================================================
+    // 3. LÓGICA DEL CALENDARIO (RENDERIZADO)
+    // =======================================================
+
+    function renderCalendar() {
+        const year = currentCalendarDate.getFullYear();
+        const month = currentCalendarDate.getMonth();
+
+        const monthDisplay = document.getElementById('current-month-display');
+        const yearSummary = document.getElementById('summary-year');
+
+        if (monthDisplay) monthDisplay.textContent = `${months[month]} ${year}`;
+        if (yearSummary) yearSummary.textContent = year;
+
+        const calendarGrid = document.getElementById('calendar-grid');
+        if (!calendarGrid) return;
+        calendarGrid.innerHTML = '';
+
+        const weekDaysContainer = document.getElementById('calendar-week-days');
+        if (weekDaysContainer) {
+            const days = weekDaysContainer.children;
+            for (let i = 0; i < days.length; i++) {
+                days[i].classList.remove('text-[var(--color-accent-main)]');
+                if (i === 5 || i === 6) {
+                    days[i].classList.add('text-[var(--color-accent-main)]');
+                }
+            }
+        }
+
+        const firstDayOfMonth = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        const startDay = (firstDayOfMonth === 0) ? 6 : firstDayOfMonth - 1;
+
+        for (let i = 0; i < startDay; i++) {
+            calendarGrid.innerHTML += `<div class="p-2 text-xs opacity-30"></div>`;
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const monthString = (month + 1).toString().padStart(2, '0');
+            const dayString = day.toString().padStart(2, '0');
+            const fullDate = `${year}-${monthString}-${dayString}`;
+
+            const todayDate = new Date();
+            const currentDate = new Date(year, month, day);
+            const isToday = todayDate.toDateString() === currentDate.toDateString();
+            const todayClass = isToday ? 'border-2 border-dashed border-red-500' : '';
+
+            const dayOfWeek = currentDate.getDay();
+            const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+            let weekendTextColor = isWeekend ? 'text-[var(--color-accent-main)]' : '';
+
+            // === LÓGICA DE EVENTOS ===
+            const eventData = calendarEvents[fullDate];
+            let eventDisplayClass = '';
+            let eventTypeTag = ''; // Será el contenido de la etiqueta del día
+
+            if (eventData) {
+                // Si la fecha está en el calendario, el texto es blanco
+                weekendTextColor = 'text-white';
+
+                if (eventData.type === 'Extra') {
+                    eventDisplayClass = 'bg-orange-600/50 hover:bg-orange-700/70 border-l-4 border-orange-600';
+                    // 🔑 MODIFICACIÓN 1: Mostrar SOLO las horas
+                    eventTypeTag = `<span class="text-xs font-medium text-orange-200 block leading-tight">${eventData.hours}h</span>`;
+                } else if (eventData.type === 'Guardia') {
+                    eventDisplayClass = 'bg-blue-600/50 hover:bg-blue-700/70 border-l-4 border-blue-600';
+                    // 🔑 MODIFICACIÓN 2: Etiqueta vacía
+                    eventTypeTag = `<span class="text-xs font-medium text-blue-200 block leading-tight"></span>`;
+                } else if (eventData.type === 'Vacaciones') {
+                    eventDisplayClass = 'bg-purple-600/50 hover:bg-purple-700/70 border-l-4 border-purple-600';
+                    // 🔑 MODIFICACIÓN 3: Etiqueta vacía
+                    eventTypeTag = `<span class="text-xs font-medium text-purple-200 block leading-tight"></span>`;
+                } else if (eventData.type === 'Festivo') {
+                    eventDisplayClass = 'bg-green-600/50 hover:bg-green-700/70 border-l-4 border-green-600';
+                    // 🔑 MODIFICACIÓN 4: Etiqueta vacía
+                    eventTypeTag = `<span class="text-xs font-medium text-green-200 block leading-tight"></span>`;
+                }
+            }
+            // =========================
+
+            calendarGrid.innerHTML += `
+                <div class="calendar-day p-2 rounded-lg text-center cursor-pointer transition h-14 flex flex-col items-center justify-start 
+                    ${todayClass} ${eventDisplayClass || 'hover:bg-white/10 dark:hover:bg-black/10'}" 
+                    data-date="${fullDate}" 
+                    onclick="window.openEventModal('${fullDate}')">
+                    <span class="text-sm font-semibold block ${weekendTextColor}">${day}</span> 
+                    ${eventTypeTag}
+                </div>
+            `;
+        }
+    }
+
+
+    // =======================================================
+    // 4. LÓGICA DE MODALES Y EVENTOS Y RESUMEN (CRÍTICO)
+    // =======================================================
+
+    /**
+     * 🔑 FUNCIÓN CRÍTICA: Cuenta los bloques de guardias,
+     * donde los días consecutivos solo cuentan como 1.
+     * @param {object} allEvents - Objeto calendarEvents completo.
+     * @param {number} year - Año para el que se realiza el conteo.
+     * @returns {number} Número de bloques de guardias.
+     */
+    function countConsecutiveShifts(allEvents, year) {
+        // 1. Obtener y filtrar solo las fechas de 'Guardia' del año objetivo
+        const shiftDates = Object.keys(allEvents)
+            .filter(dateStr => {
+                const data = allEvents[dateStr];
+                // Filtra por tipo 'Guardia' y por el año actual
+                return data.type === 'Guardia' && dateStr.startsWith(year.toString());
+            })
+            .sort(); // 2. Ordenar las fechas cronológicamente (YYYY-MM-DD lo permite)
+
+        if (shiftDates.length === 0) {
+            return 0;
+        }
+
+        let shiftBlockCount = 0;
+        let previousDate = null;
+
+        // 3. Iterar y contar bloques
+        for (const currentDateStr of shiftDates) {
+
+            if (!previousDate) {
+                // Primera guardia del año o del conjunto siempre cuenta
+                shiftBlockCount++;
+            } else {
+                const currentDate = new Date(currentDateStr + 'T00:00:00');
+                const prevDateObj = new Date(previousDate + 'T00:00:00');
+
+                // Calcular la diferencia en días
+                const diffTime = Math.abs(currentDate - prevDateObj);
+                const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+                // Si la diferencia es mayor a 1 día, es un nuevo bloque (no consecutivo)
+                if (diffDays > 1) {
+                    shiftBlockCount++;
+                }
+            }
+            // Actualizar la fecha previa para la siguiente iteración
+            previousDate = currentDateStr;
+        };
+
+        return shiftBlockCount;
+    }
+
+
+    function updateSummary() {
+        const overtimeDisplay = document.getElementById('summary-overtime');
+        const shiftsDisplay = document.getElementById('summary-shifts-number');
+        const holidaysDisplay = document.getElementById('summary-holidays-number');
+
+        if (!overtimeDisplay || !shiftsDisplay || !holidaysDisplay) return;
+
+        let totalOvertimeMonthly = 0;
+        let totalFestivosAnnual = 0;
+
+        const currentYear = currentCalendarDate.getFullYear();
+        const currentMonthKey = `${currentYear}-${currentCalendarDate.getMonth()}`;
+
+        // 🔑 CALCULAR BLOQUES DE GUARDIAS: Usamos la nueva función para el conteo de bloques anuales
+        const totalShiftsAnnual = countConsecutiveShifts(calendarEvents, currentYear);
+
+        for (const dateStr in calendarEvents) {
+            const data = calendarEvents[dateStr];
+            const eventDate = new Date(dateStr + 'T00:00:00');
+            if (isNaN(eventDate.getTime())) continue;
+
+            const eventYear = eventDate.getFullYear();
+            const eventMonthKey = `${eventYear}-${eventDate.getMonth()}`;
+
+            // Acumular horas extra del mes actual
+            if (eventMonthKey === currentMonthKey) {
+                if (data.type === 'Extra' && data.hours) {
+                    totalOvertimeMonthly += parseFloat(data.hours);
+                }
+            }
+
+            // Acumular festivos del año actual
+            if (eventYear === currentYear) {
+                if (data.type === 'Festivo') {
+                    totalFestivosAnnual++;
+                }
+            }
+        }
+
+        overtimeDisplay.textContent = `${totalOvertimeMonthly.toFixed(1)} h`;
+        shiftsDisplay.textContent = `${totalShiftsAnnual}`; // Muestra bloques de guardias
+        holidaysDisplay.textContent = `${totalFestivosAnnual}`;
+    }
+
+    function updateHolidayQuota() {
+        const quotaDisplay = document.getElementById('summary-vacation-quota');
+        if (!quotaDisplay) return;
+
+        const currentYear = currentCalendarDate.getFullYear();
+        let vacationDaysUsed = 0;
+
+        for (const dateStr in calendarEvents) {
+            const data = calendarEvents[dateStr];
+            const eventDate = new Date(dateStr);
+            if (isNaN(eventDate.getTime())) continue;
+
+            const eventYear = eventDate.getFullYear();
+
+            if (data.type === 'Vacaciones' && eventYear === currentYear) {
+                vacationDaysUsed++;
+            }
+        }
+
+        const quotaRemaining = ANNUAL_VACATION_QUOTA - vacationDaysUsed;
+
+        quotaDisplay.textContent = `${quotaRemaining} días`;
+    }
+
+    window.openEventModal = function (dateStr) {
+        selectedDateForEvent = dateStr;
+        const dateObj = new Date(dateStr + 'T00:00:00');
+
+        document.getElementById('modal-date-display').textContent = dateObj.toLocaleDateString('es-ES', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        });
+
+        const btnStyle = "py-3 px-4 rounded-lg font-bold w-full transition border-2";
+        const optionsContainer = document.getElementById('event-options-container');
+
+        // Determinar si hay un evento existente para cambiar el botón "Borrar" a "Eliminar" y otros textos
+        const existingEvent = calendarEvents[dateStr];
+        const deleteButtonText = existingEvent ? 'Eliminar Evento' : 'Borrar (Vacío)';
+        // Se permite borrar (haciendo clic) solo si hay un evento existente
+        const deleteButtonClass = existingEvent
+            ? 'text-red-500 border-red-500 hover:bg-red-500 hover:text-white'
+            : 'text-gray-400 border-gray-400 hover:bg-gray-100 hover:text-gray-500 opacity-50';
+        const deleteButtonDisabled = existingEvent ? '' : 'disabled';
+
+
+        if (optionsContainer) {
+            optionsContainer.innerHTML = `
+                <button onclick="window.deleteEvent('${selectedDateForEvent}')" class="${btnStyle} ${deleteButtonClass}" ${deleteButtonDisabled}>
+                    ${deleteButtonText}
+                </button>
+                <button onclick="window.registerEvent('Extra')" class="${btnStyle} text-orange-600 border-orange-600 hover:bg-orange-600 hover:text-white">
+                    Horas Extra
+                </button>
+                <button onclick="window.registerEvent('Guardia')" class="${btnStyle} text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white">
+                    Guardia
+                </button>
+                <button onclick="window.registerEvent('Festivo')" class="${btnStyle} text-green-600 border-green-600 hover:bg-green-600 hover:text-white">
+                    Festivos
+                </button>
+                <button onclick="window.registerEvent('Vacaciones')" class="${btnStyle} text-purple-600 border-purple-600 hover:bg-purple-600 hover:text-white">
+                    Vacaciones
+                </button>
+            `;
+        }
+
+        // 🔑 Uso de showModal global
+        if (typeof window.showModal === 'function') {
+            window.showModal('event-modal');
+        }
+    }
+
+    window.registerEvent = function (eventType) {
+        // 🔑 Uso de closeModal global
+        if (typeof window.closeModal === 'function') {
+            window.closeModal('event-modal');
+        }
+        if (eventType === 'Extra') {
+            // 🔑 Uso de showModal global
+            if (typeof window.showModal === 'function') {
+                // Prellenar con horas existentes o un valor predeterminado
+                const existingHours = calendarEvents[selectedDateForEvent] && calendarEvents[selectedDateForEvent].type === 'Extra'
+                    ? calendarEvents[selectedDateForEvent].hours : '1';
+                document.getElementById('overtime-input').value = existingHours;
+                window.showModal('overtime-modal');
+            }
+        } else {
+            saveEventToFirestore(selectedDateForEvent, eventType);
+        }
+    }
+
+    window.saveOvertimeHours = function () {
+        const hoursInput = document.getElementById('overtime-input');
+        const hours = hoursInput.value.trim();
+
+        // 🔑 Uso de closeModal global
+        if (typeof window.closeModal === 'function') {
+            window.closeModal('overtime-modal');
+        }
+
+        const parsedHours = parseFloat(hours);
+
+        if (hours === '' || isNaN(parsedHours) || parsedHours <= 0 || parsedHours > 24) {
+            showMessage('error', 'Horas inválidas. Debe ser un número positivo.');
+            return;
+        }
+
+        saveEventToFirestore(selectedDateForEvent, 'Extra', parsedHours);
+    }
+
+    window.goBackToEventModal = function () {
+        // 🔑 Uso de closeModal global
+        if (typeof window.closeModal === 'function') {
+            window.closeModal('overtime-modal');
+        }
+        if (selectedDateForEvent) {
+            window.openEventModal(selectedDateForEvent);
+        }
+    }
+
+    // =======================================================
+    // 5. INICIALIZACIÓN Y NAVIGACIÓN
+    // =======================================================
+
+    /**
+     * Inicializa la lógica de la vista Calendario.
+     */
+    function initCalendar() {
+        // 🔑 Aplicar el tema
+        if (typeof window.applyColorMode === 'function') {
+            window.applyColorMode();
+        }
+
+        // 🚨 Llamamos a la función asíncrona que ESPERARÁ la señal de Main.js
+        setupFirebaseAndListeners();
+
+        const prevBtn = document.getElementById('prev-month-btn');
+        const nextBtn = document.getElementById('next-month-btn');
+
+        if (prevBtn) {
+            // prevBtn.onclick = () => {
+            //     currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+            //     renderCalendar();
+            //     updateSummary();
+            //     updateHolidayQuota(); 
+            // };
+        } else { console.error("Error: prev-month-btn no encontrado."); }
+
+        if (nextBtn) {
+            // nextBtn.onclick = () => {
+            //     currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+            //     renderCalendar();
+            //     updateSummary();
+            //     updateHolidayQuota(); 
+            // };
+        } else { console.error("Error: next-month-btn no encontrado."); }
+
+        console.log('Calendario inicializado. Flujo de inicialización asegurado.');
+    }
+
+    // Exponer acciones del calendario para Buttons.js
+    window.CalendarActions = {
+        prevMonth: () => {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+            renderCalendar();
+            updateSummary();
+            updateHolidayQuota();
+        },
+        nextMonth: () => {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+            renderCalendar();
+            updateSummary();
+            updateHolidayQuota();
+        }
+    };
+
+    // Hacer la función de inicialización global (para ser llamada desde Main.js)
+    window.initCalendar = initCalendar;
+
+})(); // ⬅️ FIN: Cierra la IIFE

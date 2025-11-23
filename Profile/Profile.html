@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PortisApp | Perfil de Usuario</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+
+    <link rel="stylesheet" href="../Main/Main.css">
+    <link rel="stylesheet" href="Profile.css">
+
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
+</head>
+
+<body class="antialiased">
+    <div id="geometric-wrapper"></div>
+
+    <div class="app-layout">
+        <header id="top-navbar"
+            class="sticky top-0 z-40 p-4 flex justify-between items-center bg-opacity-95 backdrop-blur-sm">
+            <button onclick="window.location.href='../Main/Main.html'"
+                class="text-xl p-2 rounded-full secondary-icon-btn">
+                <i class="ph ph-arrow-left"></i>
+            </button>
+            <h1 class="text-xl font-bold text-center">Perfil de Usuario</h1>
+            <div id="current-user-display" class="user-id-display">Cargando...</div>
+        </header>
+
+        <main id="app-content" class="overflow-y-auto w-full max-w-4xl mx-auto">
+
+            <div id="profile-card" class="card-container default-split mb-8">
+                <div class="card-inner-content">
+                    <h2 class="text-2xl font-bold mb-6 flex items-center gap-2" style="color: var(--color-text-light);">
+                        <i class="ph ph-user-circle-fill" style="color: var(--color-accent-red);"></i>
+                        Datos de la Cuenta
+                    </h2>
+
+                    <form id="profile-edit-form" class="space-y-6 form-content">
+
+                        <div class="flex flex-col items-center space-y-3">
+                            <img id="profile-photo" src="../assets/logo.png" alt="Foto de Perfil"
+                                class="profile-photo-placeholder">
+                            <button type="button" class="text-sm font-medium"
+                                style="color: var(--color-text-secondary);">Cambiar Foto (No Funcional)</button>
+                        </div>
+
+                        <div>
+                            <label for="username" class="block text-sm font-medium mb-1"
+                                style="color: var(--color-text-secondary);">Nombre de Usuario</label>
+                            <input type="text" id="username" value="" required class="minimal-input w-full">
+                        </div>
+
+                        <div>
+                            <label for="password" class="block text-sm font-medium mb-1"
+                                style="color: var(--color-text-secondary);">Contraseña</label>
+                            <input type="password" id="password" value="********" readonly onclick="openPasswordModal()"
+                                class="minimal-input w-full cursor-pointer">
+                        </div>
+
+                        <button type="button" id="save-changes-btn" hidden
+                            class="primary-btn w-full py-3 mt-4 rounded-lg text-lg">
+                            <i class="ph ph-floppy-disk-fill mr-2"></i>
+                            Guardar Cambios
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card-container inverted-split">
+                <div class="card-inner-content">
+                    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2" style="color: var(--color-text-light);">
+                        <i class="ph ph-chart-bar-fill" style="color: var(--color-accent-red);"></i>
+                        Estadísticas de Uso
+                    </h2>
+
+                    <div id="stats-grid" class="grid grid-cols-2 gap-4">
+
+                        <div class="stat-item">
+                            <p class="stat-label">Fecha de Registro</p>
+                            <p id="stat-registration-date" class="stat-value">--/--/----</p>
+                        </div>
+
+                        <div class="stat-item">
+                            <p class="stat-label">Total Mantenimientos</p>
+                            <p id="stat-repairs-count" class="stat-value">0</p>
+                        </div>
+
+                        <div class="stat-item">
+                            <p class="stat-label">Total Registros (M+P)</p>
+                            <p id="stat-total-records" class="stat-value">0</p>
+                        </div>
+
+                        <div class="stat-item">
+                            <p class="stat-label">Gastos Totales</p>
+                            <p id="stat-total-cost" class="stat-value">0.00 €</p>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <div id="password-modal"
+        class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-sm transform transition-all duration-300 scale-95"
+            style="background-color: var(--color-bg-secondary);">
+            <h3 class="text-xl font-bold mb-4" style="color: var(--color-text-light);">Restablecer Contraseña</h3>
+            <p class="text-sm mb-4" style="color: var(--color-text-secondary);">
+                Se enviará un enlace de restablecimiento de contraseña al correo electrónico asociado a tu cuenta:
+            </p>
+            <p id="reset-email-display" class="font-mono text-xs p-2 rounded bg-gray-700 text-gray-200 mb-4 break-all">
+            </p>
+
+            <div id="modal-message" class="hidden p-3 mb-4 rounded-lg text-sm font-medium text-center" role="alert">
+            </div>
+
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closePasswordModal()"
+                    class="secondary-icon-btn px-4 py-2 rounded-lg font-medium">
+                    Cancelar
+                </button>
+                <button type="button" onclick="sendPasswordReset()"
+                    class="primary-btn px-4 py-2 rounded-lg font-medium">
+                    <i class="ph ph-paper-plane-tilt"></i> Enviar Correo
+                </button>
+            </div>
+        </div>
+    </div>
+    <script src="../Config/Config.js"></script>
+    <script src="Profile.js"></script>
+</body>
+
+</html>

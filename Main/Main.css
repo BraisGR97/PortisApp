@@ -1,0 +1,494 @@
+/* =====================================================
+# 1. PALETA DE COLORES (Variables)
+=====================================================
+*/
+:root {
+    /* Variables predeterminadas (Modo Claro) */
+    --color-bg-primary: #f8f8f8;
+    --color-bg-secondary: #ffffff;
+    --color-text-primary: #222222;
+    --color-text-secondary: #666666;
+    --color-accent-main: #E91E63;
+    --color-border: #e0e0e0;
+
+    /* Gradientes y Sombras (Claro) */
+    --color-accent-gradient: linear-gradient(145deg, #FF692A 0%, #FB2C36 15%, #FF2056 50%, #8B0836 85%, #4D0218 100%);
+    --color-shadow-primary: rgba(0, 0, 0, 0.15);
+    --color-shadow-card: rgba(0, 0, 0, 0.08);
+
+    /* Glassmorphism y Modales (Valores Claros) */
+    --color-glass-bg: rgba(255, 255, 255, 0.8);
+    --color-modal-bg: #ffffff;
+    --color-card-hover: #f0f0f0;
+
+    /* Variables de Estructura */
+    --radius-default: 0.75rem;
+}
+
+/* Modo Claro explícito (Mantiene la compatibilidad) */
+body[data-theme="light"]:not(.dark-mode) {
+    --color-bg-primary: #f8f8f8;
+    --color-bg-secondary: #ffffff;
+    --color-text-primary: #222222;
+    --color-text-secondary: #666666;
+    --color-accent-main: #E91E63;
+    --color-border: #e0e0e0;
+    --color-shadow-primary: rgba(0, 0, 0, 0.15);
+    --color-shadow-card: rgba(0, 0, 0, 0.08);
+    --color-glass-bg: rgba(255, 255, 255, 0.8);
+    --color-modal-bg: #ffffff;
+    --color-card-hover: #f0f0f0;
+}
+
+/* Modo Oscuro: La clase 'dark-mode' anula las variables de color */
+.dark-mode {
+    /* --- DARK MODE PALETTE --- */
+    --color-bg-primary: #12121e;
+    --color-bg-secondary: #1f1f33;
+    --color-text-primary: #f0f0f5;
+    --color-text-secondary: #9999aa;
+    --color-accent-main: #FF2056;
+    --color-border: rgba(255, 255, 255, 0.15);
+
+    /* Glassmorphism, Modales, y Sombras (Valores Oscuros) */
+    --color-shadow-primary: rgba(0, 0, 0, 0.4);
+    --color-shadow-card: rgba(0, 0, 0, 0.2);
+    --color-glass-bg: rgba(31, 31, 51, 0.7);
+    --color-modal-bg: #1f1f33;
+    --color-card-hover: #2a2a47;
+}
+
+/* =====================================================
+# 2. ESTILOS BASE Y GENERALES
+=====================================================
+*/
+html,
+body,
+#app-container,
+#app-screen {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    transition: background-color 0.5s, color 0.5s;
+}
+
+/* Fondo Geométrico (Adaptado al cambio de tema) */
+#geometric-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at 90% 80%, #ebebeb 0%, var(--color-bg-primary) 100%);
+    transition: background 0.5s;
+}
+
+.dark-mode #geometric-wrapper {
+    background: radial-gradient(circle at 10% 20%, #1a1a36 0%, var(--color-bg-primary) 100%);
+}
+
+/* Contenido Principal */
+#app-container {
+    position: relative;
+    z-index: 10;
+}
+
+/* Enlaces simples */
+.link-button {
+    color: var(--color-accent-main);
+    transition: color 0.3s;
+}
+
+/* Scrollbar (Ocultar) */
+.overflow-y-auto::-webkit-scrollbar {
+    display: none;
+}
+
+.overflow-y-auto {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+
+/* =====================================================
+# 3. NAVEGACIÓN (Top y Bottom) - Glassmorphism
+=====================================================
+*/
+
+#top-navbar,
+#bottom-navbar {
+    z-index: 50;
+    background-color: var(--color-glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 4px 20px var(--color-shadow-primary);
+    transition: all 0.5s;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+}
+
+/* Botones de Navegación */
+.nav-icon-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: color 0.3s, background-color 0.3s;
+}
+
+.nav-icon-btn:hover {
+    color: var(--color-text-primary);
+    background-color: var(--color-card-hover);
+}
+
+.dark-mode .nav-icon-btn:hover {
+    background-color: color-mix(in srgb, var(--color-bg-secondary) 80%, transparent);
+}
+
+.nav-link.active {
+    color: var(--color-accent-main);
+    position: relative;
+}
+
+/* Indicador de link activo (el pequeño punto) */
+.nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--color-accent-main);
+}
+
+
+/* =====================================================
+# 4. TARJETAS DE DASHBOARD / SUMARIO
+=====================================================
+*/
+
+/* Estilos de Tarjeta Base (Dashboard y Paneles) */
+#dashboard-view a,
+#summary-panel,
+#maintenance-summary {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 5px 15px var(--color-shadow-card);
+    border-radius: var(--radius-default);
+    transition: all 0.5s;
+}
+
+/* Efecto Hover en Dashboard */
+#dashboard-view a:hover {
+    background-color: var(--color-card-hover);
+    border-color: var(--color-accent-main);
+    box-shadow: 0 10px 30px color-mix(in srgb, var(--color-accent-main) 50%, transparent);
+    transform: translateY(-2px);
+}
+
+.dark-mode #dashboard-view a:hover {
+    box-shadow: 0 10px 30px rgba(233, 30, 99, 0.4);
+}
+
+
+/* Elementos de fondo dentro del sumario (para dar jerarquía) */
+#summary-metrics-container>div {
+    /* Usa el fondo primario para crear contraste con el fondo secundario */
+    background-color: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    transition: all 0.5s;
+}
+
+/* =====================================================
+# 5. MODALES
+=====================================================
+*/
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.75);
+    transition: opacity 0.3s;
+}
+
+.modal-content {
+    background-color: var(--color-modal-bg);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 5px 30px var(--color-shadow-primary);
+    border-radius: var(--radius-default);
+    transition: all 0.3s;
+    transform: translateY(20px);
+}
+
+/* =====================================================
+# 6. FORMULARIOS / INPUTS
+=====================================================
+*/
+.minimal-input {
+    border: 1px solid var(--color-border);
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    transition: all 0.3s;
+}
+
+.minimal-input::placeholder {
+    color: var(--color-text-secondary);
+    opacity: 0.7;
+}
+
+.minimal-input:focus {
+    outline: none;
+    border-color: var(--color-accent-main);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent-main) 50%, transparent);
+}
+
+/* Botón Primario (Gradiente) */
+.primary-btn {
+    background-image: var(--color-accent-gradient);
+    color: white;
+    font-weight: 700;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    transition: transform 0.2s, box-shadow 0.3s;
+    box-shadow: 5px 10px 20px rgba(233, 30, 99, 0.4);
+}
+
+.primary-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 5px 10px 25px rgba(233, 30, 99, 0.6);
+}
+
+/* =====================================================
+# 7. MENSAJES DE ESTADO
+=====================================================
+*/
+.message-box {
+    padding: 1rem;
+    border-radius: var(--radius-default);
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    border: 1px solid;
+    transition: all 0.3s, opacity 0.3s, visibility 0.3s;
+    /* Añadir transición para animación */
+    /* Las propiedades de posición fixed/z-index/translate-x se mueven al HTML */
+}
+
+/* CLASE PARA MOSTRAR EL MENSAJE FLOTANTE */
+.message-box.message-box-show {
+    opacity: 1;
+    visibility: visible;
+}
+
+
+/* Estilos de Error (Usando el acento Rojo/Magenta) */
+.message-error {
+    background-color: color-mix(in srgb, var(--color-accent-main) 20%, transparent);
+    color: var(--color-accent-main);
+    border-color: var(--color-accent-main);
+}
+
+.dark-mode .message-error {
+    background-color: rgba(233, 30, 99, 0.15);
+}
+
+body[data-theme="light"]:not(.dark-mode) .message-error {
+    background-color: #ffeaea;
+}
+
+
+/* Estilos de Éxito (Verde) */
+.message-success {
+    background-color: rgba(76, 175, 80, 0.2);
+    color: #4CAF50;
+    border-color: #4CAF50;
+}
+
+.dark-mode .message-success {
+    background-color: #2c472c;
+    color: #a5d6a7;
+    border-color: #4CAF50;
+}
+
+/* ==================================== */
+/* 7.5. ESTILOS PARA MODALES DE DETALLES */
+/* ==================================== */
+
+/* Estilos del header del modal */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    background-color: var(--color-modal-bg);
+    z-index: 10;
+}
+
+/* Estilos del footer del modal */
+.modal-footer {
+    position: sticky;
+    bottom: 0;
+    background-color: var(--color-modal-bg);
+    z-index: 10;
+}
+
+/* Labels de los campos del modal */
+.detail-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.1rem;
+}
+
+/* Inputs del modal */
+.detail-input {
+    padding: 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-primary);
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+/* Inputs en modo readonly/disabled (vista) */
+.detail-input[readonly],
+.detail-input:disabled {
+    background-color: var(--color-bg-primary);
+    border: 1px solid transparent;
+    cursor: default;
+}
+
+/* Inputs en modo edición */
+.detail-input.editing {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-accent-main);
+    cursor: text;
+}
+
+.dark-mode .detail-input.editing {
+    background-color: #2a2a3e;
+    border: 1px solid var(--color-accent-main);
+}
+
+/* Valores en modo vista (no editable) */
+.detail-value-compact {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--color-text-primary);
+}
+
+/* Botón secundario para el modal */
+.secondary-btn {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+    padding: 0.6rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.secondary-btn:hover {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    border-color: var(--color-accent-main);
+}
+
+.dark-mode .secondary-btn {
+    background-color: #2a2a3e;
+}
+
+.dark-mode .secondary-btn:hover {
+    background-color: #1f1f33;
+}
+
+/* Botón de icono secundario (para cerrar modal) */
+.secondary-icon-btn {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.secondary-icon-btn:hover {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+}
+
+.dark-mode .secondary-icon-btn {
+    background-color: #2a2a3e;
+}
+
+.dark-mode .secondary-icon-btn:hover {
+    background-color: #1f1f33;
+}
+
+/* Estilos para tarjetas de reparación/mantenimiento */
+.repair-card {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    padding: 1rem;
+    border-radius: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.repair-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px var(--color-shadow-primary);
+    border-color: var(--color-accent-main);
+}
+
+/* Variables de color adicionales para modo oscuro */
+.dark-mode {
+    --color-bg-tertiary: #2a2a3e;
+    --color-text-light: #ffffff;
+    --color-accent-red: #fb2c36;
+    --color-accent-blue: #fb2c36;
+    --color-card-bg: #1f1f33;
+}
+
+/* Variables de color adicionales para modo claro */
+body:not(.dark-mode) {
+    --color-bg-tertiary: #f0f0f0;
+    --color-text-light: #222222;
+
+    #app-container {
+        padding: 0;
+        width: 100%;
+    }
+
+    #scrollable-content {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-top: 5rem;
+        padding-bottom: 5rem;
+        flex-grow: 1;
+    }
+
+    #bottom-navbar {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+}

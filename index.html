@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portis - Autenticación</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="./assets/logo.png">
+</head>
+
+<body class="text-gray-900 split-base">
+
+    <div id="geometric-wrapper"></div>
+
+    <div id="app-container" class="flex items-center justify-center h-screen w-full p-4">
+
+        <section id="home-screen" class="screen w-full max-w-md relative z-10 flex flex-col items-center"
+            style="display: flex;">
+
+            <div class="flex flex-col items-center justify-center flex-grow pt-16 pb-12">
+                <div id="app-logo-wrapper" class="pulse-glow">
+                    <div id="app-logo-inner-circle">
+                        <img src="./assets/logo.png" alt="Logo de Portis" id="app-logo">
+                    </div>
+                </div>
+                <p class="text-xl text-center text-white mt-8">Cuando se cierra una puerta, se abre... otra.</p>
+            </div>
+
+            <button id="start-btn" class="primary-btn py-4 rounded-full text-lg w-4/5 max-w-[350px] mx-auto mb-4">
+                <span>INICIAR</span>
+            </button>
+
+        </section>
+
+        <section id="login-screen"
+            class="screen w-full max-w-md flex flex-col items-center justify-center relative z-10 p-6 rounded-2xl"
+            style="display: none;">
+            <div class="form-wrapper glass-background w-full p-8 md:p-10 rounded-2xl shadow-xl">
+                <h2 class="text-3xl font-bold mb-8 text-center text-white">Iniciar Sesión</h2>
+
+                <div id="login-message" class="message-box w-full" style="display: none;"></div>
+
+                <input id="login-email" type="text" placeholder="Usuario o Correo electrónico" autocomplete="username"
+                    class="minimal-input w-full mb-6">
+                <input id="login-password" type="password" placeholder="Contraseña" autocomplete="current-password"
+                    class="minimal-input w-full mb-8">
+
+                <button id="login-btn" class="primary-btn w-full py-3 rounded-xl mb-6">
+                    <span>Entrar</span>
+                </button>
+
+                <div class="w-full flex justify-between text-sm">
+                    <button id="go-to-forgot-btn" class="link-button transition">Recuperar Contraseña</button>
+                    <button id="go-to-register-btn" class="link-button transition">Regístrate</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="register-screen"
+            class="screen w-full max-w-md flex flex-col items-center justify-center relative z-10 p-6 rounded-2xl"
+            style="display: none;">
+            <div class="form-wrapper glass-background w-full p-8 md:p-10 rounded-2xl shadow-xl">
+                <h2 class="text-3xl font-bold mb-8 text-center text-white">Crear Cuenta</h2>
+
+                <div id="register-message" class="message-box w-full" style="display: none;"></div>
+
+                <input id="register-username" type="text" placeholder="Nombre de usuario" autocomplete="nickname"
+                    class="minimal-input w-full mb-6">
+                <input id="register-email" type="email" placeholder="Correo electrónico" autocomplete="email"
+                    class="minimal-input w-full mb-6">
+                <input id="register-password" type="password" placeholder="Contraseña (mín. 6 caracteres)"
+                    autocomplete="new-password" class="minimal-input w-full mb-6">
+                <input id="register-password-confirm" type="password" placeholder="Confirmar contraseña"
+                    autocomplete="new-password" class="minimal-input w-full mb-8">
+
+                <button id="register-btn" class="primary-btn w-full py-3 rounded-xl mb-6">
+                    <span>Crear Cuenta</span>
+                </button>
+
+                <button id="go-to-login-from-register-btn" class="link-button text-sm transition">¿Ya tienes cuenta?
+                    Inicia Sesión</button>
+            </div>
+        </section>
+
+        <section id="forgot-password-screen"
+            class="screen w-full max-w-md flex flex-col items-center justify-center relative z-10 p-6 rounded-2xl"
+            style="display: none;">
+            <div class="form-wrapper glass-background w-full p-8 md:p-10 rounded-2xl shadow-xl">
+                <h2 class="text-3xl font-bold mb-8 text-center text-white">Recuperar Contraseña</h2>
+                <p class="text-sm mb-6 text-left" style="color: var(--color-text-secondary);">Introduce tu correo para
+                    recibir un enlace de restablecimiento.</p>
+
+                <div id="forgot-message" class="message-box w-full" style="display: none;"></div>
+
+                <input id="forgot-email" type="email" placeholder="Correo electrónico" autocomplete="email"
+                    class="minimal-input w-full mb-8">
+
+                <button id="reset-password-btn" class="primary-btn w-full py-3 rounded-xl mb-6">
+                    <span>Enviar Enlace</span>
+                </button>
+
+                <button id="go-to-login-from-forgot-btn" class="link-button text-sm transition">Volver a Iniciar
+                    Sesión</button>
+            </div>
+        </section>
+
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
+    <script src="Config/Config.js"></script>
+    <script src="Config/Buttons.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>

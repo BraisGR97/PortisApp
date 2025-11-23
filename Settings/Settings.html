@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PortisApp | Ajustes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+
+    <link rel="stylesheet" href="../Main/Main.css">
+    <link rel="stylesheet" href="Settings.css">
+
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
+</head>
+
+<body class="antialiased">
+    <div id="geometric-wrapper"></div>
+
+    <div class="app-layout">
+        <header id="top-navbar"
+            class="sticky top-0 z-40 p-4 flex justify-between items-center bg-opacity-95 backdrop-blur-sm">
+            <button onclick="window.location.href='../Main/Main.html'"
+                class="text-xl p-2 rounded-full secondary-icon-btn">
+                <i class="ph ph-arrow-left"></i>
+            </button>
+            <h1 class="text-xl font-bold text-center">Ajustes de la Aplicación</h1>
+            <div id="current-user-display" class="user-id-display">Cargando...</div>
+        </header>
+
+        <main id="app-content" class="overflow-y-auto w-full max-w-4xl mx-auto">
+
+            <div id="general-settings-card" class="card-container default-split mb-8">
+                <div class="card-inner-content">
+                    <h2 class="text-2xl font-bold mb-6 flex items-center gap-2" style="color: var(--color-text-light);">
+                        <i class="ph ph-paint-brush-fill" style="color: var(--color-accent-red);"></i>
+                        Apariencia y Lenguaje
+                    </h2>
+
+                    <div class="space-y-4">
+
+                        <div class="setting-row">
+                            <div class="flex items-center space-x-3">
+                                <i id="theme-icon" class="ph ph-moon-fill text-2xl"
+                                    style="color: var(--color-accent-red);"></i>
+                                <label for="dark-mode-toggle" class="setting-label">Modo Oscuro</label>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="dark-mode-toggle" checked>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+
+                        <hr class="border-t border-gray-700/50">
+
+                        <div class="setting-row">
+                            <div class="flex items-center space-x-3">
+                                <i class="ph ph-globe-hemisphere-east-fill text-2xl"
+                                    style="color: var(--color-accent-red);"></i>
+                                <label for="language-select" class="setting-label">Idioma</label>
+                            </div>
+                            <select id="language-select" class="minimal-input w-40">
+                                <option value="es" selected class="bg-gray-800">Español (ES)</option>
+                                <option value="en" disabled class="bg-gray-800">Inglés (Próximamente)</option>
+                            </select>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-container inverted-split">
+                <div class="card-inner-content">
+                    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2" style="color: var(--color-text-light);">
+                        <i class="ph ph-gear-six-fill" style="color: var(--color-accent-red);"></i>
+                        Gestión de Datos
+                    </h2>
+
+                    <div class="setting-row items-center">
+                        <div class="flex flex-col">
+                            <p class="setting-label text-lg">Eliminar Cuenta</p>
+                            <p class="text-sm font-light text-red-400">Esta acción es irreversible y borrará todos tus
+                                registros de la base de datos.</p>
+                        </div>
+                        <button id="delete-account-btn" class="primary-btn p-3 rounded-lg text-lg"
+                            style="background-image: linear-gradient(135deg, #FF5722, #C62828);">
+                            <i class="ph ph-user-minus text-xl mr-2"></i> Eliminar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="delete-confirm-modal" class="modal-overlay hidden">
+                <div class="modal-content">
+                    <h3 class="text-2xl font-bold mb-4 flex items-center gap-2 text-red-500">
+                        <i class="ph ph-warning-circle-fill"></i> Confirmar Eliminación
+                    </h3>
+                    <p class="mb-6">Estás a punto de borrar **TODOS** los mantenimientos, presupuestos y datos asociados
+                        a tu cuenta de PortisApp. Esta acción es **permanente**.</p>
+
+                    <div class="space-y-4">
+                        <input type="text" id="confirm-input" placeholder="Escribe 'ELIMINAR MI CUENTA' para confirmar"
+                            class="minimal-input w-full text-center border-red-500">
+                        <div class="flex justify-between space-x-3">
+                            <button id="cancel-delete-btn"
+                                class="secondary-icon-btn py-3 w-1/2 rounded-lg">Cancelar</button>
+                            <button id="confirm-delete-btn" disabled
+                                class="primary-btn py-3 w-1/2 rounded-lg bg-red-800 opacity-50"
+                                style="background-image: linear-gradient(135deg, #C62828, #E91E63);">
+                                BORRAR DEFINITIVAMENTE
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+    <script src="../Config/Config.js"></script>
+    <script src="Settings.js"></script>
+</body>
+
+</html>
