@@ -294,16 +294,19 @@ async function loadAndCalculateStats(isMock = false) {
     }
 
     try {
-        // Rutas de Firestore basadas en el appId y userId
-        const repairsRef = db.collection(`artifacts/${appId}/users/${userId}/repairs`);
-        const billsRef = db.collection(`artifacts/${appId}/users/${userId}/bills`);
+        // 🔧 RUTAS CORREGIDAS: Usar la misma estructura que Bills.js y Repairs.js
+        const repairsRef = db.collection(`users/${userId}/repairs`);
+        const billsRef = db.collection(`users/${userId}/bills`);
 
+        // 1. Contar mantenimientos (Repairs)
         const repairsSnapshot = await repairsRef.get();
         const repairsCount = repairsSnapshot.size;
 
+        // 2. Contar facturas (Bills)
         const billsSnapshot = await billsRef.get();
         const billsCount = billsSnapshot.size;
 
+        // 3. Calcular total gastado (suma de costes en Bills)
         let totalCost = 0;
         billsSnapshot.forEach(doc => {
             const bill = doc.data();
@@ -313,13 +316,18 @@ async function loadAndCalculateStats(isMock = false) {
             }
         });
 
-        // Renderizar las estadísticas
+        // 4. Renderizar las estadísticas
         document.getElementById('stat-repairs-count').textContent = repairsCount;
+        // Total de Registros = Repairs + Bills (no History, ya que History es solo lectura)
         document.getElementById('stat-total-records').textContent = repairsCount + billsCount;
         document.getElementById('stat-total-cost').textContent = `${totalCost.toFixed(2)} €`;
 
+        console.log(`📊 Estadísticas cargadas: ${repairsCount} repairs, ${billsCount} bills, ${totalCost.toFixed(2)}€ total`);
+
     } catch (error) {
         console.error("Error al cargar y calcular estadísticas:", error);
+        document.getElementById('stat-repairs-count').textContent = `Error`;
+        document.getElementById('stat-total-records').textContent = `Error`;
         document.getElementById('stat-total-cost').textContent = `Error`;
     }
 }
