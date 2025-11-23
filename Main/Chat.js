@@ -152,20 +152,6 @@
         unsubscribeFromChat = q.onSnapshot(snapshot => {
             if (!messagesContainer) return;
 
-            // Limpiamos y recreamos para simplicidad con la API de compatibilidad
-            messagesContainer.innerHTML = '';
-
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const isCurrentUser = data.senderId === userId;
-                // Usar el timestamp real (Date) o clientTimestamp si el serverTimestamp no ha llegado.
-                const timestamp = data.timestamp && data.timestamp.toDate ? data.timestamp.toDate() : (data.clientTimestamp || new Date());
-                renderMessage(data.senderId, data.text, isCurrentUser, timestamp);
-            });
-
-            // Scroll al final con cada actualización
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
         }, error => {
             console.error("Error en el listener de chat: ", error);
             showMessage('error', 'Error de conexión en tiempo real con el chat.');

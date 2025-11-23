@@ -87,11 +87,14 @@
      * Obtiene la referencia a la colección 'repairs' con la ruta users/{userId}/repairs
      */
     function getRepairsCollectionRef() {
+        // 🔑 CRÍTICO: Leer el userId ACTUAL de sessionStorage, no el que había al cargar el script
+        const currentUserId = sessionStorage.getItem('portis-user-identifier');
+
         // Aseguramos que DB esté inicializada y que haya un ID de usuario válido (no mock)
-        if (!db || !userId || userId === 'mock-user' || !isFirebaseReady) return null;
+        if (!db || !currentUserId || currentUserId === 'mock-user' || !isFirebaseReady) return null;
 
         // Ruta correcta: users/{userId}/repairs
-        const path = `users/${userId}/repairs`;
+        const path = `users/${currentUserId}/repairs`;
 
         // Retorna la subcolección para el usuario actual
         return db.collection(path);

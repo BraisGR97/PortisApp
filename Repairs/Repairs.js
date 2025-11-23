@@ -314,11 +314,12 @@ window.startRepairsModule = startRepairsModule;
 // ===================================================================================
 
 function getRepairsCollectionRef() {
+    // 🔑 CRÍTICO: Leer el userId ACTUAL de sessionStorage, no el que había al cargar el script
     const currentUserId = sessionStorage.getItem('portis-user-identifier');
 
     if (!currentUserId || !window.db || !window.db.collection) {
         // Si estamos en modo MOCK, esto no debería importar
-        if (!IS_MOCK_MODE) {
+        if (!window.IS_MOCK_MODE) {
             console.error("Intentando acceder a Firestore sin un userId válido o db no inicializada.");
         }
         return null;
