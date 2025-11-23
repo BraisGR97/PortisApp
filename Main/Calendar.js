@@ -337,6 +337,7 @@
             { month: 9, day: 8 }, // Día de Extremadura
         ],
         'galicia': [
+            { month: 5, day: 17 }, // Día de las letras Gallegas
             { month: 7, day: 25 }, // Día de Galicia
         ],
         'madrid': [
