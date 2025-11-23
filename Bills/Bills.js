@@ -25,6 +25,9 @@ let isAuthReady = false;
 // Clave para guardar los presupuestos en localStorage en Mock Mode
 const MOCK_BILLS_STORAGE_KEY = 'mock_bills_data';
 
+// Cache de datos para búsqueda
+window.currentBillsData = [];
+
 /**
  * Función auxiliar para obtener los presupuestos mock guardados.
  * @returns {Array<Object>} Lista de presupuestos mock.
@@ -330,47 +333,103 @@ window.deleteBill = async function (id) {
 // 5. RENDERIZADO Y LISTENERS DE UI
 // -----------------------------------------------------------------
 
-function renderBills(bills) {
+window.toggleSearch = function () {
+    const searchContainer = document.getElementById('search-container');
+    const searchInput = document.getElementById('search-input');
+
+    if (searchContainer && searchInput) {
+        const isHidden = searchContainer.classList.contains('hidden');
+        if (isHidden) {
+            searchContainer.classList.remove('hidden');
+            searchInput.focus();
+        } else {
+            searchContainer.classList.add('hidden');
+            searchInput.value = '';
+            // Disparar evento de input para limpiar el filtro
+            searchInput.dispatchEvent(new Event('input'));
+        }
+    }
+}
+
+function renderBills(bills, updateCache = true) {
+    if (updateCache) {
+        window.currentBillsData = bills;
+    }
+
     const listContainer = document.getElementById('bills-list');
     listContainer.innerHTML = '';
 
-    if (bills.length === 0) {
+    // 1. Filtrado
+    const searchInput = document.getElementById('search-input');
+    const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+    let filteredBills = bills;
+    if (searchTerm) {
+        filteredBills = bills.filter(b =>
+            (b.concept && b.concept.toLowerCase().includes(searchTerm)) ||
+            (b.notes && b.notes.toLowerCase().includes(searchTerm)) ||
+            (b.cost && b.cost.toString().includes(searchTerm))
+        );
+    }
+
+    if (filteredBills.length === 0) {
         listContainer.innerHTML = `
             <div class="p-4 text-center rounded-lg" style="background-color: var(--color-bg-secondary); color: var(--color-text-secondary);">
-                No hay presupuestos registrados todavía.
+                No hay presupuestos que coincidan con la búsqueda.
             </div>
         `;
         return;
     }
 
-    bills.forEach(bill => {
-        // Maneja la conversión de la fecha, ya sea de Firestore (.toDate()) o de Mock (.bill_date: string)
+    filteredBills.forEach(bill => {
+        // Maneja la conversión de la fecha
         const dateRaw = bill.bill_date && bill.bill_date.toDate ? bill.bill_date.toDate() : new Date(bill.bill_date);
         const formattedDate = dateRaw.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }).replace('.', '');
 
-        const billHtml = `
-            <div class="bill-card" data-id="${bill.id}">
-                <div class="flex justify-between items-start">
-                    <div class="flex-1 min-w-0 pr-4">
-                        <p class="text-sm font-light mb-1" style="color: #00BCD4;">${formattedDate}</p>
-                        <p class="text-lg font-semibold truncate" style="color: var(--color-text-light);">${bill.concept}</p>
-                        <p class="text-xl font-bold" style="color: #4CAF50;">${bill.cost} €</p>
-                        <p class="text-sm italic mt-1" style="color: var(--color-text-secondary);">${bill.notes || 'Sin notas.'}</p>
-                    </div>
+        // Estilos similares a Repairs
+        const card = document.createElement('div');
+        card.className = 'bill-card p-4 rounded-xl shadow-sm border relative group cursor-pointer transition-all duration-200 hover:shadow-md';
+        card.setAttribute('data-id', bill.id);
+        card.style.backgroundColor = 'var(--color-card-bg)';
+        card.style.borderColor = 'var(--color-border)';
 
-                    <div class="flex space-x-2 shrink-0">
-                        <button data-action="delete" data-id="${bill.id}"
-                            class="secondary-icon-btn p-2 rounded-full transition-transform hover:scale-110" 
-                            title="Eliminar presupuesto" 
-                            aria-label="Eliminar presupuesto ${bill.concept}"
-                            style="color: #FF5722;">
-                            <i class="ph ph-trash text-xl pointer-events-none"></i>
-                        </button>
-                    </div>
+        const billHtml = `
+            <div class="flex justify-between items-start mb-2">
+                <h3 class="font-bold text-lg truncate pr-8" style="color: var(--color-text-primary);">${bill.concept}</h3>
+                <span class="text-xs font-medium px-2 py-1 rounded-full text-green-500 bg-green-100 dark:bg-green-900/30">
+                    ${bill.status || 'Registrado'}
+                </span>
+            </div>
+            
+            <div class="text-sm mb-3 space-y-1" style="color: var(--color-text-secondary);">
+                <p class="flex items-center gap-2">
+                    <i class="ph ph-calendar-blank"></i>
+                    ${formattedDate}
+                </p>
+                <p class="flex items-center gap-2 italic">
+                    <i class="ph ph-note"></i>
+                    ${bill.notes ? (bill.notes.length > 40 ? bill.notes.substring(0, 40) + '...' : bill.notes) : 'Sin notas.'}
+                </p>
+            </div>
+
+            <div class="flex justify-between items-center mt-3 pt-3 border-t" style="border-color: var(--color-border);">
+                <span class="text-xl font-bold" style="color: #4CAF50;">
+                    ${bill.cost} €
+                </span>
+                
+                <div class="flex gap-2">
+                    <button data-action="delete" data-id="${bill.id}"
+                        class="action-btn delete-btn p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-500" 
+                        title="Eliminar presupuesto" 
+                        aria-label="Eliminar presupuesto ${bill.concept}">
+                        <i class="ph ph-trash text-lg pointer-events-none"></i>
+                    </button>
                 </div>
             </div>
         `;
-        listContainer.insertAdjacentHTML('beforeend', billHtml);
+
+        card.innerHTML = billHtml;
+        listContainer.appendChild(card);
     });
 }
 
@@ -462,5 +521,16 @@ window.addEventListener('load', () => {
     const listContainer = document.getElementById('bills-list');
     if (listContainer) {
         listContainer.addEventListener('click', handleBillActions);
+    }
+
+    // Listener para el input de búsqueda
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            // Re-renderizar usando los datos cacheados
+            if (window.currentBillsData) {
+                renderBills(window.currentBillsData, false);
+            }
+        });
     }
 });

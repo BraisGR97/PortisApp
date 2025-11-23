@@ -152,6 +152,23 @@
         unsubscribeFromChat = q.onSnapshot(snapshot => {
             if (!messagesContainer) return;
 
+            snapshot.docChanges().forEach(change => {
+                if (change.type === "added") {
+                    const data = change.doc.data();
+                    const isCurrentUser = data.senderId === userId;
+
+                    // Determinar el timestamp correcto
+                    let timestamp = new Date();
+                    if (data.timestamp && data.timestamp.toDate) {
+                        timestamp = data.timestamp.toDate();
+                    } else if (data.clientTimestamp) {
+                        timestamp = new Date(data.clientTimestamp);
+                    }
+
+                    renderMessage(data.senderId, data.text, isCurrentUser, timestamp);
+                }
+            });
+
         }, error => {
             console.error("Error en el listener de chat: ", error);
             showMessage('error', 'Error de conexión en tiempo real con el chat.');
