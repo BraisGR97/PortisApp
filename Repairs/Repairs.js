@@ -235,10 +235,33 @@ function configureEditInputs(repair) {
 async function startRepairsModule() {
     if (isModuleSetupComplete) return;
 
-    // Esperar a que Firebase/Mock Mode se configure
-    // FIX: Si ya estamos en modo MOCK, no esperamos innecesariamente
-    if (!window.IS_MOCK_MODE && typeof window.firebaseReadyPromise !== 'undefined') {
-        await window.firebaseReadyPromise;
+    // 1. Inicialización de Firebase (Standalone o Shared)
+    if (!window.IS_MOCK_MODE) {
+        // Si existe la promesa global (Main.js), esperamos
+        if (typeof window.firebaseReadyPromise !== 'undefined') {
+            await window.firebaseReadyPromise;
+        }
+        // Si NO existe la promesa y Firebase no está inicializado (Standalone Page)
+        else if (typeof firebase !== 'undefined' && !window.db) {
+            console.log("Repairs.js: Inicializando Firebase en modo Standalone...");
+            if (firebase.apps.length === 0 && window.firebaseConfig) {
+                firebase.initializeApp(window.firebaseConfig);
+            }
+            window.db = firebase.firestore();
+            window.auth = firebase.auth();
+
+            // Esperar a que auth determine el usuario
+            await new Promise(resolve => {
+                const unsubscribe = window.auth.onAuthStateChanged(user => {
+                    if (user) {
+                        sessionStorage.setItem('portis-user-identifier', user.uid);
+                        sessionStorage.setItem('portis-user-display-name', user.displayName || user.email);
+                    }
+                    unsubscribe();
+                    resolve();
+                });
+            });
+        }
     }
 
     // 🔑 Releer la variable global después de la espera
@@ -275,11 +298,20 @@ async function startRepairsModule() {
     if (DOM.monthInput) DOM.monthInput.value = today.getMonth() + 1;
     if (DOM.yearInput) DOM.yearInput.value = today.getFullYear();
     if (DOM.form) DOM.form.addEventListener('submit', addRepair);
-    document.getElementById('contact_checkbox').addEventListener('change', window.toggleContactFields);
+
+    const contactCheckbox = document.getElementById('contact_checkbox');
+    if (contactCheckbox) contactCheckbox.addEventListener('change', window.toggleContactFields);
+
     createModalElement();
 
     // 4. Cargar datos (Mock o Firebase)
     if (!IS_MOCK_MODE) {
+        // Verificación final de seguridad
+        if (!userId) {
+            console.error("Repairs.js: No hay usuario autenticado. Redirigiendo o mostrando error.");
+            // Opcional: window.location.href = '../index.html';
+            return;
+        }
         console.log("Repairs.js: Configurando listener de Firestore.");
         setupRepairsListener();
     } else {
