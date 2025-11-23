@@ -228,100 +228,10 @@ function configureEditInputs(repair) {
     }
 }
 
-// ===================================================================================
-// 3. FUNCIÓN DE INICIALIZACIÓN Y CONFIGURACIÓN
-// ===================================================================================
-
-async function startRepairsModule() {
-    if (isModuleSetupComplete) return;
-
-    // 1. Inicialización de Firebase (Standalone o Shared)
-    if (!window.IS_MOCK_MODE) {
-        // Si existe la promesa global (Main.js), esperamos
-        if (typeof window.firebaseReadyPromise !== 'undefined') {
-            await window.firebaseReadyPromise;
-        }
-        // Si NO existe la promesa y Firebase no está inicializado (Standalone Page)
-        else if (typeof firebase !== 'undefined' && !window.db) {
-            console.log("Repairs.js: Inicializando Firebase en modo Standalone...");
-            if (firebase.apps.length === 0 && window.firebaseConfig) {
-                firebase.initializeApp(window.firebaseConfig);
-            }
-            window.db = firebase.firestore();
-            window.auth = firebase.auth();
-
-            // Esperar a que auth determine el usuario
-            await new Promise(resolve => {
-                const unsubscribe = window.auth.onAuthStateChanged(user => {
-                    if (user) {
-                        sessionStorage.setItem('portis-user-identifier', user.uid);
-                        sessionStorage.setItem('portis-user-display-name', user.displayName || user.email);
-                    }
-                    unsubscribe();
-                    resolve();
-                });
-            });
-        }
+renderRepairs(repairs);
     }
 
-    // 🔑 Releer la variable global después de la espera
-    IS_MOCK_MODE = window.IS_MOCK_MODE;
-
-    console.warn(`🛠️ Repairs.js: Modo de Operación Final: ${IS_MOCK_MODE ? 'MOCK' : 'NORMAL (Firebase)'}`);
-
-    userId = sessionStorage.getItem('portis-user-identifier');
-
-    // 🔑 FIX: Si estamos en MOCK y no hay userId, inicializarlo
-    if (IS_MOCK_MODE && !userId) {
-        userId = window.MOCK_USER_ID || 'mock-admin-id';
-        sessionStorage.setItem('portis-user-identifier', userId);
-        sessionStorage.setItem('portis-user-display-name', window.MOCK_USER_DISPLAY_NAME || 'Admin');
-        console.log("Repairs.js: Mock User ID inicializado en sessionStorage.");
-    }
-
-    // 2. Configurar el display name (Aplica la regla de Admin para MOCK)
-    const userDisplayName = sessionStorage.getItem('portis-user-display-name');
-    const displayElement = document.getElementById('current-user-display');
-
-    if (displayElement) {
-        if (IS_MOCK_MODE) {
-            // **FUERZA LA VISUALIZACIÓN DE ADMIN EN MOCK MODE** (Según tu regla)
-            displayElement.textContent = "Admin";
-        } else {
-            displayElement.textContent = userDisplayName || (userId ? userId.substring(0, 10) + '...' : 'Usuario');
-        }
-    }
-
-
-    // 3. Configurar UI/Listeners
-    const today = new Date();
-    if (DOM.monthInput) DOM.monthInput.value = today.getMonth() + 1;
-    if (DOM.yearInput) DOM.yearInput.value = today.getFullYear();
-    if (DOM.form) DOM.form.addEventListener('submit', addRepair);
-
-    const contactCheckbox = document.getElementById('contact_checkbox');
-    if (contactCheckbox) contactCheckbox.addEventListener('change', window.toggleContactFields);
-
-    createModalElement();
-
-    // 4. Cargar datos (Mock o Firebase)
-    if (!IS_MOCK_MODE) {
-        // Verificación final de seguridad
-        if (!userId) {
-            console.error("Repairs.js: No hay usuario autenticado. Redirigiendo o mostrando error.");
-            // Opcional: window.location.href = '../index.html';
-            return;
-        }
-        console.log("Repairs.js: Configurando listener de Firestore.");
-        setupRepairsListener();
-    } else {
-        // **FLUJO MOCK (Local Storage)**
-        console.warn("Repairs.js: Modo MOCK activado. Cargando datos.");
-        const repairs = loadMockRepairs();
-        renderRepairs(repairs);
-    }
-
-    isModuleSetupComplete = true;
+isModuleSetupComplete = true;
 }
 
 function createModalElement() {
