@@ -246,7 +246,68 @@
         updateHolidayQuota();
     }
 
+    // =======================================================
+    // 3. FESTIVOS NACIONALES DE ESPAÑA
+    // =======================================================
 
+    /**
+     * Calcula la fecha de Pascua usando el algoritmo de Meeus/Jones/Butcher
+     */
+    function calculateEaster(year) {
+        const a = year % 19;
+        const b = Math.floor(year / 100);
+        const c = year % 100;
+        const d = Math.floor(b / 4);
+        const e = b % 4;
+        const f = Math.floor((b + 8) / 25);
+        const g = Math.floor((b - f + 1) / 3);
+        const h = (19 * a + b - d - g + 15) % 30;
+        const i = Math.floor(c / 4);
+        const k = c % 4;
+        const l = (32 + 2 * e + 2 * i - h - k) % 7;
+        const m = Math.floor((a + 11 * h + 22 * l) / 451);
+        const month = Math.floor((h + l - 7 * m + 114) / 31);
+        const day = ((h + l - 7 * m + 114) % 31) + 1;
+
+        return new Date(year, month - 1, day);
+    }
+
+    /**
+     * Determina si una fecha es un festivo nacional de España.
+     */
+    function isSpanishNationalHoliday(date) {
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        const year = date.getFullYear();
+
+        const fixedHolidays = [
+            { month: 1, day: 1 },   // Año Nuevo
+            { month: 1, day: 6 },   // Reyes Magos
+            { month: 5, day: 1 },   // Día del Trabajador
+            { month: 8, day: 15 },  // Asunción de la Virgen
+            { month: 10, day: 12 }, // Fiesta Nacional de España
+            { month: 11, day: 1 },  // Todos los Santos
+            { month: 12, day: 6 },  // Día de la Constitución
+            { month: 12, day: 8 },  // Inmaculada Concepción
+            { month: 12, day: 25 }, // Navidad
+        ];
+
+        for (const holiday of fixedHolidays) {
+            if (month === holiday.month && day === holiday.day) {
+                return true;
+            }
+        }
+
+        const easterDate = calculateEaster(year);
+        const goodFriday = new Date(easterDate);
+        goodFriday.setDate(easterDate.getDate() - 2);
+
+        if (date.toDateString() === goodFriday.toDateString()) {
+            return true;
+        }
+
+        return false;
+    }
     // =======================================================
     // 3. LÓGICA DEL CALENDARIO (RENDERIZADO)
     // =======================================================
@@ -300,7 +361,11 @@
             let weekendTextColor = isWeekend ? 'text-[var(--color-accent-main)]' : '';
 
             // === LÓGICA DE EVENTOS ===
-            const eventData = calendarEvents[fullDate];
+            let eventData = calendarEvents[fullDate];
+            // 🆕 Verificar si es festivo nacional (si no hay evento ya registrado)
+            if (!eventData && isSpanishNationalHoliday(currentDate)) {
+                eventData = { type: 'Festivo', date: fullDate, isNational: true };
+            }
             let eventDisplayClass = '';
             let eventTypeTag = ''; // Será el contenido de la etiqueta del día
 
@@ -436,7 +501,18 @@
         }
 
         overtimeDisplay.textContent = `${totalOvertimeMonthly.toFixed(1)} h`;
-        shiftsDisplay.textContent = `${totalShiftsAnnual}`; // Muestra bloques de guardias
+        shiftsDisplay.textContent = `${totalShiftsAnnual}`;
+        holidaysDisplay.textContent = `${totalFestivosAnnual}`;
+        // Contar festivos nacionales
+        for (let dayNum = 0; dayNum < 365; dayNum++) {
+            const checkDate = new Date(currentYear, 0, 1 + dayNum);
+            if (isSpanishNationalHoliday(checkDate)) {
+                const dateStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+                if (!calendarEvents[dateStr] || calendarEvents[dateStr].type !== 'Festivo') {
+                    totalFestivosAnnual++;
+                }
+            }
+        }
         holidaysDisplay.textContent = `${totalFestivosAnnual}`;
     }
 
