@@ -273,8 +273,153 @@
     }
 
     /**
-     * Determina si una fecha es un festivo nacional de España.
+     * Calcula todos los festivos de Semana Santa basándose en la Pascua
      */
+    function getEasterHolidays(year) {
+        const easter = calculateEaster(year);
+        const holidays = [];
+
+        // Jueves Santo (3 días antes de Pascua)
+        const jueveSanto = new Date(easter);
+        jueveSanto.setDate(easter.getDate() - 3);
+        holidays.push({ date: jueveSanto, name: 'Jueves Santo' });
+
+        // Viernes Santo (2 días antes de Pascua)
+        const viernesSanto = new Date(easter);
+        viernesSanto.setDate(easter.getDate() - 2);
+        holidays.push({ date: viernesSanto, name: 'Viernes Santo' });
+
+        // Lunes de Pascua (1 día después de Pascua) - Solo algunas comunidades
+        const lunesPascua = new Date(easter);
+        lunesPascua.setDate(easter.getDate() + 1);
+        holidays.push({ date: lunesPascua, name: 'Lunes de Pascua', regional: ['cataluna', 'valencia', 'baleares', 'navarra', 'pais-vasco', 'rioja'] });
+
+        return holidays;
+    }
+
+    /**
+     * Festivos autonómicos por comunidad autónoma
+     */
+    const REGIONAL_HOLIDAYS = {
+        'andalucia': [
+            { month: 2, day: 28 }, // Día de Andalucía
+        ],
+        'aragon': [
+            { month: 4, day: 23 }, // San Jorge (Día de Aragón)
+        ],
+        'asturias': [
+            { month: 9, day: 8 }, // Día de Asturias
+        ],
+        'baleares': [
+            { month: 3, day: 1 }, // Día de las Islas Baleares
+        ],
+        'canarias': [
+            { month: 5, day: 30 }, // Día de Canarias
+        ],
+        'cantabria': [
+            { month: 7, day: 28 }, // Día de las Instituciones de Cantabria
+        ],
+        'castilla-leon': [
+            { month: 4, day: 23 }, // Día de Castilla y León
+        ],
+        'castilla-mancha': [
+            { month: 5, day: 31 }, // Día de Castilla-La Mancha
+        ],
+        'cataluna': [
+            { month: 6, day: 24 }, // San Juan
+            { month: 9, day: 11 }, // Diada de Catalunya
+            { month: 12, day: 26 }, // San Esteban
+        ],
+        'valencia': [
+            { month: 10, day: 9 }, // Día de la Comunidad Valenciana
+        ],
+        'extremadura': [
+            { month: 9, day: 8 }, // Día de Extremadura
+        ],
+        'galicia': [
+            { month: 7, day: 25 }, // Día de Galicia
+        ],
+        'madrid': [
+            { month: 5, day: 2 }, // Fiesta de la Comunidad de Madrid
+        ],
+        'murcia': [
+            { month: 6, day: 9 }, // Día de la Región de Murcia
+        ],
+        'navarra': [
+        ],
+        'pais-vasco': [
+        ],
+        'rioja': [
+            { month: 6, day: 9 }, // Día de La Rioja
+        ],
+        'ceuta': [
+            { month: 9, day: 2 }, // Día de Ceuta
+        ],
+        'melilla': [
+            { month: 9, day: 17 }, // Día de Melilla
+        ]
+    };
+
+    /**
+     * Determina si una fecha es un festivo autonómico según la ubicación del usuario
+     */
+    function isRegionalHoliday(date, location) {
+        if (!location || location === 'nacional') return false;
+
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        const year = date.getFullYear();
+
+        // Verificar festivos fijos de la comunidad
+        const regionalHolidays = REGIONAL_HOLIDAYS[location] || [];
+        for (const holiday of regionalHolidays) {
+            if (month === holiday.month && day === holiday.day) {
+                return true;
+            }
+        }
+
+        // Verificar festivos de Semana Santa regionales
+        const easterHolidays = getEasterHolidays(year);
+        for (const holiday of easterHolidays) {
+            if (holiday.regional && holiday.regional.includes(location)) {
+                if (date.toDateString() === holiday.date.toDateString()) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Función principal que determina si una fecha es festivo (nacional o autonómico)
+     */
+    function isHoliday(date) {
+        const location = localStorage.getItem('portis-location') || 'nacional';
+
+        // Primero verificar festivos nacionales
+        if (isSpanishNationalHoliday(date)) {
+            return true;
+        }
+
+        // Luego verificar Semana Santa (Jueves y Viernes Santo son nacionales)
+        const year = date.getFullYear();
+        const easterHolidays = getEasterHolidays(year);
+        for (const holiday of easterHolidays) {
+            if (!holiday.regional) { // Solo festivos nacionales de Semana Santa
+                if (date.toDateString() === holiday.date.toDateString()) {
+                    return true;
+                }
+            }
+        }
+
+        // Finalmente verificar festivos autonómicos
+        if (isRegionalHoliday(date, location)) {
+            return true;
+        }
+
+        return false;
+    }
     function isSpanishNationalHoliday(date) {
         const month = date.getMonth() + 1;
         const day = date.getDate();
@@ -363,7 +508,7 @@
             // === LÓGICA DE EVENTOS ===
             let eventData = calendarEvents[fullDate];
             // 🆕 Verificar si es festivo nacional (si no hay evento ya registrado)
-            if (!eventData && isSpanishNationalHoliday(currentDate)) {
+            if (!eventData && isHoliday(currentDate)) {
                 eventData = { type: 'Festivo', date: fullDate, isNational: true };
             }
             let eventDisplayClass = '';
@@ -506,7 +651,7 @@
         // Contar festivos nacionales
         for (let dayNum = 0; dayNum < 365; dayNum++) {
             const checkDate = new Date(currentYear, 0, 1 + dayNum);
-            if (isSpanishNationalHoliday(checkDate)) {
+            if (isHoliday(checkDate)) {
                 const dateStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
                 if (!calendarEvents[dateStr] || calendarEvents[dateStr].type !== 'Festivo') {
                     totalFestivosAnnual++;
@@ -693,5 +838,12 @@
 
     // Hacer la función de inicialización global (para ser llamada desde Main.js)
     window.initCalendar = initCalendar;
-
+    // Escuchar cambios en la configuración de ubicación
+    window.addEventListener('settingsChanged', (event) => {
+        const { location } = event.detail;
+        console.log('Location changed to:', location);
+        // Re-renderizar el calendario con los nuevos festivos
+        renderCalendar();
+        updateSummary();
+    });
 })(); // ⬅️ FIN: Cierra la IIFE
