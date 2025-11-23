@@ -14,6 +14,7 @@
     let db = null;
     let isFirebaseReady = false;
     let currentViewDate = new Date();
+    let currentMaintenanceData = []; // Almacenar datos actuales para filtrado
 
     // --- [Mock Data y showMessage se mantienen] ---
 
@@ -189,6 +190,7 @@
             data = await fetchMaintenanceFromFirestore(date);
         }
 
+        currentMaintenanceData = data; // Guardamos los datos para el buscador
         renderMaintenanceList(data, date);
     }
 
@@ -422,6 +424,27 @@
         }
     };
 
+    // ----------------------------------------------------------------------------------
+    // 🚨 FUNCIÓN NUEVA: Toggle Search
+    // ----------------------------------------------------------------------------------
+    window.toggleMaintenanceSearch = function () {
+        const searchContainer = document.getElementById('maintenance-search-container');
+        const searchInput = document.getElementById('maintenance-search-input');
+
+        if (searchContainer && searchInput) {
+            const isHidden = searchContainer.classList.contains('hidden');
+            if (isHidden) {
+                searchContainer.classList.remove('hidden');
+                searchInput.focus();
+            } else {
+                searchContainer.classList.add('hidden');
+                searchInput.value = '';
+                // Trigger search update
+                searchInput.dispatchEvent(new Event('input'));
+            }
+        }
+    };
+
     // ====================================
     // 4. INICIALIZACIÓN
     // ====================================
@@ -433,6 +456,22 @@
 
         // 🔑 Llamamos a la función principal para cargar los datos
         window.fetchMaintenanceData();
+
+        // Listener de búsqueda
+        const searchInput = document.getElementById('maintenance-search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase().trim();
+                if (!currentMaintenanceData) return;
+
+                const filtered = currentMaintenanceData.filter(item =>
+                    (item.location && item.location.toLowerCase().includes(term)) ||
+                    (item.model && item.model.toLowerCase().includes(term)) ||
+                    (item.contract && item.contract.toLowerCase().includes(term))
+                );
+                renderMaintenanceList(filtered, currentViewDate);
+            });
+        }
 
         console.log('Maintenance View inicializada.');
     }

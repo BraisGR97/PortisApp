@@ -96,8 +96,8 @@ function checkAuthenticationAndSetup() {
             mockBills = [
                 // Nota: Los objetos se guardan directamente como están. Al cargarlos
                 // para renderizar, hay que asegurar que bill_date se pueda convertir.
-                { id: 'm1', concept: 'Presupuesto Inicial', bill_date: new Date().toISOString(), cost: '150.00', notes: 'Revisión general.', timestamp: Date.now() },
-                { id: 'm2', concept: 'Pieza de Repuesto', bill_date: new Date('2025-10-20').toISOString(), cost: '85.50', notes: 'Pedido a proveedor B.', timestamp: Date.now() - 10000 },
+                { id: 'm1', concept: 'Presupuesto Inicial', bill_date: new Date().toISOString(), cost: '150.00', notes: 'Revisión general.', timestamp: Date.now(), status: 'Pendiente' },
+                { id: 'm2', concept: 'Pieza de Repuesto', bill_date: new Date('2025-10-20').toISOString(), cost: '85.50', notes: 'Pedido a proveedor B.', timestamp: Date.now() - 10000, status: 'Pagado' },
             ];
             saveLocalMockBills(mockBills);
         }
@@ -167,8 +167,8 @@ async function initializeAppAndAuth() {
 
 function getBillsCollectionRef() {
     if (!db || !userId) return null;
-    const userCollectionsBase = `artifacts/${appId}/users/${userId}`;
-    return db.collection(`${userCollectionsBase}/bills`);
+    // Usar la misma estructura que Repairs y Maintenance
+    return db.collection(`users/${userId}/bills`);
 }
 
 /**
@@ -396,8 +396,8 @@ function renderBills(bills, updateCache = true) {
         const billHtml = `
             <div class="flex justify-between items-start mb-2">
                 <h3 class="font-bold text-lg truncate pr-8" style="color: var(--color-text-primary);">${bill.concept}</h3>
-                <span class="text-xs font-medium px-2 py-1 rounded-full text-green-500 bg-green-100 dark:bg-green-900/30">
-                    ${bill.status || 'Registrado'}
+                <span class="text-xs font-medium px-2 py-1 rounded-full ${bill.status === 'Pagado' ? 'text-green-500 bg-green-100 dark:bg-green-900/30' : 'text-orange-500 bg-orange-100 dark:bg-orange-900/30'}">
+                    ${bill.status || 'Pendiente'}
                 </span>
             </div>
             
@@ -418,6 +418,14 @@ function renderBills(bills, updateCache = true) {
                 </span>
                 
                 <div class="flex gap-2">
+                    ${bill.status !== 'Pagado' ? `
+                    <button data-action="pay" data-id="${bill.id}"
+                        class="action-btn pay-btn p-2 rounded-full hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-green-500" 
+                        title="Marcar como Pagado" 
+                        aria-label="Pagar presupuesto ${bill.concept}">
+                        <i class="ph ph-check-circle text-lg pointer-events-none"></i>
+                    </button>
+                    ` : ''}
                     <button data-action="delete" data-id="${bill.id}"
                         class="action-btn delete-btn p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-500" 
                         title="Eliminar presupuesto" 
@@ -445,6 +453,43 @@ function handleBillActions(e) {
 
     if (action === 'delete') {
         window.deleteBill(id);
+    } else if (action === 'pay') {
+        window.toggleBillStatus(id, 'Pagado');
+    }
+}
+
+/**
+ * Cambia el estado de un presupuesto.
+ */
+window.toggleBillStatus = async function (id, newStatus) {
+    if (!isAuthReady || !userId) return console.warn("Autenticación no lista.");
+
+    if (IS_MOCK_MODE) {
+        let mockBills = getLocalMockBills();
+        const index = mockBills.findIndex(b => b.id === id);
+        if (index !== -1) {
+            mockBills[index].status = newStatus;
+            saveLocalMockBills(mockBills);
+
+            // Renderizar la lista actualizada
+            const renderableBills = mockBills.map(b => ({
+                ...b,
+                bill_date: { toDate: () => new Date(b.bill_date) }
+            }));
+            renderBills(renderableBills);
+        }
+        return;
+    }
+
+    // Modo Real
+    try {
+        const billsRef = getBillsCollectionRef();
+        if (!billsRef) return;
+
+        await billsRef.doc(id).update({ status: newStatus });
+        console.log(`Presupuesto ${id} marcado como ${newStatus}.`);
+    } catch (error) {
+        console.error("Error al actualizar el estado del presupuesto:", error);
     }
 }
 
@@ -515,6 +560,15 @@ window.addEventListener('load', () => {
     if (typeof window.applyColorMode === 'function') {
         window.applyColorMode();
     }
+
+    // Escuchar cambios en localStorage para el tema (si se cambia en otra pestaña)
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'portis-theme') {
+            if (typeof window.applyColorMode === 'function') {
+                window.applyColorMode();
+            }
+        }
+    });
 
     checkAuthenticationAndSetup();
 

@@ -21,6 +21,7 @@
 
     let db = null; // Instancia de Firestore
     let isFirebaseReady = false;
+    let lastRenderedDate = null;
 
     // --- [Funciones Auxiliares - showMessage, getChatId] ---
 
@@ -191,11 +192,34 @@
         const container = document.getElementById('chat-messages-container');
         if (!container) return;
 
+        // Validación de fecha
+        if (!(timestamp instanceof Date) || isNaN(timestamp.getTime())) {
+            timestamp = new Date();
+        }
+
+        // Lógica de Separadores de Fecha
+        const messageDate = timestamp.toLocaleDateString();
+        if (lastRenderedDate !== messageDate) {
+            let displayDate = messageDate;
+            const today = new Date().toLocaleDateString();
+            const yesterday = new Date(Date.now() - 86400000).toLocaleDateString();
+
+            if (messageDate === today) displayDate = 'Hoy';
+            else if (messageDate === yesterday) displayDate = 'Ayer';
+
+            const separatorHtml = `
+                <div class="flex justify-center my-4">
+                    <span class="text-xs font-medium px-3 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                        ${displayDate}
+                    </span>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', separatorHtml);
+            lastRenderedDate = messageDate;
+        }
+
         const messageClass = isCurrentUser ? 'bg-red-600 ml-auto' : 'bg-gray-700 mr-auto';
         const timeString = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-        // Si el usuario es 'mock_user_123' y el display name está en sessionStorage, usarlo.
-        // let senderDisplay = isCurrentUser ? (sessionStorage.getItem('portis-user-display-name') || 'Tú') : senderId;
 
         const messageHtml = `
             <div class="flex ${isCurrentUser ? 'justify-end' : 'justify-start'}">
@@ -215,6 +239,7 @@
     // ----------------------------------------------------------------------------------
     window.openChatModal = function (recipientId, recipientName) {
         currentRecipientId = recipientId;
+        lastRenderedDate = null; // Resetear fecha al abrir chat
 
         const recipientNameEl = document.getElementById('chat-recipient-name');
         const messagesContainer = document.getElementById('chat-messages-container');

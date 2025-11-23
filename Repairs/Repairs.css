@@ -1,32 +1,44 @@
 :root {
-    /* 🛑 CAMBIO 2: Paleta de colores de Main.css */
+    /* 🛑 CAMBIO 2: Paleta de colores de Main.css (DARK DEFAULT) */
     --color-bg-primary: #12121e;
     --color-bg-secondary: #1f1f33;
     --color-bg-tertiary: #2a2a3e;
     --color-text-primary: #f0f0f5;
     --color-text-secondary: #9999aa;
     --color-text-light: #ffffff;
-    --color-border: #3b3b55; /* Borde más sutil */
-    
-    /* Degradado principal (magenta/rojo) */
-    --gradient-primary: linear-gradient(145deg, #FF692A 0%, #FB2C36 15%, #FF2056 50%, #8B0836 85%, #4D0218 100%);
-    --color-accent-red: #fb2c36; /* Color fuerte del degradado para botones y énfasis */
-    --color-accent-blue: #fb2c36; /* Magenta fuerte para el enfoque */
-    
-    --color-shadow: rgba(0, 0, 0, 0.4);
+    --color-border: #3b3b55;
+    --color-shadow: rgba(0, 0, 0, 0.5);
+    --color-accent-blue: #3b82f6;
+    --color-accent-red: #ef4444;
+    --gradient-primary: linear-gradient(135deg, #3b82f6, #2563eb);
 }
 
-/* Base styles */
+/* --- LIGHT MODE PALETTE --- */
+body.light-mode {
+    --color-bg-primary: #f8f9fa;
+    --color-bg-secondary: #ffffff;
+    --color-bg-tertiary: #e9ecef;
+    --color-text-primary: #212529;
+    --color-text-secondary: #6c757d;
+    --color-text-light: #212529;
+    --color-border: #dee2e6;
+    --color-shadow: rgba(0, 0, 0, 0.1);
+    --color-accent-blue: #0d6efd;
+    --color-accent-red: #dc3545;
+    --gradient-primary: linear-gradient(135deg, #0d6efd, #0b5ed7);
+}
+
 body {
-    font-family: 'Inter', sans-serif;
     background-color: var(--color-bg-primary);
     color: var(--color-text-primary);
     transition: background-color 0.3s, color 0.3s;
     min-height: 100vh;
 }
-/* Scrollbar (Ocultar) */
-.overflow-y-auto::-webkit-scrollbar { display: none; }
-.overflow-y-auto { -ms-overflow-style: none; scrollbar-width: none; }
+
+.overflow-y-auto {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
 
 .app-layout {
     display: flex;
@@ -42,7 +54,8 @@ body {
 #app-content {
     padding: 1rem;
     flex-grow: 1;
-    padding-bottom: 5rem; /* Espacio para el FAB */
+    padding-bottom: 5rem;
+    /* Espacio para el FAB */
 }
 
 /* Card styles */
@@ -61,22 +74,28 @@ body {
 /* 🛑 Input/Form styles con borde negro fino por defecto, y magenta al seleccionar */
 .minimal-input {
     background-color: var(--color-bg-primary);
-    border: 1px solid var(--color-border); /* Borde fino */
+    border: 1px solid var(--color-border);
+    /* Borde fino */
     color: var(--color-text-light);
     padding: 0.6rem 0.8rem;
     border-radius: 0.5rem;
     transition: border-color 0.2s, background-color 0.2s;
 }
+
 .minimal-input:focus {
-    border-color: var(--color-accent-blue); /* Magenta al enfocar */
+    border-color: var(--color-accent-blue);
+    /* Magenta al enfocar */
     outline: none;
     box-shadow: 0 0 0 1px var(--color-accent-blue);
 }
+
 .minimal-input::placeholder {
     color: var(--color-text-secondary);
 }
+
 /* Estilo para Select */
-.minimal-input[multiple], .minimal-input:not([type="number"]):not([type="date"]):not([type="month"]) {
+.minimal-input[multiple],
+.minimal-input:not([type="number"]):not([type="date"]):not([type="month"]) {
     /* Mantener estilo para select que usa la clase minimal-input */
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -98,6 +117,7 @@ body {
     border: none;
     transition: opacity 0.2s;
 }
+
 .primary-btn:hover {
     opacity: 0.9;
 }
@@ -108,6 +128,7 @@ body {
     border: 1px solid var(--color-border);
     transition: background-color 0.2s, color 0.2s;
 }
+
 .secondary-icon-btn:hover {
     background-color: var(--color-bg-primary);
     color: var(--color-text-light);
@@ -115,13 +136,14 @@ body {
 
 /* Repair Card Specific Styles */
 .repair-card {
-    background-color: var(--color-bg-secondary); /* Un poco más oscuro que el contenedor para destacar */
+    background-color: var(--color-bg-secondary);
+    /* Un poco más oscuro que el contenedor para destacar */
     border: 1px solid var(--color-border);
     padding: 1rem;
     border-radius: 0.75rem;
     display: flex;
     flex-direction: column;
-    cursor: pointer; 
+    cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
 }
 
@@ -132,14 +154,37 @@ body {
 }
 
 /* Status colors (usando el color de acento y complementarios) */
-.status-pendiente { color: #f97316; } /* Orange */
-.status-en-progreso { color: #3b82f6; } /* Blue */
-.status-completado { color: #10b981; } /* Emerald Green */
+.status-pendiente {
+    color: #f97316;
+}
+
+/* Orange */
+.status-en-progreso {
+    color: #3b82f6;
+}
+
+/* Blue */
+.status-completado {
+    color: #10b981;
+}
+
+/* Emerald Green */
 
 /* Priority Colors (for visual indication on the side) */
-.repair-card.priority-alta { border-left: 4px solid var(--color-accent-red); }
-.repair-card.priority-media { border-left: 4px solid #FFC107; } /* Yellow */
-.repair-card.priority-baja { border-left: 4px solid #10b981; } /* Emerald Green */
+.repair-card.priority-alta {
+    border-left: 4px solid var(--color-accent-red);
+}
+
+.repair-card.priority-media {
+    border-left: 4px solid #FFC107;
+}
+
+/* Yellow */
+.repair-card.priority-baja {
+    border-left: 4px solid #10b981;
+}
+
+/* Emerald Green */
 
 /* Utility styles */
 .loading-spinner {
@@ -153,8 +198,13 @@ body {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .user-id-display {
@@ -194,7 +244,8 @@ body {
 }
 
 .custom-checkbox:checked::after {
-    content: '\2713'; /* Unicode checkmark */
+    content: '\2713';
+    /* Unicode checkmark */
     display: block;
     position: absolute;
     top: 50%;
@@ -213,6 +264,7 @@ body {
     display: block;
     margin-bottom: 0.1rem;
 }
+
 .detail-input {
     padding: 0.5rem;
     border: 1px solid var(--color-border);
@@ -221,16 +273,20 @@ body {
     background-color: var(--color-bg-primary);
     transition: border-color 0.2s, background-color 0.2s;
 }
-.detail-input[readonly], .detail-input:disabled {
+
+.detail-input[readonly],
+.detail-input:disabled {
     background-color: var(--color-bg-primary);
     border: 1px solid transparent;
     cursor: default;
 }
+
 .detail-input.editing {
     background-color: var(--color-bg-tertiary);
     border: 1px solid var(--color-accent-blue);
     cursor: text;
 }
+
 .modal-header {
     display: flex;
     justify-content: space-between;
@@ -248,7 +304,8 @@ body {
     font-size: 0.95rem;
     font-weight: 500;
     color: var(--color-text-light);
-    /* margin-bottom: 1rem; */ /* Eliminado para comprimir */
+    /* margin-bottom: 1rem; */
+    /* Eliminado para comprimir */
 }
 
 /* Estilo para el botón de edición del modal (el nuevo lápiz) */
@@ -270,13 +327,20 @@ body {
     background-color: var(--color-accent-blue);
     color: var(--color-text-light);
 }
+
 /* ==================================== */
 /* 8. Ajustes para Móviles (Media Queries) */
 /* ==================================== */
 
 @media (max-width: 640px) {
-    body { padding: 0; }
-    #app-container { padding: 0; width: 100%; }
+    body {
+        padding: 0;
+    }
+
+    #app-container {
+        padding: 0;
+        width: 100%;
+    }
 
     #scrollable-content {
         padding-left: 1rem;
