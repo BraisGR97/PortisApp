@@ -9,12 +9,22 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
 
-
     <link rel="stylesheet" href="./History.css">
 
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
+    <script>
+        window.firebaseConfig = {
+            apiKey: "AIzaSyD_tC3KaK3UVyNOPiSsnI0s5k8Cd_qFJpg",
+            authDomain: "portisapp.firebaseapp.com",
+            projectId: "portisapp",
+            storageBucket: "portisapp.firebasestorage.app",
+            messagingSenderId: "38313359657",
+            appId: "1:38313359657:web:ae73a0f8f7556bed92df38",
+            measurementId: "G-HQ29Y8Z2DY"
+        };
+    </script>
 </head>
 
 <body class="antialiased">
@@ -23,24 +33,55 @@
     <div class="app-layout">
         <header id="top-navbar"
             class="sticky top-0 z-40 p-4 flex justify-between items-center bg-opacity-95 backdrop-blur-sm">
-            <button onclick="window.location.href='../Main/Main.html'"
-                class="text-xl p-2 rounded-full secondary-icon-btn">
+            <button id="back-btn" onclick="window.goBack()" class="text-xl p-2 rounded-full secondary-icon-btn">
                 <i class="ph ph-arrow-left"></i>
             </button>
-            <h1 class="text-xl font-bold text-center">Historial de Mantenimientos</h1>
+            <h1 id="page-title" class="text-xl font-bold text-center">Historial de Mantenimientos</h1>
             <div id="current-user-display" class="user-id-display">Cargando...</div>
         </header>
 
         <main id="app-content" class="overflow-y-auto w-full max-w-4xl mx-auto">
 
-            <div class="card-container inverted-split">
+            <!-- Vista de lista de mantenimientos -->
+            <div id="maintenances-view" class="card-container inverted-split">
                 <div class="card-inner-content">
-                    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2" style="color: var(--color-text-light);">
-                        <i class="ph ph-folder-open-fill" style="color: var(--color-accent-red);"></i>
-                        Todos los Mantenimientos
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-bold flex items-center gap-2" style="color: var(--color-text-light);">
+                            <i class="ph ph-folder-open-fill" style="color: var(--color-accent-red);"></i>
+                            Todos los Mantenimientos
+                        </h2>
+                        <button onclick="window.toggleSearch()" class="secondary-icon-btn p-2 rounded-full"
+                            title="Buscar">
+                            <i class="ph ph-magnifying-glass text-xl"></i>
+                        </button>
+                    </div>
+
+                    <div id="search-container" class="hidden mb-4 transition-all duration-300">
+                        <div class="relative">
+                            <i
+                                class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <input id="search-input" type="text"
+                                placeholder="Buscar por ubicación, modelo o contrato..."
+                                class="minimal-input w-full pl-10">
+                        </div>
+                    </div>
+
+                    <div id="maintenances-list" class="space-y-3">
+                        <div class="loading-spinner"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vista de lista de registros de un mantenimiento específico -->
+            <div id="records-view" class="card-container inverted-split hidden">
+                <div class="card-inner-content">
+                    <h2 id="records-title" class="text-2xl font-bold mb-4 flex items-center gap-2"
+                        style="color: var(--color-text-light);">
+                        <i class="ph ph-clock-counter-clockwise" style="color: var(--color-accent-red);"></i>
+                        Registros de Mantenimiento
                     </h2>
 
-                    <div id="repairs-list" class="space-y-3">
+                    <div id="records-list" class="space-y-3">
                         <div class="loading-spinner"></div>
                     </div>
                 </div>
@@ -48,6 +89,16 @@
 
         </main>
     </div>
+
+    <!-- Modal para mostrar detalles del registro -->
+    <div id="record-detail-modal"
+        class="fixed inset-0 z-50 hidden bg-black bg-opacity-70 flex justify-center items-center p-4">
+        <div class="modal-content w-full max-w-2xl rounded-xl shadow-2xl relative overflow-y-auto"
+            style="background-color: var(--color-bg-secondary); color: var(--color-text-primary); max-height: 90vh;">
+            <!-- El contenido se genera dinámicamente -->
+        </div>
+    </div>
+
     <script src="../Config/Config.js"></script>
     <script src="./History.js"></script>
 </body>

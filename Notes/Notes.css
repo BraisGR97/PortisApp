@@ -1,0 +1,229 @@
+:root {
+    /* 🛑 CAMBIO 2: Paleta de colores de Main.css (DARK DEFAULT) */
+    --color-bg-primary: #12121e;
+    --color-bg-secondary: #1f1f33;
+    --color-bg-tertiary: #2a2a3e;
+    --color-text-primary: #f0f0f5;
+    --color-text-secondary: #9999aa;
+    --color-text-light: #ffffff;
+
+    /* 🛑 CAMBIO: Bordes y Acentos Magenta para Dark Mode */
+    --color-border: #632b3e;
+    /* Borde Magenta Oscuro sutil */
+    --color-shadow: rgba(0, 0, 0, 0.5);
+
+    /* 🛑 CAMBIO: Acento Principal ahora es Magenta en Dark Mode */
+    --color-accent-blue: #E91E63;
+
+    --color-accent-red: #ef4444;
+
+    /* 🛑 RESTAURADO: Gradiente Naranja/Rojo original */
+    --gradient-primary: linear-gradient(135deg, #FF5722, #E91E63);
+}
+
+/* --- LIGHT MODE PALETTE --- */
+body.light-mode {
+    --color-bg-primary: #f8f9fa;
+    --color-bg-secondary: #ffffff;
+    --color-bg-tertiary: #e9ecef;
+    --color-text-primary: #212529;
+    --color-text-secondary: #6c757d;
+    --color-text-light: #212529;
+    --color-border: #dee2e6;
+    --color-shadow: rgba(0, 0, 0, 0.1);
+    --color-accent-blue: #0d6efd;
+    /* Mantenemos azul en light mode por legibilidad, o cambiar si se pide */
+    --color-accent-red: #dc3545;
+    --gradient-primary: linear-gradient(135deg, #FF5722, #E91E63);
+}
+
+body {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    transition: background-color 0.3s, color 0.3s;
+    min-height: 100vh;
+}
+
+.overflow-y-auto {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.app-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+#top-navbar {
+    background-color: var(--color-bg-primary);
+    border-bottom: 1px solid var(--color-border);
+}
+
+#app-content {
+    padding: 1rem;
+    flex-grow: 1;
+    padding-bottom: 5rem;
+    /* Espacio para el FAB */
+}
+
+/* Card styles */
+.card-container {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 1rem;
+    box-shadow: 0 4px 10px var(--color-shadow);
+    overflow: hidden;
+}
+
+.card-inner-content {
+    padding: 1.5rem;
+}
+
+/* 🛑 Input/Form styles con borde negro fino por defecto, y magenta al seleccionar */
+.minimal-input {
+    background-color: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    /* Borde fino */
+    color: var(--color-text-light);
+    padding: 0.6rem 0.8rem;
+    border-radius: 0.5rem;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.minimal-input:focus {
+    border-color: var(--color-accent-blue);
+    /* Magenta al enfocar */
+    outline: none;
+    box-shadow: 0 0 0 1px var(--color-accent-blue);
+}
+
+.minimal-input::placeholder {
+    color: var(--color-text-secondary);
+}
+
+/* Estilo para Select */
+.minimal-input[multiple],
+.minimal-input:not([type="number"]):not([type="date"]):not([type="month"]) {
+    /* Mantener estilo para select que usa la clase minimal-input */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" width="292.4" height="292.4" viewBox="0 0 292.4 292.4"><path fill="%23b0b0c2" d="M287.1 93.5l-14.7-14.7c-3.1-3.1-8.2-3.1-11.3 0L146.2 211.3 31.4 78.8c-3.1-3.1-8.2-3.1-11.3 0L5.4 93.5c-3.1 3.1-3.1 8.2 0 11.3l135.5 135.5c3.1 3.1 8.2 3.1 11.3 0l135.5-135.5c3.1-3.1 3.1-8.2 0-11.3z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 0.7em top 50%, 0 0;
+    background-size: 0.65em auto;
+}
+
+
+/* Button styles */
+.primary-btn {
+    background-image: var(--gradient-primary);
+    color: var(--color-text-light);
+    font-weight: 600;
+    padding: 0.6rem 1rem;
+    border-radius: 0.5rem;
+    border: none;
+    transition: opacity 0.2s;
+}
+
+.primary-btn:hover {
+    opacity: 0.9;
+}
+
+.secondary-icon-btn {
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.secondary-icon-btn:hover {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-light);
+    border-color: var(--color-accent-blue);
+    /* Borde magenta al hover */
+}
+
+.secondary-btn {
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+    font-weight: 600;
+    padding: 0.6rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--color-border);
+    transition: opacity 0.2s, background-color 0.2s;
+}
+
+.secondary-btn:hover {
+    background-color: var(--color-bg-primary);
+    border-color: var(--color-accent-blue);
+}
+
+/* Bill Card Specific Styles */
+.bill-card,
+.note-card {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    padding: 1rem;
+    border-radius: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    margin-bottom: 0.75rem;
+}
+
+.bill-card:hover,
+.note-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+    border-color: var(--color-accent-blue);
+}
+
+/* Utility styles */
+.loading-spinner {
+    border: 4px solid var(--color-bg-tertiary);
+    border-top: 4px solid var(--color-accent-blue);
+    /* Spinner magenta */
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 2rem auto;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.user-id-display {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    body {
+        padding: 0;
+    }
+
+    #app-container {
+        padding: 0;
+        width: 100%;
+    }
+}

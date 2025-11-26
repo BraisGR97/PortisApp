@@ -535,6 +535,10 @@ async function saveEditedRepair() {
         contactData = {};
     }
 
+    // Verificar si existe el input de estado (puede haber sido eliminado en modo edición)
+    const statusInput = document.getElementById('edit-status');
+    const statusValue = statusInput ? statusInput.value : undefined;
+
     const newValues = {
         location: document.getElementById('edit-location').value.trim(),
         contract: document.getElementById('edit-contract').value.trim(),
@@ -543,10 +547,15 @@ async function saveEditedRepair() {
         model: document.getElementById('edit-model').value.trim() || null,
         key_id: document.getElementById('edit-key_id').value.trim() || null,
         priority: document.getElementById('edit-priority').value,
-        status: document.getElementById('edit-status').value,
         description: document.getElementById('edit-description').value.trim(),
         contact: contactData,
     };
+
+    // Solo añadir status si se pudo leer (aunque en este caso, si no está en el DOM, queremos preservar el anterior)
+    // Al no incluirlo en newValues, el spread operator { ...old, ...new } mantendrá el old.status
+    if (statusValue !== undefined) {
+        newValues.status = statusValue;
+    }
 
     if (!newValues.location || !newValues.contract || isNaN(newValues.maintenance_month) || isNaN(newValues.maintenance_year)) {
         console.error("Validación de edición fallida.");
@@ -673,16 +682,16 @@ function generateModalContent(repair, isEditMode) {
         `;
     }
 
-    const statusSelect = (statusValue, readOnly = true) => {
-        const options = ['Pendiente', 'En Progreso', 'Completado'];
+    const contractSelect = (contractValue, readOnly = true) => {
+        const options = ['Mensual', 'Bimensual', 'Trimestral', 'Cuatrimestral', 'Semestral', 'Anual'];
         const optionHtml = options.map(opt =>
-            `<option value="${opt}" ${statusValue === opt ? 'selected' : ''}>${opt}</option>`
+            `<option value="${opt}" ${contractValue === opt ? 'selected' : ''}\u003e${opt}</option>`
         ).join('');
 
         return `
             <div class="space-y-1">
-                <label for="edit-status" class="detail-label">Estado</label>
-                <select id="edit-status" ${readOnly ? 'disabled' : ''} class="detail-input w-full ${!readOnly ? 'editing' : ''}">
+                <label for="edit-contract" class="detail-label">Contrato</label>
+                <select id="edit-contract" ${readOnly ? 'disabled' : ''} class="detail-input w-full ${!readOnly ? 'editing' : ''}\">
                     ${optionHtml}
                 </select>
             </div>
@@ -751,12 +760,11 @@ function generateModalContent(repair, isEditMode) {
                 <div class="col-span-1 md:col-span-2 space-y-2">
                     ${baseInput('edit-location', 'Ubicación', repair.location, false)}
                 </div>
-                ${baseInput('edit-contract', 'Contrato', repair.contract, false)}
+                ${contractSelect(repair.contract, false)}
                 ${baseInput('edit-date', 'Fecha Prevista', '', false, 'month')}
                 ${baseInput('edit-model', 'Modelo', repair.model, false)}
                 ${baseInput('edit-key_id', 'ID Clave', repair.key_id, false)}
                 ${prioritySelect(priority, false)}
-                ${statusSelect(status, false)}
                 <div class="col-span-1 md:col-span-2 space-y-2">
                     ${baseTextarea('edit-description', 'Descripción', repair.description, false, 3)}
                 </div>
