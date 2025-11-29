@@ -11,7 +11,7 @@ window.firebaseConfig = {
 };
 
 // Configuración de Modos
-window.IS_MOCK_MODE = false; // Cambiar a false para usar Firebase real
+window.IS_MOCK_MODE = true; // Cambiar a false para usar Firebase real
 window.MOCK_USER_ID = "mock-admin-id";
 window.MOCK_USER_DISPLAY_NAME = "Admin";
 

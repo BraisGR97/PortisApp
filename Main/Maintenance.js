@@ -16,8 +16,6 @@
     let currentViewDate = new Date();
     let currentMaintenanceData = []; // Almacenar datos actuales para filtrado
 
-    // --- [Mock Data y showMessage se mantienen] ---
-
     // 🔑 CLAVE COMPARTIDA con Repairs.js para leer los mismos datos
     const MOCK_REPAIRS_KEY = 'portis-repairs-mock';
 
@@ -490,10 +488,13 @@
                         const currentRepair = { id: doc.id, ...doc.data() };
                         const updates = updateLogic(currentRepair);
 
+                        // Obtener userId actual de la sesión para asegurar consistencia
+                        const currentUserId = sessionStorage.getItem('portis-user-identifier');
+
                         // Guardar registro en History (colección raíz) ANTES de actualizar
                         const historyRecord = {
                             ...currentRepair,
-                            userId: userId,
+                            userId: currentUserId, // Usar ID actual
                             status: 'Completado',
                             completedAt: firebase.firestore.FieldValue.serverTimestamp(),
                             username: sessionStorage.getItem('portis-user-display-name') || 'Usuario'
@@ -516,9 +517,6 @@
         }
     };
 
-    // ----------------------------------------------------------------------------------
-    // 🚨 FUNCIÓN NUEVA: Toggle Search
-    // ----------------------------------------------------------------------------------
     window.toggleMaintenanceSearch = function () {
         const searchContainer = document.getElementById('maintenance-search-container');
         const searchInput = document.getElementById('maintenance-search-input');
@@ -863,146 +861,5 @@
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
     }
-
-    /**
-            * Alternar la visibilidad del buscador de mantenimientos
-            */
-    function toggleMaintenanceSearch() {
-        const searchContainer = document.getElementById('maintenance-search-container');
-        const searchInput = document.getElementById('maintenance-search-input');
-
-        if (!searchContainer) return;
-
-        if (searchContainer.classList.contains('hidden')) {
-            searchContainer.classList.remove('hidden');
-            if (searchInput) {
-                setTimeout(() => searchInput.focus(), 100);
-            }
-        } else {
-            searchContainer.classList.add('hidden');
-            if (searchInput) {
-                searchInput.value = '';
-                window.fetchMaintenanceData();
-            }
-        }
-    }
-
-    /**
-     * Confirmar y completar un mantenimiento con modal elegante
-     */
-    async function confirmCompleteMaintenance(id) {
-        if (!id) return;
-
-        // Crear modal de confirmación si no existe
-        let modal = document.getElementById('complete-maintenance-modal');
-        if (!modal) {
-            const modalHtml = `
-                <div id="complete-maintenance-modal" class="fixed inset-0 z-[200] hidden bg-black bg-opacity-70 flex justify-center items-center p-4 transition-opacity duration-300">
-                    <div class="modal-content w-full max-w-sm rounded-xl shadow-2xl p-6 text-center"
-                        style="background-color: var(--color-bg-secondary); color: var(--color-text-primary);">
-                        <div class="mb-4">
-                            <i class="ph ph-check-circle text-6xl text-green-500"></i>
-                        </div>
-                        <h3 class="text-xl font-bold mb-3">Completar Mantenimiento</h3>
-                        <p class="text-sm mb-6" style="color: var(--color-text-secondary);">¿Estás seguro de que deseas marcar este mantenimiento como completado?</p>
-                        <div class="flex gap-3 justify-center">
-                            <button id="cancel-complete-btn" class="px-4 py-2 rounded-lg font-semibold" style="background-color: var(--color-border);">
-                                Cancelar
-                            </button>
-                            <button id="confirm-complete-btn" class="primary-btn px-4 py-2 rounded-lg font-semibold bg-green-600 hover:bg-green-700">
-                                Sí, Completar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-            modal = document.getElementById('complete-maintenance-modal');
-        }
-
-        // Mostrar modal
-        modal.classList.remove('hidden');
-
-        // Función para cerrar modal
-        const closeModal = () => {
-            modal.classList.add('hidden');
-        };
-
-        // Event listeners
-        document.getElementById('cancel-complete-btn').onclick = closeModal;
-        document.getElementById('confirm-complete-btn').onclick = async () => {
-            closeModal();
-
-            try {
-                if (window.IS_MOCK_MODE || !isFirebaseReady) {
-                    let allRepairs = loadMaintenanceFromStorage();
-                    const index = allRepairs.findIndex(r => r.id === id);
-
-                    if (index !== -1) {
-                        const repair = allRepairs[index];
-                        const contractLower = (repair.contract || '').toLowerCase();
-
-                        // Determinar la periodicidad en meses
-                        let periodMonths = 1; // Por defecto mensual
-
-                        if (contractLower.includes('anual')) {
-                            periodMonths = 12;
-                        } else if (contractLower.includes('semestral')) {
-                            periodMonths = 6;
-                        } else if (contractLower.includes('cuatrimestral')) {
-                            periodMonths = 4;
-                        } else if (contractLower.includes('trimestral')) {
-                            periodMonths = 3;
-                        } else if (contractLower.includes('bimensual')) {
-                            periodMonths = 2;
-                        } else if (contractLower.includes('mensual')) {
-                            periodMonths = 1;
-                        }
-
-                        // Calcular la nueva fecha
-                        let nextMonth = repair.maintenance_month + periodMonths;
-                        let nextYear = repair.maintenance_year;
-
-                        while (nextMonth > 12) {
-                            nextMonth -= 12;
-                            nextYear += 1;
-                        }
-
-                        // Actualizar el mantenimiento con la nueva fecha
-                        allRepairs[index].maintenance_month = nextMonth;
-                        allRepairs[index].maintenance_year = nextYear;
-                        allRepairs[index].status = 'Pendiente';
-
-                        localStorage.setItem(MOCK_REPAIRS_KEY, JSON.stringify(allRepairs));
-                        showMessage('success', 'Mantenimiento completado y reprogramado.');
-                        window.fetchMaintenanceData();
-                    } else {
-                        showMessage('error', 'No se encontró el mantenimiento.');
-                    }
-                } else {
-                    const repairsRef = getRepairsCollectionRef();
-                    if (!repairsRef) {
-                        showMessage('error', 'Error de sesión.');
-                        return;
-                    }
-
-                    await repairsRef.doc(id).update({
-                        status: 'Completado',
-                        completed_date: new Date().toISOString()
-                    });
-
-                    showMessage('success', 'Mantenimiento marcado como completado.');
-                    window.fetchMaintenanceData();
-                }
-            } catch (error) {
-                console.error('Error al completar mantenimiento:', error);
-                showMessage('error', 'Error al actualizar el mantenimiento.');
-            }
-        };
-    }
-
-    // Exportar funciones al scope global (window)
-    window.toggleMaintenanceSearch = toggleMaintenanceSearch;
-    window.confirmCompleteMaintenance = confirmCompleteMaintenance;
 
 })();
