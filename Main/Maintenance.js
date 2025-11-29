@@ -872,12 +872,26 @@
         }
 
         try {
-            let allRepairs = loadMaintenanceFromStorage();
-            const index = allRepairs.findIndex(r => r.id === id);
-            if (index !== -1) {
-                allRepairs[index] = { ...allRepairs[index], ...newValues };
-                localStorage.setItem(MOCK_REPAIRS_KEY, JSON.stringify(allRepairs));
-                showMessage('success', 'Mantenimiento actualizado correctamente.');
+            if (window.IS_MOCK_MODE || !isFirebaseReady) {
+                // MODO MOCK
+                let allRepairs = loadMaintenanceFromStorage();
+                const index = allRepairs.findIndex(r => r.id === id);
+                if (index !== -1) {
+                    allRepairs[index] = { ...allRepairs[index], ...newValues };
+                    localStorage.setItem(MOCK_REPAIRS_KEY, JSON.stringify(allRepairs));
+                    showMessage('success', 'Mantenimiento actualizado correctamente.');
+                    hideMaintenanceModal();
+                    window.fetchMaintenanceData();
+                }
+            } else {
+                // MODO FIREBASE
+                const repairsRef = getRepairsCollectionRef();
+                if (!repairsRef) {
+                    throw new Error("No se pudo obtener referencia a la colección de reparaciones.");
+                }
+
+                await repairsRef.doc(id).update(newValues);
+                showMessage('success', 'Mantenimiento actualizado correctamente en la nube.');
                 hideMaintenanceModal();
                 window.fetchMaintenanceData();
             }
