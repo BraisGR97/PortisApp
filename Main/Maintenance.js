@@ -217,6 +217,17 @@
 
             currentMaintenanceData = data; // Guardamos los datos para el buscador
             renderMaintenanceList(data, date);
+        } else {
+            // MODO NORMAL: Cargar desde Firestore
+            console.log('NORMAL MODE: Cargando datos desde Firestore.');
+            try {
+                data = await fetchMaintenanceFromFirestore(date);
+                currentMaintenanceData = data;
+                renderMaintenanceList(data, date);
+            } catch (error) {
+                console.error('Error al cargar mantenimientos desde Firestore:', error);
+                showMessage('error', 'Error al cargar mantenimientos desde la base de datos.');
+            }
         }
     }
 
@@ -385,24 +396,41 @@
     window.confirmCompleteMaintenance = async function (id) {
         if (!confirm('¿Marcar como completado?')) return;
 
-        // Lógica de actualización de fecha:
-        // - Si contrato es Anual: +1 Año
-        // - Si contrato es Mensual (u otro): +1 Mes
+        // Lógica de actualización de fecha según el tipo de contrato:
+        // - Mensual: +1 Mes
+        // - Bimensual: +2 Meses
+        // - Trimestral: +3 Meses
+        // - Cuatrimestral: +4 Meses
+        // - Semestral: +6 Meses
+        // - Anual: +1 Año
 
         const updateLogic = (repair) => {
             let nextMonth = repair.maintenance_month;
             let nextYear = repair.maintenance_year;
+            const contractLower = repair.contract ? repair.contract.toLowerCase() : '';
 
-            const isAnnual = repair.contract && repair.contract.toLowerCase().includes('anual');
+            // Determinar incremento de meses según el tipo de contrato
+            let monthsToAdd = 1; // Por defecto mensual
 
-            if (isAnnual) {
+            if (contractLower.includes('anual')) {
+                monthsToAdd = 12;
+            } else if (contractLower.includes('semestral')) {
+                monthsToAdd = 6;
+            } else if (contractLower.includes('cuatrimestral')) {
+                monthsToAdd = 4;
+            } else if (contractLower.includes('trimestral')) {
+                monthsToAdd = 3;
+            } else if (contractLower.includes('bimensual')) {
+                monthsToAdd = 2;
+            } else if (contractLower.includes('mensual')) {
+                monthsToAdd = 1;
+            }
+
+            // Calcular nuevo mes y año
+            nextMonth += monthsToAdd;
+            while (nextMonth > 12) {
+                nextMonth -= 12;
                 nextYear += 1;
-            } else {
-                nextMonth += 1;
-                if (nextMonth > 12) {
-                    nextMonth = 1;
-                    nextYear += 1;
-                }
             }
 
             return {

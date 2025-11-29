@@ -144,7 +144,9 @@ function getRepairsCollectionRef() {
 
 function getHistoryCollectionRef() {
     if (!db || !userId) return null;
-    return db.collection(`users/${userId}/history`);
+    // Colección raíz 'history' según las reglas de Firestore
+    // Filtraremos por userId en las queries
+    return db.collection('history');
 }
 
 async function loadMaintenances() {
@@ -212,7 +214,9 @@ async function loadRecords(maintenanceId, location) {
             const historyRef = getHistoryCollectionRef();
             if (!historyRef) return;
 
+            // Filtrar por userId y location según las reglas de Firestore
             const snapshot = await historyRef
+                .where('userId', '==', userId)
                 .where('location', '==', location)
                 .orderBy('completedAt', 'desc')
                 .get();
