@@ -16,15 +16,20 @@ if (IS_MOCK_MODE) {
     console.warn("Modo MOCK: Las operaciones de Firestore serán simuladas.");
 }
 
-// Variables de UI
-const DOM = {
-    form: document.getElementById('new-repair-form'),
-    card: document.getElementById('new-repair-card'),
-    listContainer: document.getElementById('repairs-list'),
-    fabButton: document.getElementById('show-repair-form-fab'),
-    monthInput: document.getElementById('month'),
-    yearInput: document.getElementById('year'),
-};
+// Variables de UI - Inicialización diferida
+let DOM = {};
+
+function initializeDOM() {
+    DOM = {
+        form: document.getElementById('new-repair-form'),
+        card: document.getElementById('new-repair-card'),
+        listContainer: document.getElementById('repairs-list'),
+        fabButton: document.getElementById('show-repair-form-fab'),
+        monthInput: document.getElementById('month'),
+        yearInput: document.getElementById('year'),
+    };
+    console.log('🎯 DOM initialized:', DOM);
+}
 
 
 // ===================================================================================
@@ -234,6 +239,9 @@ async function startRepairsModule() {
     console.log("Repairs.js: Iniciando módulo...");
     if (isModuleSetupComplete) return;
 
+    // 🔑 Inicializar referencias DOM
+    initializeDOM();
+
     // 1. Inicialización de Firebase (Standalone o Shared)
     if (!window.IS_MOCK_MODE) {
         console.log("Repairs.js: Modo Normal detectado.");
@@ -353,6 +361,7 @@ async function startRepairsModule() {
         // **FLUJO MOCK (Local Storage)**
         console.warn("Repairs.js: Modo MOCK activado. Cargando datos.");
         const repairs = loadMockRepairs();
+        console.log(`✅ Mock repairs loaded: ${repairs.length} items`, repairs);
         renderRepairs(repairs);
     }
 
@@ -439,7 +448,7 @@ async function addRepair(e) {
     const monthInput = form.month.value;
     const yearInput = form.year.value;
 
-    const description = form.description.value.trim() || 'Mantenimiento preventivo programado.';
+    const description = '';
     const priority = form.priority.value || 'Media';
 
     const contactChecked = form.contact_checkbox.checked;
@@ -547,7 +556,7 @@ async function saveEditedRepair() {
         model: document.getElementById('edit-model').value.trim() || null,
         key_id: document.getElementById('edit-key_id').value.trim() || null,
         priority: document.getElementById('edit-priority').value,
-        description: document.getElementById('edit-description').value.trim(),
+        description: '',
         contact: contactData,
     };
 
@@ -730,10 +739,7 @@ function generateModalContent(repair, isEditMode) {
                     </div>
                 </div>
 
-                <div class="space-y-1 mb-4">
-                    <label class="detail-label">Descripción</label>
-                    <p class="detail-value-compact text-sm italic">${repair.description || 'Sin descripción.'}</p>
-                </div>
+
                 
                 ${(contact.name || contact.phone || contact.notes) ? `
                     <h3 class="text-sm font-semibold mt-2 mb-2" style="color: var(--color-accent-red);">Contacto</h3>
@@ -765,9 +771,7 @@ function generateModalContent(repair, isEditMode) {
                 ${baseInput('edit-model', 'Modelo', repair.model, false)}
                 ${baseInput('edit-key_id', 'ID Clave', repair.key_id, false)}
                 ${prioritySelect(priority, false)}
-                <div class="col-span-1 md:col-span-2 space-y-2">
-                    ${baseTextarea('edit-description', 'Descripción', repair.description, false, 3)}
-                </div>
+
                 <h3 class="col-span-1 md:col-span-2 text-lg font-semibold mt-2" style="color: var(--color-text-light);">Datos de Contacto</h3>
                 ${baseInput('edit-contact_name', 'Nombre', contact.name, false)}
                 ${baseInput('edit-contact_phone', 'Teléfono', contact.phone, false, 'tel')}
@@ -834,13 +838,18 @@ window.currentRepairsData = [];
 window.repairsDataMap = new Map();
 
 function renderRepairs(repairs, updateMap = true) {
+    console.log(`🔍 renderRepairs called with ${repairs.length} repairs, updateMap: ${updateMap}`);
+
     if (updateMap) {
         window.currentRepairsData = repairs;
         window.repairsDataMap = new Map(repairs.map(r => [r.id, r]));
     }
 
     const listContainer = DOM.listContainer;
-    if (!listContainer) return;
+    if (!listContainer) {
+        console.error('❌ repairs-list container not found!');
+        return;
+    }
 
     listContainer.innerHTML = '';
 
@@ -856,6 +865,8 @@ function renderRepairs(repairs, updateMap = true) {
             (r.model && r.model.toLowerCase().includes(searchTerm))
         );
     }
+
+    console.log(`📋 Filtered repairs: ${filteredRepairs.length}`);
 
     if (filteredRepairs.length === 0) {
         listContainer.innerHTML = `

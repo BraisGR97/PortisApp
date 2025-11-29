@@ -347,6 +347,13 @@ function renderRecords(records) {
         return;
     }
 
+    // 🔑 Ordenar por fecha descendente (más reciente arriba)
+    records.sort((a, b) => {
+        const dateA = a.completedAt ? (a.completedAt.toDate ? a.completedAt.toDate() : new Date(a.completedAt)) : new Date(0);
+        const dateB = b.completedAt ? (b.completedAt.toDate ? b.completedAt.toDate() : new Date(b.completedAt)) : new Date(0);
+        return dateB - dateA;
+    });
+
     records.forEach(record => {
         const card = createRecordCard(record);
         listContainer.appendChild(card);
@@ -400,11 +407,11 @@ function createRecordCard(record) {
             ` : ''}
         </div>
 
-        <div class="flex justify-end items-center mt-3 pt-3 border-t" style="border-color: var(--color-border);">
-            <button class="action-btn p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-blue-500" 
-                    title="Ver detalles">
-                <i class="ph ph-info text-lg"></i>
-            </button>
+        <div class="mt-3 pt-3 border-t" style="border-color: var(--color-border);">
+            <p class="${record.description && record.description.trim() ? 'text-sm' : 'text-sm italic opacity-70'}" style="color: var(--color-text-secondary);">
+                <i class="ph ph-note mr-1"></i>
+                ${record.description && record.description.trim() ? record.description : 'Mantenimiento sin contratiempos'}
+            </p>
         </div>
     `;
 
@@ -473,7 +480,7 @@ function showRecordDetailsModal(record) {
     const modalContent = `
         <div class="modal-header p-4 border-b flex justify-between items-center" style="border-color: var(--color-border);">
             <h2 class="text-xl font-bold">Detalles del Registro</h2>
-            <button onclick="closeRecordModal()" class="secondary-icon-btn p-1 rounded-full">
+            <button onclick="closeRecordModal()" class="secondary-icon-btn p-1 rounded-full border-2" style="border-color: var(--color-border);">
                 <i class="ph ph-x text-2xl"></i>
             </button>
         </div>
@@ -552,8 +559,9 @@ function showRecordDetailsModal(record) {
         </div>
 
         <div class="modal-footer p-4 border-t flex justify-center" style="border-color: var(--color-border);">
-            <button onclick="closeRecordModal()" class="secondary-btn px-6 py-2 rounded-lg">
-                Cerrar
+            <button onclick="deleteRecord('${record.id}')" class="primary-btn bg-red-600 hover:bg-red-700 px-6 py-2 rounded-lg flex items-center gap-2">
+                <i class="ph ph-trash"></i>
+                <span>Eliminar Registro</span>
             </button>
         </div>
     `;
@@ -564,6 +572,42 @@ function showRecordDetailsModal(record) {
 
 window.closeRecordModal = function () {
     document.getElementById('record-detail-modal').classList.add('hidden');
+};
+
+// Función para eliminar un registro del historial
+window.deleteRecord = async function (recordId) {
+    if (!confirm('¿Estás seguro de que deseas eliminar este registro del historial?')) {
+        return;
+    }
+
+    closeRecordModal();
+
+    if (IS_MOCK_MODE) {
+        let history = getLocalMockHistory();
+        history = history.filter(r => r.id !== recordId);
+        saveLocalMockHistory(history);
+
+        // Recargar la vista actual
+        if (currentMaintenanceLocation) {
+            loadRecords(currentMaintenanceId, currentMaintenanceLocation);
+        }
+    } else {
+        try {
+            const historyRef = getHistoryCollectionRef();
+            if (!historyRef) return;
+
+            await historyRef.doc(recordId).delete();
+            console.log(`Registro ${recordId} eliminado del historial.`);
+
+            // Recargar la vista actual
+            if (currentMaintenanceLocation) {
+                loadRecords(currentMaintenanceId, currentMaintenanceLocation);
+            }
+        } catch (error) {
+            console.error("Error al eliminar el registro:", error);
+            alert("Error al eliminar el registro. Por favor, inténtalo de nuevo.");
+        }
+    }
 };
 
 // -----------------------------------------------------------------

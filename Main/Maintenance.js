@@ -209,8 +209,9 @@
                 // Calcular si el mes actual está dentro del periodo
                 const monthDiff = currentMonth - itemMonth;
 
-                // El mantenimiento se muestra si el mes actual está dentro del rango del periodo
-                return monthDiff >= 0 && monthDiff < periodMonths;
+                // El mantenimiento se muestra si el mes actual es igual o posterior al mes del mantenimiento
+                // (es decir, si ya llegó la fecha o si está vencido)
+                return monthDiff >= 0;
             });
 
             currentMaintenanceData = data; // Guardamos los datos para el buscador
@@ -392,129 +393,166 @@
     };
 
     window.confirmCompleteMaintenance = async function (id) {
-        if (!confirm('¿Marcar como completado?')) return;
+        if (!id) return;
 
-        // Lógica de actualización de fecha según el tipo de contrato:
-        // - Mensual: +1 Mes
-        // - Bimensual: +2 Meses
-        // - Trimestral: +3 Meses
-        // - Cuatrimestral: +4 Meses
-        // - Semestral: +6 Meses
-        // - Anual: +1 Año
+        // Crear modal de confirmación si no existe
+        let modal = document.getElementById('complete-maintenance-modal');
+        if (!modal) {
+            const modalHtml = `
+                <div id="complete-maintenance-modal" class="fixed inset-0 z-[200] hidden bg-black bg-opacity-70 flex justify-center items-center p-4 transition-opacity duration-300">
+                    <div class="modal-content w-full max-w-sm rounded-xl shadow-2xl p-6 text-center"
+                        style="background-color: var(--color-bg-secondary); color: var(--color-text-primary);">
+                        <div class="mb-4">
+                            <i class="ph ph-check-circle text-6xl text-green-500"></i>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">Completar Mantenimiento</h3>
+                        <p class="text-sm mb-6" style="color: var(--color-text-secondary);">¿Estás seguro de que deseas marcar este mantenimiento como completado?</p>
+                        <div class="flex gap-3 justify-center">
+                            <button id="cancel-complete-btn" class="px-4 py-2 rounded-lg font-semibold" style="background-color: var(--color-border);">
+                                Cancelar
+                            </button>
+                            <button id="confirm-complete-btn" class="primary-btn px-4 py-2 rounded-lg font-semibold bg-green-600 hover:bg-green-700">
+                                Sí, Completar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            modal = document.getElementById('complete-maintenance-modal');
+        }
 
-        const updateLogic = (repair) => {
-            let nextMonth = repair.maintenance_month;
-            let nextYear = repair.maintenance_year;
-            const contractLower = repair.contract ? repair.contract.toLowerCase() : '';
+        // Mostrar modal
+        modal.classList.remove('hidden');
 
-            // Determinar incremento de meses según el tipo de contrato
-            let monthsToAdd = 1; // Por defecto mensual
-
-            if (contractLower.includes('anual')) {
-                monthsToAdd = 12;
-            } else if (contractLower.includes('semestral')) {
-                monthsToAdd = 6;
-            } else if (contractLower.includes('cuatrimestral')) {
-                monthsToAdd = 4;
-            } else if (contractLower.includes('trimestral')) {
-                monthsToAdd = 3;
-            } else if (contractLower.includes('bimensual')) {
-                monthsToAdd = 2;
-            } else if (contractLower.includes('mensual')) {
-                monthsToAdd = 1;
-            }
-
-            // Calcular nuevo mes y año
-            nextMonth += monthsToAdd;
-            while (nextMonth > 12) {
-                nextMonth -= 12;
-                nextYear += 1;
-            }
-
-            return {
-                maintenance_month: nextMonth,
-                maintenance_year: nextYear,
-                status: 'Pendiente' // Reseteamos estado a pendiente para el futuro
-            };
+        // Función para cerrar modal
+        const closeModal = () => {
+            modal.classList.add('hidden');
         };
 
-        if (window.IS_MOCK_MODE || !isFirebaseReady) {
-            try {
-                let allRepairs = loadMaintenanceFromStorage();
-                const index = allRepairs.findIndex(r => r.id === id);
-                if (index !== -1) {
-                    const currentRepair = allRepairs[index];
-                    const updates = updateLogic(currentRepair);
+        // Event listeners
+        document.getElementById('cancel-complete-btn').onclick = closeModal;
+        document.getElementById('confirm-complete-btn').onclick = async () => {
+            closeModal();
 
-                    // Guardar registro en History ANTES de actualizar
-                    const historyRecord = {
-                        id: `history_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                        ...currentRepair,
-                        status: 'Completado',
-                        completedAt: new Date().toISOString(),
-                        username: sessionStorage.getItem('portis-user-display-name') || 'Usuario'
-                    };
+            // Lógica de actualización de fecha según el tipo de contrato:
+            // - Mensual: +1 Mes
+            // - Bimensual: +2 Meses
+            // - Trimestral: +3 Meses
+            // - Cuatrimestral: +4 Meses
+            // - Semestral: +6 Meses
+            // - Anual: +1 Año
 
-                    // Guardar en localStorage para History
-                    const MOCK_HISTORY_KEY = 'mock_history_data';
-                    let historyData = [];
-                    try {
-                        const stored = localStorage.getItem(MOCK_HISTORY_KEY);
-                        historyData = stored ? JSON.parse(stored) : [];
-                    } catch (e) {
-                        console.error('Error al leer history:', e);
-                    }
-                    historyData.push(historyRecord);
-                    localStorage.setItem(MOCK_HISTORY_KEY, JSON.stringify(historyData));
+            const updateLogic = (repair) => {
+                let nextMonth = repair.maintenance_month;
+                let nextYear = repair.maintenance_year;
+                const contractLower = repair.contract ? repair.contract.toLowerCase() : '';
 
-                    // Actualizar la fecha del mantenimiento para el próximo ciclo
-                    allRepairs[index] = { ...allRepairs[index], ...updates };
-                    localStorage.setItem(MOCK_REPAIRS_KEY, JSON.stringify(allRepairs));
+                // Determinar incremento de meses según el tipo de contrato
+                let monthsToAdd = 1; // Por defecto mensual
 
-                    showMessage('success', 'Mantenimiento completado y reprogramado.');
-                    window.fetchMaintenanceData();
+                if (contractLower.includes('anual')) {
+                    monthsToAdd = 12;
+                } else if (contractLower.includes('semestral')) {
+                    monthsToAdd = 6;
+                } else if (contractLower.includes('cuatrimestral')) {
+                    monthsToAdd = 4;
+                } else if (contractLower.includes('trimestral')) {
+                    monthsToAdd = 3;
+                } else if (contractLower.includes('bimensual')) {
+                    monthsToAdd = 2;
+                } else if (contractLower.includes('mensual')) {
+                    monthsToAdd = 1;
                 }
-            } catch (e) {
-                console.error("Error updating mock maintenance:", e);
-                showMessage('error', 'Error al actualizar.');
-            }
-        } else {
+
+                // Calcular nuevo mes y año
+                nextMonth += monthsToAdd;
+                while (nextMonth > 12) {
+                    nextMonth -= 12;
+                    nextYear += 1;
+                }
+
+                return {
+                    maintenance_month: nextMonth,
+                    maintenance_year: nextYear,
+                    status: 'Pendiente',
+                    description: '' // 🔑 Borrar observaciones para el próximo ciclo
+                };
+            };
+
             try {
-                const repairsRef = getRepairsCollectionRef();
-                if (repairsRef) {
-                    // Primero necesitamos obtener el documento para saber su contrato actual
-                    const doc = await repairsRef.doc(id).get();
-                    if (doc.exists) {
-                        const currentRepair = { id: doc.id, ...doc.data() };
+                if (window.IS_MOCK_MODE || !isFirebaseReady) {
+                    let allRepairs = loadMaintenanceFromStorage();
+                    const index = allRepairs.findIndex(r => r.id === id);
+                    if (index !== -1) {
+                        const currentRepair = allRepairs[index];
                         const updates = updateLogic(currentRepair);
 
-                        // Obtener userId actual de la sesión para asegurar consistencia
-                        const currentUserId = sessionStorage.getItem('portis-user-identifier');
-
-                        // Guardar registro en History (colección raíz) ANTES de actualizar
+                        // Guardar registro en History ANTES de actualizar
                         const historyRecord = {
+                            id: `history_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                             ...currentRepair,
-                            userId: currentUserId, // Usar ID actual
                             status: 'Completado',
-                            completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            completedAt: new Date().toISOString(),
                             username: sessionStorage.getItem('portis-user-display-name') || 'Usuario'
                         };
 
-                        // Guardar en la colección raíz 'history'
-                        await db.collection('history').add(historyRecord);
+                        // Guardar en localStorage para History
+                        const MOCK_HISTORY_KEY = 'mock_history_data';
+                        let historyData = [];
+                        try {
+                            const stored = localStorage.getItem(MOCK_HISTORY_KEY);
+                            historyData = stored ? JSON.parse(stored) : [];
+                        } catch (e) {
+                            console.error('Error al leer history:', e);
+                        }
+                        historyData.push(historyRecord);
+                        localStorage.setItem(MOCK_HISTORY_KEY, JSON.stringify(historyData));
 
                         // Actualizar la fecha del mantenimiento para el próximo ciclo
-                        await repairsRef.doc(id).update(updates);
+                        allRepairs[index] = { ...allRepairs[index], ...updates };
+                        localStorage.setItem(MOCK_REPAIRS_KEY, JSON.stringify(allRepairs));
 
                         showMessage('success', 'Mantenimiento completado y reprogramado.');
                         window.fetchMaintenanceData();
                     }
+                } else {
+                    const repairsRef = getRepairsCollectionRef();
+                    if (repairsRef) {
+                        // Primero necesitamos obtener el documento para saber su contrato actual
+                        const doc = await repairsRef.doc(id).get();
+                        if (doc.exists) {
+                            const currentRepair = { id: doc.id, ...doc.data() };
+                            const updates = updateLogic(currentRepair);
+
+                            // Obtener userId actual de la sesión para asegurar consistencia
+                            const currentUserId = sessionStorage.getItem('portis-user-identifier');
+
+                            // Guardar registro en History (colección raíz) ANTES de actualizar
+                            const historyRecord = {
+                                ...currentRepair,
+                                userId: currentUserId, // Usar ID actual
+                                status: 'Completado',
+                                completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                username: sessionStorage.getItem('portis-user-display-name') || 'Usuario'
+                            };
+
+                            // Guardar en la colección raíz 'history'
+                            await db.collection('history').add(historyRecord);
+
+                            // Actualizar la fecha del mantenimiento para el próximo ciclo
+                            await repairsRef.doc(id).update(updates);
+
+                            showMessage('success', 'Mantenimiento completado y reprogramado.');
+                            window.fetchMaintenanceData();
+                        }
+                    }
                 }
             } catch (e) {
-                console.error("Error updating firestore maintenance:", e);
+                console.error("Error updating maintenance:", e);
                 showMessage('error', 'Error al actualizar en base de datos.');
             }
-        }
+        };
     };
 
     window.toggleMaintenanceSearch = function () {
@@ -692,8 +730,8 @@
                     </div>
                 </div>
                 <div class="space-y-1 mb-4">
-                    <label class="detail-label">Descripción</label>
-                    <p class="detail-value-compact text-sm italic">${item.description || 'Sin descripción.'}</p>
+                    <label class="detail-label">Observaciones</label>
+                    <p class="detail-value-compact text-sm italic">${item.description || 'Sin observaciones.'}</p>
                 </div>
                 ${(contact.name || contact.phone || contact.notes) ? `
                     <h3 class="text-sm font-semibold mt-2 mb-2" style="color: var(--color-accent-red);">Contacto</h3>
@@ -727,7 +765,7 @@
                 ${baseInput('edit-key_id', 'ID Clave', item.key_id, false)}
                 ${prioritySelect(priority, false)}
                 <div class="col-span-1 md:col-span-2 space-y-2">
-                    ${baseTextarea('edit-description', 'Descripción', item.description, false, 3)}
+                    ${baseTextarea('edit-description', 'Observaciones', item.description, false, 3)}
                 </div>
                 <h3 class="col-span-1 md:col-span-2 text-lg font-semibold mt-2" style="color: var(--color-text-light);">Datos de Contacto</h3>
                 ${baseInput('edit-contact_name', 'Nombre', contact.name, false)}
