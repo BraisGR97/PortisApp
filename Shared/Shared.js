@@ -300,6 +300,8 @@ function createSendCard(repair) {
     const monthIndex = (repair.maintenance_month >= 1 && repair.maintenance_month <= 12) ? repair.maintenance_month - 1 : 0;
     const maintenanceDate = `${monthNames[monthIndex]} de ${repair.maintenance_year}`;
 
+    console.log('[SHARED] createSendCard - allUsers:', allUsers);
+
     card.innerHTML = `
         <div class="mb-3">
             <p class="text-sm font-light mb-1" style="color: var(--color-text-secondary);">
