@@ -224,6 +224,9 @@ async function loadUsers() {
             });
             console.log('[SHARED] Total usuarios (sin actual):', allUsers.length);
             console.log('[SHARED] Lista usuarios:', allUsers);
+
+            // Re-renderizar las tarjetas para actualizar los selectores con los usuarios cargados
+            renderSendView();
         } catch (error) {
             console.error("Error al cargar usuarios:", error);
             allUsers = [];
