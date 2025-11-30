@@ -218,7 +218,7 @@ async function loadUsers() {
                 if (doc.id !== userId) {
                     allUsers.push({
                         id: doc.id,
-                        name: userData.displayName || userData.email || 'Usuario'
+                        name: userData.username || userData.displayName || userData.email || 'Usuario'
                     });
                 }
             });
