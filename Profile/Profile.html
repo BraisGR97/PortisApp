@@ -43,10 +43,20 @@
                     <form id="profile-edit-form" class="space-y-6 form-content">
 
                         <div class="flex flex-col items-center space-y-3">
-                            <img id="profile-photo" src="../assets/logo.png" alt="Foto de Perfil"
-                                class="profile-photo-placeholder">
-                            <button type="button" class="text-sm font-medium"
-                                style="color: var(--color-text-secondary);">Cambiar Foto (No Funcional)</button>
+                            <!-- Contenedor circular para la imagen -->
+                            <div
+                                class="relative w-24 h-24 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-700">
+                                <img id="profile-photo" src="../assets/logo.png" alt="Foto de Perfil"
+                                    class="w-full h-full object-cover">
+                            </div>
+
+                            <!-- Input oculto para seleccionar archivo -->
+                            <input type="file" id="profile-image-input" accept="image/*" class="hidden">
+
+                            <!-- Botón funcional -->
+                            <button type="button" id="change-photo-btn"
+                                class="text-sm font-medium hover:text-blue-500 transition-colors"
+                                style="color: var(--color-text-secondary);">Cambiar Foto</button>
                         </div>
 
                         <div>

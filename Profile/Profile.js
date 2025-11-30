@@ -96,7 +96,10 @@ async function initializeAppAndAuth() {
 function displayUserData(user) {
     const usernameInput = document.getElementById('username');
     const registrationDateElement = document.getElementById('stat-registration-date');
-
+    const photoElement = document.getElementById('profile-photo');
+    if (user.photoURL && photoElement) {
+        photoElement.src = user.photoURL;
+    }
     // 1. Manejo del Username
     const currentUsername = user.displayName || userDisplayName || 'Admin';
     usernameInput.value = currentUsername;
@@ -332,6 +335,77 @@ async function loadAndCalculateStats(isMock = false) {
     }
 }
 
+async function uploadImageToCloudinary(file) {
+    const config = window.cloudinaryConfig;
+    if (!config) {
+        alert("Error: Configuración de Cloudinary no encontrada.");
+        return null;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', config.uploadPreset);
+    formData.append('cloud_name', config.cloudName);
+
+    try {
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${config.cloudName}/image/upload`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) throw new Error('Fallo en la subida a Cloudinary');
+
+        const data = await response.json();
+        return data.secure_url;
+    } catch (error) {
+        console.error("Error subiendo imagen:", error);
+        alert('Error al subir la imagen.');
+        return null;
+    }
+}
+
+async function handleProfilePhotoChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        alert('Por favor, selecciona un archivo de imagen válido.');
+        return;
+    }
+
+    // Feedback visual inmediato
+    const photoElement = document.getElementById('profile-photo');
+    const originalSrc = photoElement.src;
+    photoElement.style.opacity = '0.5';
+
+    try {
+        const imageUrl = await uploadImageToCloudinary(file);
+
+        if (!imageUrl) throw new Error("No se obtuvo URL de la imagen");
+
+        const user = auth.currentUser;
+        if (user) {
+            // 1. Actualizar Auth
+            await user.updateProfile({ photoURL: imageUrl });
+
+            // 2. Actualizar Firestore
+            await db.doc(`artifacts/${appId}/users/${userId}/profileData/userMetadata`).set({
+                photoURL: imageUrl,
+                lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            // 3. Actualizar UI
+            photoElement.src = imageUrl;
+            alert('Foto de perfil actualizada correctamente.');
+        }
+    } catch (error) {
+        console.error(error);
+        alert('Error al actualizar la foto de perfil.');
+        photoElement.src = originalSrc; // Revertir en caso de error
+    } finally {
+        photoElement.style.opacity = '1';
+    }
+}
 
 // --- Ejecución ---
 window.addEventListener('load', () => {
@@ -342,6 +416,16 @@ window.addEventListener('load', () => {
 
     initializeAppAndAuth();
 
+    const changePhotoBtn = document.getElementById('change-photo-btn');
+    const photoInput = document.getElementById('profile-image-input');
+
+    if (changePhotoBtn && photoInput) {
+        // Click en el botón abre el selector de archivos
+        changePhotoBtn.addEventListener('click', () => photoInput.click());
+
+        // Cambio en el input dispara la subida
+        photoInput.addEventListener('change', handleProfilePhotoChange);
+    }
     // Listener para el botón de edición
     const saveBtn = document.getElementById('save-changes-btn');
     if (saveBtn) {
