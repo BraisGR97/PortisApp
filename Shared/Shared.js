@@ -578,7 +578,7 @@ function showSharedDetailModal(shared) {
                         <i class="ph ph-user mr-2"></i> Compartido por: <span class="font-semibold">${shared.senderName || 'Usuario'}</span>
                     </p>
                     <p class="text-sm" style="color: var(--color-text-secondary);">
-                        <i class="ph ph-clock mr-2"></i> Expira: ${new Date(shared.expiresAt).toLocaleString('es-ES')}
+                        <i class="ph ph-clock mr-2"></i> Expira: ${shared.expiresAt ? (shared.expiresAt.toDate ? shared.expiresAt.toDate().toLocaleString('es-ES') : new Date(shared.expiresAt).toLocaleString('es-ES')) : 'No disponible'}
                     </p>
                 </div>
 
@@ -644,7 +644,9 @@ function showSharedDetailModal(shared) {
                 <div class="space-y-2 max-h-64 overflow-y-auto">
                     ${shared.records.map(record => {
         const completedDate = record.completedAt ?
-            new Date(record.completedAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' }) :
+            (record.completedAt.toDate ?
+                record.completedAt.toDate().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' }) :
+                new Date(record.completedAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })) :
             'Fecha no disponible';
         return `
                             <div class="p-3 rounded-lg" style="background-color: var(--color-bg-tertiary);">
