@@ -369,10 +369,13 @@
                 <div id="chat-messages-container" class="flex-grow p-4 overflow-y-auto space-y-3 message-list">
                 </div>
 
-                <div class="p-4 flex items-center gap-2">
+                <!-- Main.html -->
+                <div class="p-3 flex items-center gap-2">
                     <input type="file" id="chat-image-input" accept="image/*" class="hidden">
+
+                    <!-- Botón Imagen: Añadido !p-3 y flex-shrink-0 -->
                     <button id="chat-image-btn"
-                        class="secondary-btn p-3 rounded-full flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                        class="secondary-btn !p-3 rounded-full flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex-shrink-0"
                         title="Enviar imagen">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -381,9 +384,14 @@
                             <polyline points="21 15 16 10 5 21" />
                         </svg>
                     </button>
+
+                    <!-- Input Texto: Añadido min-w-0 -->
                     <input type="text" id="chat-input" placeholder="Escribe un mensaje..."
-                        class="minimal-input flex-grow py-2 px-4 rounded-full">
-                    <button id="send-message-btn" class="primary-btn p-3 rounded-full flex items-center justify-center">
+                        class="minimal-input flex-grow py-2 px-4 rounded-full min-w-0">
+
+                    <!-- Botón Enviar: Añadido !p-3 y flex-shrink-0 -->
+                    <button id="send-message-btn"
+                        class="primary-btn !p-3 rounded-full flex items-center justify-center flex-shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="22" y1="2" x2="11" y2="13" />
