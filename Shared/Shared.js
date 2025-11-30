@@ -199,15 +199,22 @@ async function loadRepairs() {
 async function loadUsers() {
     if (IS_MOCK_MODE) {
         allUsers = getMockUsers().filter(u => u.id !== userId);
+        console.log('[SHARED] MOCK: Usuarios cargados:', allUsers);
     } else {
         try {
-            if (!db) return;
+            if (!db) {
+                console.error('[SHARED] loadUsers: db no inicializada');
+                return;
+            }
+            console.log('[SHARED] Cargando usuarios desde Firestore...');
             const usersRef = db.collection('users');
             const snapshot = await usersRef.get();
+            console.log('[SHARED] Snapshot usuarios, tamaño:', snapshot.size);
 
             allUsers = [];
             snapshot.forEach(doc => {
                 const userData = doc.data();
+                console.log('[SHARED] Usuario encontrado:', doc.id, userData);
                 if (doc.id !== userId) {
                     allUsers.push({
                         id: doc.id,
@@ -215,6 +222,8 @@ async function loadUsers() {
                     });
                 }
             });
+            console.log('[SHARED] Total usuarios (sin actual):', allUsers.length);
+            console.log('[SHARED] Lista usuarios:', allUsers);
         } catch (error) {
             console.error("Error al cargar usuarios:", error);
             allUsers = [];
