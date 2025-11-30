@@ -732,7 +732,7 @@ window.addEventListener('load', () => {
     checkAuthenticationAndSetup();
     switchView('upload-view');
 
-    // Listeners para navegación
+    // Listeners para navegación.
     document.querySelectorAll('#bottom-navbar .nav-button').forEach(button => {
         button.addEventListener('click', (e) => {
             const target = e.currentTarget.getAttribute('data-target');
