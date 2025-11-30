@@ -188,6 +188,43 @@
     // 3. LÓGICA DE INTERFAZ Y EVENTOS
     // ===============================================
 
+    // ===============================================
+    // 2.5. LÓGICA DE SUBIDA DE IMÁGENES
+    // ===============================================
+
+    async function uploadImageToCloudinary(file) {
+        const config = window.cloudinaryConfig;
+        if (!config) {
+            console.error("Configuración de Cloudinary no encontrada.");
+            showMessage('error', 'Error de configuración de imágenes.');
+            return null;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', config.uploadPreset);
+        formData.append('cloud_name', config.cloudName);
+
+        try {
+            showMessage('success', 'Subiendo imagen...');
+            const response = await fetch(`https://api.cloudinary.com/v1_1/${config.cloudName}/image/upload`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Error en la subida a Cloudinary');
+            }
+
+            const data = await response.json();
+            return data.secure_url;
+        } catch (error) {
+            console.error("Error subiendo imagen:", error);
+            showMessage('error', 'Error al subir la imagen.');
+            return null;
+        }
+    }
+
     function renderMessage(senderId, text, isCurrentUser, timestamp = new Date()) {
         const container = document.getElementById('chat-messages-container');
         if (!container) return;
@@ -221,10 +258,23 @@
         const messageClass = isCurrentUser ? 'bg-red-600 ml-auto' : 'bg-gray-700 mr-auto';
         const timeString = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+        // Detectar si es una imagen de Cloudinary
+        const isImage = text.includes('res.cloudinary.com');
+
+        let contentHtml = `<p class="text-sm">${text}</p>`;
+
+        if (isImage) {
+            contentHtml = `
+                <div class="image-message">
+                    <img src="${text}" alt="Imagen enviada" class="rounded-lg max-w-full h-auto cursor-pointer" onclick="window.open('${text}', '_blank')">
+                </div>
+            `;
+        }
+
         const messageHtml = `
             <div class="flex ${isCurrentUser ? 'justify-end' : 'justify-start'}">
                 <div class="max-w-xs md:max-w-md p-3 rounded-xl ${messageClass} shadow-md" style="color: var(--color-text-light);">
-                    <p class="text-sm">${text}</p>
+                    ${contentHtml}
                     <span class="text-xs opacity-75 block mt-1 text-right">${timeString}</span>
                 </div>
             </div>
@@ -393,6 +443,43 @@
                 if (e.key === 'Enter') {
                     sendMessage(e); // 🛑 Pasamos el evento para el preventDefault
                     e.preventDefault();
+                }
+            });
+        }
+
+        // Listeners para imagen
+        const imageBtn = document.getElementById('chat-image-btn');
+        const imageInput = document.getElementById('chat-image-input');
+
+        if (imageBtn && imageInput) {
+            imageBtn.addEventListener('click', () => {
+                imageInput.click();
+            });
+
+            imageInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                // Validar tipo
+                if (!file.type.startsWith('image/')) {
+                    showMessage('error', 'Solo se permiten imágenes.');
+                    return;
+                }
+
+                // Subir imagen
+                const imageUrl = await uploadImageToCloudinary(file);
+
+                if (imageUrl && currentRecipientId) {
+                    const timestamp = new Date();
+
+                    if (IS_MOCK_MODE) {
+                        renderMessage(userId, imageUrl, true, timestamp);
+                    } else if (isFirebaseReady) {
+                        saveMessageAndApplyCapping(currentRecipientId, imageUrl, timestamp);
+                    }
+
+                    // Limpiar input
+                    imageInput.value = '';
                 }
             });
         }

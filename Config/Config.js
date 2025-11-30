@@ -10,6 +10,14 @@ window.firebaseConfig = {
     measurementId: "G-HQ29Y8Z2DY"
 };
 
+// Configuración de Cloudinary
+window.cloudinaryConfig = {
+    cloudName: "djezkvvlr",
+    apiKey: "771821818573568",
+    apiSecret: "EXtZ26lRFKMe2jMeoE6qElzu2gs",
+    uploadPreset: "portis_chat" // Requiere un 'Unsigned Upload Preset' llamado 'portis_chat' en Cloudinary
+};
+
 // Configuración de Modos
 window.IS_MOCK_MODE = false; // Cambiar a false para usar Firebase real
 window.MOCK_USER_ID = "mock-admin-id";
