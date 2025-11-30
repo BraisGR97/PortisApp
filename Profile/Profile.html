@@ -42,21 +42,25 @@
 
                     <form id="profile-edit-form" class="space-y-6 form-content">
 
+                        <!-- Profile/Profile.html -->
                         <div class="flex flex-col items-center space-y-3">
-                            <!-- Contenedor circular para la imagen -->
-                            <div
-                                class="relative w-24 h-24 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-700">
+                            <!-- Clickable Image Container -->
+                            <div class="relative w-32 h-32 rounded-full overflow-hidden border-4 border-gray-200 dark:border-gray-700 cursor-pointer group shadow-lg"
+                                onclick="openPhotoOptionsModal()">
                                 <img id="profile-photo" src="../assets/logo.png" alt="Foto de Perfil"
-                                    class="w-full h-full object-cover">
+                                    class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110">
+
+                                <!-- Hover Overlay -->
+                                <div
+                                    class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <i class="ph ph-camera text-white text-3xl"></i>
+                                </div>
                             </div>
 
-                            <!-- Input oculto para seleccionar archivo -->
-                            <input type="file" id="profile-image-input" accept="image/*" class="hidden">
+                            <p class="text-xs text-gray-500 mt-2">Toca la imagen para editar</p>
 
-                            <!-- Botón funcional -->
-                            <button type="button" id="change-photo-btn"
-                                class="text-sm font-medium hover:text-blue-500 transition-colors"
-                                style="color: var(--color-text-secondary);">Cambiar Foto</button>
+                            <!-- Hidden File Input -->
+                            <input type="file" id="profile-image-input" accept="image/*" class="hidden">
                         </div>
 
                         <div>
@@ -139,6 +143,32 @@
                 <button type="button" onclick="sendPasswordReset()"
                     class="primary-btn px-4 py-2 rounded-lg font-medium">
                     <i class="ph ph-paper-plane-tilt"></i> Enviar Correo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Photo Options Modal -->
+    <div id="photo-options-modal"
+        class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-xs transform transition-all duration-300 scale-95"
+            style="background-color: var(--color-bg-secondary);">
+            <h3 class="text-xl font-bold mb-6 text-center" style="color: var(--color-text-light);">Foto de Perfil</h3>
+
+            <div class="space-y-3">
+                <button onclick="triggerPhotoUpload()"
+                    class="w-full py-3 px-4 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                    <i class="ph ph-image"></i> Cambiar Foto
+                </button>
+
+                <button onclick="deleteProfilePhoto()"
+                    class="w-full py-3 px-4 rounded-lg font-medium bg-red-600 text-white hover:bg-red-700 transition flex items-center justify-center gap-2">
+                    <i class="ph ph-trash"></i> Eliminar Foto
+                </button>
+
+                <button onclick="closePhotoOptionsModal()"
+                    class="w-full py-3 px-4 rounded-lg font-medium border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition mt-4">
+                    Cancelar
                 </button>
             </div>
         </div>

@@ -335,6 +335,69 @@ async function loadAndCalculateStats(isMock = false) {
     }
 }
 
+// --- PROFILE PHOTO MANAGEMENT ---
+
+function openPhotoOptionsModal() {
+    if (window.IS_MOCK_MODE) {
+        alert('Modo Mock: Funcionalidad limitada.');
+        return;
+    }
+    document.getElementById('photo-options-modal').classList.remove('hidden');
+    const modalContent = document.querySelector('#photo-options-modal > div');
+    setTimeout(() => modalContent.classList.remove('scale-95'), 10);
+}
+
+function closePhotoOptionsModal() {
+    const modalContent = document.querySelector('#photo-options-modal > div');
+    modalContent.classList.add('scale-95');
+    setTimeout(() => document.getElementById('photo-options-modal').classList.add('hidden'), 300);
+}
+
+function triggerPhotoUpload() {
+    closePhotoOptionsModal();
+    const photoInput = document.getElementById('profile-image-input');
+    if (photoInput) photoInput.click();
+}
+
+async function deleteProfilePhoto() {
+    if (!confirm('¿Estás seguro de que quieres eliminar tu foto de perfil?')) return;
+
+    closePhotoOptionsModal();
+    const photoElement = document.getElementById('profile-photo');
+    const originalSrc = photoElement.src;
+    photoElement.style.opacity = '0.5';
+
+    try {
+        const user = auth.currentUser;
+        if (user) {
+            // 1. Update Auth
+            await user.updateProfile({ photoURL: null });
+
+            // 2. Update Firestore (User Metadata)
+            await db.doc(`artifacts/${appId}/users/${userId}/profileData/userMetadata`).set({
+                photoURL: null,
+                lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            // 3. Update Firestore (Public 'users' collection for Chat)
+            await db.collection('users').doc(userId).set({
+                photoURL: null,
+                lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            // 4. Update UI
+            photoElement.src = '../assets/logo.png';
+            alert('Foto de perfil eliminada.');
+        }
+    } catch (error) {
+        console.error("Error deleting photo:", error);
+        alert('Error al eliminar la foto.');
+        photoElement.src = originalSrc;
+    } finally {
+        photoElement.style.opacity = '1';
+    }
+}
+
 async function uploadImageToCloudinary(file) {
     const config = window.cloudinaryConfig;
     if (!config) {
@@ -380,21 +443,26 @@ async function handleProfilePhotoChange(e) {
 
     try {
         const imageUrl = await uploadImageToCloudinary(file);
-
         if (!imageUrl) throw new Error("No se obtuvo URL de la imagen");
 
         const user = auth.currentUser;
         if (user) {
-            // 1. Actualizar Auth
+            // 1. Update Auth
             await user.updateProfile({ photoURL: imageUrl });
 
-            // 2. Actualizar Firestore
+            // 2. Update Firestore (User Metadata)
             await db.doc(`artifacts/${appId}/users/${userId}/profileData/userMetadata`).set({
                 photoURL: imageUrl,
                 lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
 
-            // 3. Actualizar UI
+            // 3. Update Firestore (Public 'users' collection for Chat) << ADD THIS BLOCK
+            await db.collection('users').doc(userId).set({
+                photoURL: imageUrl,
+                lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            // 4. Update UI
             photoElement.src = imageUrl;
             alert('Foto de perfil actualizada correctamente.');
         }
@@ -436,4 +504,8 @@ window.addEventListener('load', () => {
     window.openPasswordModal = openPasswordModal;
     window.closePasswordModal = closePasswordModal;
     window.sendPasswordReset = sendPasswordReset;
+    window.openPhotoOptionsModal = openPhotoOptionsModal;
+    window.closePhotoOptionsModal = closePhotoOptionsModal;
+    window.triggerPhotoUpload = triggerPhotoUpload;
+    window.deleteProfilePhoto = deleteProfilePhoto;
 });

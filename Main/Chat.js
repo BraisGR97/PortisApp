@@ -394,8 +394,8 @@
                     if (doc.id !== userId) {
                         users.push({
                             id: doc.id,
-                            // 🛑 CORRECCIÓN: Preferir 'username', luego 'displayName', y finalmente un fallback
-                            name: data.username || data.displayName || `Usuario ${doc.id.substring(0, 6)}`
+                            name: data.username || data.displayName || `Usuario ${doc.id.substring(0, 6)}`,
+                            photoURL: data.photoURL // << ADD THIS LINE
                         });
                     }
                 });
@@ -411,8 +411,8 @@
                  style="background-color: var(--color-bg-secondary);" 
                  onclick="openChatModal('${user.id}', '${user.name}')">
                 
-                <div class="w-10 h-10 rounded-full bg-red-800 flex items-center justify-center font-bold mr-4 overflow-hidden">
-                    <img src="${profileImagePath}" alt="${user.name.charAt(0)}" class="w-full h-full object-cover">
+                <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold mr-4 overflow-hidden border border-gray-300 dark:border-gray-600">
+                    <img src="${user.photoURL || profileImagePath}" alt="${user.name.charAt(0)}" class="w-full h-full object-cover">
                 </div>
                 
                 <p class="font-semibold user-chat-item-name">${user.name}</p>
