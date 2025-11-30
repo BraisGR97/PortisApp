@@ -68,12 +68,24 @@ async function initializeAppAndAuth() {
         db = firebase.firestore();
 
         // Observador de estado de autenticación
-        auth.onAuthStateChanged((user) => {
+        auth.onAuthStateChanged(async (user) => {
             if (user && user.uid === userId) {
                 // Caso 1: Usuario autenticado y coincide con la sesión
                 userId = user.uid;
                 isAuthReady = true;
-                displayUserData(user);
+
+                // 🔑 CLAVE: Obtener la foto más reciente de Firestore para evitar caché de Auth
+                let firestorePhotoURL = undefined;
+                try {
+                    const metaDoc = await db.doc(`artifacts/${appId}/users/${userId}/profileData/userMetadata`).get();
+                    if (metaDoc.exists) {
+                        firestorePhotoURL = metaDoc.data().photoURL;
+                    }
+                } catch (e) {
+                    console.warn("No se pudo obtener metadata de usuario:", e);
+                }
+
+                displayUserData(user, firestorePhotoURL);
                 loadAndCalculateStats();
             } else {
                 // Caso 2: El usuario no coincide o ha cerrado sesión
@@ -92,15 +104,23 @@ async function initializeAppAndAuth() {
 
 /**
  * Muestra los datos editables e ineditables del usuario.
+ * @param {Object} user - Objeto de usuario de Firebase Auth
+ * @param {string|null} [overridePhotoURL] - URL de la foto desde Firestore (opcional)
  */
-function displayUserData(user) {
+function displayUserData(user, overridePhotoURL) {
     const usernameInput = document.getElementById('username');
     const registrationDateElement = document.getElementById('stat-registration-date');
     const photoElement = document.getElementById('profile-photo');
+
     if (photoElement) {
-        // Usar la foto del usuario o el fallback explícito
-        photoElement.src = user.photoURL || '../assets/logo.png';
+        // Lógica de prioridad: 1. Firestore (si existe), 2. Auth, 3. Default
+        let finalPhotoURL = user.photoURL;
+        if (overridePhotoURL !== undefined) {
+            finalPhotoURL = overridePhotoURL;
+        }
+        photoElement.src = finalPhotoURL || '../assets/logo.png';
     }
+
     // 1. Manejo del Username
     const currentUsername = user.displayName || userDisplayName || 'Admin';
     usernameInput.value = currentUsername;
@@ -371,8 +391,9 @@ async function deleteProfilePhoto() {
     try {
         const user = auth.currentUser;
         if (user) {
-            // 1. Update Auth (Usar string vacío para borrar persistente)
-            await user.updateProfile({ photoURL: "" });
+            // 1. Update Auth
+            await user.updateProfile({ photoURL: null });
+            await user.reload(); // 🔑 Forzar recarga del token para limpiar caché
 
             // 2. Update Firestore (User Metadata)
             await db.doc(`artifacts/${appId}/users/${userId}/profileData/userMetadata`).set({
