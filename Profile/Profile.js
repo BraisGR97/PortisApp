@@ -97,8 +97,9 @@ function displayUserData(user) {
     const usernameInput = document.getElementById('username');
     const registrationDateElement = document.getElementById('stat-registration-date');
     const photoElement = document.getElementById('profile-photo');
-    if (user.photoURL && photoElement) {
-        photoElement.src = user.photoURL;
+    if (photoElement) {
+        // Usar la foto del usuario o el fallback explícito
+        photoElement.src = user.photoURL || '../assets/logo.png';
     }
     // 1. Manejo del Username
     const currentUsername = user.displayName || userDisplayName || 'Admin';
@@ -370,8 +371,8 @@ async function deleteProfilePhoto() {
     try {
         const user = auth.currentUser;
         if (user) {
-            // 1. Update Auth
-            await user.updateProfile({ photoURL: null });
+            // 1. Update Auth (Usar string vacío para borrar persistente)
+            await user.updateProfile({ photoURL: "" });
 
             // 2. Update Firestore (User Metadata)
             await db.doc(`artifacts/${appId}/users/${userId}/profileData/userMetadata`).set({
@@ -387,7 +388,7 @@ async function deleteProfilePhoto() {
 
             // 4. Update UI
             photoElement.src = '../assets/logo.png';
-            alert('Foto de perfil eliminada.');
+            // alert('Foto de perfil eliminada.'); // Eliminado feedback intrusivo
         }
     } catch (error) {
         console.error("Error deleting photo:", error);
@@ -464,7 +465,7 @@ async function handleProfilePhotoChange(e) {
 
             // 4. Update UI
             photoElement.src = imageUrl;
-            alert('Foto de perfil actualizada correctamente.');
+            // alert('Foto de perfil actualizada correctamente.'); // Eliminado feedback intrusivo
         }
     } catch (error) {
         console.error(error);
