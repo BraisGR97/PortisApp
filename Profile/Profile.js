@@ -484,13 +484,10 @@ window.addEventListener('load', () => {
 
     initializeAppAndAuth();
 
-    const changePhotoBtn = document.getElementById('change-photo-btn');
+    // Solo necesitamos el input, ya que el modal se encarga de hacer el click()
     const photoInput = document.getElementById('profile-image-input');
 
-    if (changePhotoBtn && photoInput) {
-        // Click en el botón abre el selector de archivos
-        changePhotoBtn.addEventListener('click', () => photoInput.click());
-
+    if (photoInput) {
         // Cambio en el input dispara la subida
         photoInput.addEventListener('change', handleProfilePhotoChange);
     }
