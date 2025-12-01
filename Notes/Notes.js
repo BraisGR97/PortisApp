@@ -246,6 +246,7 @@ async function saveNote(e) {
                 await notesRef.doc(editId).update({
                     title,
                     content,
+                    imageUrl,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 console.log("Nota actualizada con éxito.");
