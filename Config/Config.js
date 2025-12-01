@@ -44,44 +44,52 @@ window.setMockData = function (key, value) {
     }
 };
 
-// Función para aplicar tema GLOBALMENTE a todas las páginas
-window.applyColorMode = function () {
-    const savedTheme = localStorage.getItem('portis-theme');
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+/**
+ * Función para cambiar entre modo claro y oscuro.
+ * La inicialización del tema se hace con script inline en cada HTML para evitar FOUC.
+ * Esta función solo maneja el TOGGLE del tema.
+ */
+window.toggleColorMode = function () {
+    const currentTheme = localStorage.getItem('portis-theme') || 'dark';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
 
-    let theme;
+    // Guardar el nuevo tema
+    localStorage.setItem('portis-theme', newTheme);
 
-    if (savedTheme) {
-        // Si hay un tema guardado, usarlo (tiene prioridad)
-        theme = savedTheme;
+    // Aplicar las clases al documento
+    if (newTheme === 'light') {
+        document.documentElement.classList.add('light-mode');
+        document.documentElement.classList.remove('dark-mode');
     } else {
-        // Primera vez: detectar preferencia del sistema
-        theme = prefersDark ? 'dark' : 'light';
-        // Guardar la preferencia del sistema como inicial
-        localStorage.setItem('portis-theme', theme);
+        document.documentElement.classList.add('dark-mode');
+        document.documentElement.classList.remove('light-mode');
     }
 
-    // Aplicar el tema al body
-    if (theme === 'light') {
-        document.body.classList.add('light-mode');
-        document.body.classList.remove('dark-mode');
-    } else {
-        document.body.classList.remove('light-mode');
-        document.body.classList.add('dark-mode');
-    }
+    console.log(`✓ Tema cambiado a: ${newTheme.toUpperCase()}`);
 
-    console.log(`✓ Tema aplicado: ${theme.toUpperCase()} (${savedTheme ? 'guardado en localStorage' : 'detectado del sistema'})`);
-
-    return theme;
+    return newTheme;
 };
 
-// Aplicar el tema inmediatamente al cargar el script
-// Esto previene el "flash" de tema incorrecto
-if (document.body) {
-    window.applyColorMode();
-} else {
-    // Si el body no está disponible aún, esperar a que lo esté
-    document.addEventListener('DOMContentLoaded', function () {
-        window.applyColorMode();
-    });
-}
+/**
+ * Función legacy para compatibilidad con código existente.
+ * Solo sincroniza las clases si es necesario, no cambia el tema.
+ * @deprecated Usar toggleColorMode() para cambiar el tema
+ */
+window.applyColorMode = function () {
+    const savedTheme = localStorage.getItem('portis-theme') || 'dark';
+
+    // Solo sincronizar las clases si no están aplicadas correctamente
+    if (savedTheme === 'light') {
+        if (!document.documentElement.classList.contains('light-mode')) {
+            document.documentElement.classList.add('light-mode');
+            document.documentElement.classList.remove('dark-mode');
+        }
+    } else {
+        if (!document.documentElement.classList.contains('dark-mode')) {
+            document.documentElement.classList.add('dark-mode');
+            document.documentElement.classList.remove('light-mode');
+        }
+    }
+
+    return savedTheme;
+};

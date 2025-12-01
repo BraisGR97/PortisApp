@@ -181,9 +181,18 @@
         if (themeToggle) {
             themeToggle.addEventListener('change', async () => {
                 await saveSettings();
-                if (window.applyColorMode) {
-                    window.applyColorMode();
+
+                // Aplicar el tema inmediatamente al documentElement
+                const theme = themeToggle.checked ? 'dark' : 'light';
+                if (theme === 'light') {
+                    document.documentElement.classList.add('light-mode');
+                    document.documentElement.classList.remove('dark-mode');
+                } else {
+                    document.documentElement.classList.add('dark-mode');
+                    document.documentElement.classList.remove('light-mode');
                 }
+
+                console.log(`✓ Tema aplicado: ${theme.toUpperCase()}`);
             });
         }
 

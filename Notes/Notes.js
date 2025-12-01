@@ -2,11 +2,15 @@
  * ====================================================================
  * Notes.js - Lógica para la Gestión de Notas
  * ====================================================================
+ * 
+ * Este módulo gestiona la creación, edición, eliminación y visualización
+ * de notas personales del usuario. Soporta tanto modo Firebase como Mock.
  */
 
-// -----------------------------------------------------------------
-// 1. CONFIGURACIÓN Y VARIABLES GLOBALES
-// -----------------------------------------------------------------
+// ====================================================================
+// CONFIGURACIÓN Y VARIABLES GLOBALES
+// ====================================================================
+
 const firebaseConfig = window.firebaseConfig;
 const IS_MOCK_MODE = window.IS_MOCK_MODE;
 
@@ -28,8 +32,13 @@ const MOCK_NOTES_STORAGE_KEY = 'mock_notes_data';
 // Cache de datos para búsqueda
 window.currentNotesData = [];
 
+// ====================================================================
+// FUNCIONES AUXILIARES - MOCK MODE
+// ====================================================================
+
 /**
- * Función auxiliar para obtener las notas mock guardadas.
+ * Obtiene las notas guardadas en localStorage (Mock Mode).
+ * @returns {Array} Array de notas o array vacío si no hay datos
  */
 function getLocalMockNotes() {
     try {
@@ -42,7 +51,8 @@ function getLocalMockNotes() {
 }
 
 /**
- * Función auxiliar para guardar las notas mock en localStorage.
+ * Guarda las notas en localStorage (Mock Mode).
+ * @param {Array} notes - Array de notas a guardar
  */
 function saveLocalMockNotes(notes) {
     if (!IS_MOCK_MODE) return;
@@ -53,11 +63,12 @@ function saveLocalMockNotes(notes) {
     }
 }
 
-
-// -----------------------------------------------------------------
+// ====================================================================
+// AUTENTICACIÓN Y SETUP
+// ====================================================================
 
 /**
- * Valida la sesión y prepara la UI.
+ * Valida la sesión del usuario y prepara la interfaz.
  */
 function checkAuthenticationAndSetup() {
     userId = sessionStorage.getItem('portis-user-identifier');
@@ -98,9 +109,8 @@ function checkAuthenticationAndSetup() {
     document.getElementById('new-note-form').addEventListener('submit', saveNote);
 }
 
-
 /**
- * Inicializa Firebase, y establece el listener de estado.
+ * Inicializa Firebase y establece el listener de autenticación.
  */
 async function initializeAppAndAuth() {
     try {
@@ -132,17 +142,45 @@ async function initializeAppAndAuth() {
     }
 }
 
-// -----------------------------------------------------------------
-// 4. FUNCIONES DE FIREBASE (CRUD)
-// -----------------------------------------------------------------
+// ====================================================================
+// FUNCIONES DE FIREBASE
+// ====================================================================
 
+/**
+ * Obtiene la referencia a la colección de notas del usuario.
+ * @returns {Object|null} Referencia a la colección o null
+ */
 function getNotesCollectionRef() {
     if (!db || !userId) return null;
     return db.collection(`users/${userId}/notes`);
 }
 
 /**
- * Añade o Actualiza una nota.
+ * Configura el listener en tiempo real para las notas (Firebase).
+ */
+function setupNotesListener() {
+    if (!db || !isAuthReady || !userId) return;
+
+    const notesQuery = getNotesCollectionRef().orderBy('timestamp', 'desc');
+
+    notesQuery.onSnapshot((snapshot) => {
+        const notes = [];
+        snapshot.forEach((doc) => {
+            notes.push({ id: doc.id, ...doc.data() });
+        });
+        renderNotes(notes);
+    }, (error) => {
+        console.error("Error en la conexión en tiempo real:", error);
+    });
+}
+
+// ====================================================================
+// CRUD - CREAR Y ACTUALIZAR NOTAS
+// ====================================================================
+
+/**
+ * Guarda una nota nueva o actualiza una existente.
+ * @param {Event} e - Evento del formulario
  */
 async function saveNote(e) {
     e.preventDefault();
@@ -168,22 +206,18 @@ async function saveNote(e) {
         timestamp: editId ? (IS_MOCK_MODE ? Date.now() : firebase.firestore.FieldValue.serverTimestamp()) : (IS_MOCK_MODE ? Date.now() : firebase.firestore.FieldValue.serverTimestamp())
     };
 
-    // Si es edición, no sobrescribimos el timestamp de creación si quisiéramos mantenerlo, 
-    // pero para ordenamiento por "última modificación" es mejor actualizarlo.
-    // En este caso, actualizaremos el timestamp para que suba arriba.
-
     if (IS_MOCK_MODE) {
         let mockNotes = getLocalMockNotes();
 
         if (editId) {
-            // Editar
+            // Editar nota existente
             const index = mockNotes.findIndex(n => n.id === editId);
             if (index !== -1) {
                 mockNotes[index] = { ...mockNotes[index], ...noteData, timestamp: Date.now() };
                 console.log('Modo Mock: Nota actualizada.');
             }
         } else {
-            // Crear
+            // Crear nota nueva
             const newNote = {
                 id: 'n' + Date.now(),
                 ...noteData,
@@ -201,7 +235,7 @@ async function saveNote(e) {
         window.toggleNewNoteForm();
 
     } else {
-        // Modo Real
+        // Modo Firebase
         try {
             const notesRef = getNotesCollectionRef();
             if (!notesRef) return;
@@ -231,8 +265,13 @@ async function saveNote(e) {
     submitButton.disabled = false;
 }
 
+// ====================================================================
+// CRUD - ELIMINAR NOTAS
+// ====================================================================
+
 /**
- * Elimina una nota.
+ * Elimina una nota después de confirmación del usuario.
+ * @param {string} id - ID de la nota a eliminar
  */
 window.deleteNote = async function (id) {
     if (!isAuthReady || !userId) return console.warn("Autenticación no lista.");
@@ -267,8 +306,13 @@ window.deleteNote = async function (id) {
     }
 }
 
+// ====================================================================
+// CRUD - EDITAR NOTAS
+// ====================================================================
+
 /**
- * Prepara el formulario para editar una nota.
+ * Prepara el formulario para editar una nota existente.
+ * @param {string} id - ID de la nota a editar
  */
 window.editNote = function (id) {
     const notes = window.currentNotesData;
@@ -283,7 +327,7 @@ window.editNote = function (id) {
 
     // Cambiar UI del formulario
     document.getElementById('form-title').innerHTML = `
-        <i class="ph ph-pencil-simple" style="color: var(--color-accent-blue);"></i>
+        <i class="ph ph-pencil-simple card-icon"></i>
         Editar Nota
     `;
     document.getElementById('save-note-btn').innerHTML = '<i class="ph ph-floppy-disk mr-2"></i> Actualizar Nota';
@@ -298,49 +342,39 @@ window.editNote = function (id) {
     }
 }
 
+/**
+ * Cancela la edición y resetea el formulario.
+ */
 window.cancelEdit = function () {
     resetForm();
-    // Si el formulario estaba abierto solo para editar, podríamos cerrarlo, 
-    // pero mejor dejarlo abierto limpio o cerrarlo según UX. 
-    // Aquí lo dejaremos abierto pero limpio, o podemos cerrarlo.
-    // Vamos a cerrarlo para volver al estado inicial.
     window.toggleNewNoteForm();
 }
 
+/**
+ * Resetea el formulario a su estado inicial.
+ */
 function resetForm() {
     const form = document.getElementById('new-note-form');
     form.reset();
     document.getElementById('note-id').value = '';
 
     document.getElementById('form-title').innerHTML = `
-        <i class="ph ph-notebook" style="color: var(--color-accent-red);"></i>
+        <i class="ph ph-notebook card-icon"></i>
         Nueva Nota
     `;
     document.getElementById('save-note-btn').innerHTML = '<i class="ph ph-floppy-disk mr-2"></i> Guardar Nota';
     document.getElementById('cancel-edit-btn').classList.add('hidden');
 }
 
-// -----------------------------------------------------------------
-// 5. RENDERIZADO Y LISTENERS DE UI
-// -----------------------------------------------------------------
+// ====================================================================
+// RENDERIZADO Y UI
+// ====================================================================
 
-window.toggleSearch = function () {
-    const searchContainer = document.getElementById('search-container');
-    const searchInput = document.getElementById('search-input');
-
-    if (searchContainer && searchInput) {
-        const isHidden = searchContainer.classList.contains('hidden');
-        if (isHidden) {
-            searchContainer.classList.remove('hidden');
-            searchInput.focus();
-        } else {
-            searchContainer.classList.add('hidden');
-            searchInput.value = '';
-            searchInput.dispatchEvent(new Event('input'));
-        }
-    }
-}
-
+/**
+ * Renderiza las notas en la interfaz.
+ * @param {Array} notes - Array de notas a renderizar
+ * @param {boolean} updateCache - Si se debe actualizar el cache
+ */
 function renderNotes(notes, updateCache = true) {
     if (updateCache) {
         window.currentNotesData = notes;
@@ -381,20 +415,18 @@ function renderNotes(notes, updateCache = true) {
         const formattedDate = dateRaw.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
         const card = document.createElement('div');
-        card.className = 'note-card p-5 rounded-xl shadow-sm border relative group cursor-pointer transition-all duration-200 hover:shadow-md';
+        card.className = 'note-card';
         card.setAttribute('data-id', note.id);
-        card.style.backgroundColor = 'var(--color-bg-secondary)';
-        card.style.borderColor = 'var(--color-border)';
 
         const noteHtml = `
             <div class="flex justify-between items-start mb-2">
-                <h3 class="font-bold text-xl truncate pr-8" style="color: var(--color-text-primary);">${note.title}</h3>
-                <span class="text-xs font-medium px-2 py-1 rounded-full text-gray-500 bg-gray-100 dark:bg-gray-800">
+                <h3 class="font-bold text-xl truncate pr-8 note-card-title">${note.title}</h3>
+                <span class="text-xs font-medium px-2 py-1 rounded-full note-card-date bg-gray-100 dark:bg-gray-800">
                     ${formattedDate}
                 </span>
             </div>
             
-            <div class="text-sm mb-4 whitespace-pre-line" style="color: var(--color-text-secondary); min-height: 40px;">
+            <div class="text-sm mb-4 whitespace-pre-line note-card-content" style="min-height: 40px;">
                 ${note.content || '<span class="italic opacity-50">Sin contenido...</span>'}
             </div>
 
@@ -415,8 +447,49 @@ function renderNotes(notes, updateCache = true) {
         card.innerHTML = noteHtml;
         listContainer.appendChild(card);
     });
+
+    // Actualizar efectos visuales una vez renderizado
+    setTimeout(updateCardBorderOpacity, 50);
 }
 
+/**
+ * Actualiza la opacidad del borde superior de las tarjetas basada en su posición.
+ */
+function updateCardBorderOpacity() {
+    const cards = document.querySelectorAll('.note-card, .card-container');
+    const viewportHeight = window.innerHeight;
+
+    cards.forEach(card => {
+        const rect = card.getBoundingClientRect();
+        const cardTop = rect.top;
+        const cardHeight = rect.height;
+
+        // Calcular la opacidad basada en la posición vertical
+        // Máxima opacidad cuando está en la parte superior (cerca del navbar)
+        // Mínima opacidad cuando está en la parte inferior
+        let opacity = 0;
+
+        if (cardTop < viewportHeight && cardTop > -cardHeight) {
+            // La tarjeta está visible en el viewport
+            // Normalizar la posición: 0 (arriba) a 1 (abajo)
+            const normalizedPosition = Math.max(0, Math.min(1, cardTop / (viewportHeight * 0.7)));
+
+            // Invertir para que la opacidad sea mayor arriba
+            opacity = 1 - normalizedPosition;
+
+            // Ajustar el rango de opacidad (de 0.2 a 1)
+            opacity = 0.2 + (opacity * 0.8);
+        }
+
+        // Aplicar la opacidad al borde superior
+        card.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
+    });
+}
+
+/**
+ * Maneja los clicks en los botones de acción de las notas.
+ * @param {Event} e - Evento de click
+ */
 function handleNoteActions(e) {
     const button = e.target.closest('button[data-action][data-id]');
     if (!button) return;
@@ -431,22 +504,37 @@ function handleNoteActions(e) {
     }
 }
 
-function setupNotesListener() {
-    if (!db || !isAuthReady || !userId) return;
+// ====================================================================
+// FUNCIONES DE BÚSQUEDA
+// ====================================================================
 
-    const notesQuery = getNotesCollectionRef().orderBy('timestamp', 'desc');
+/**
+ * Alterna la visibilidad de la barra de búsqueda.
+ */
+window.toggleSearch = function () {
+    const searchContainer = document.getElementById('search-container');
+    const searchInput = document.getElementById('search-input');
 
-    notesQuery.onSnapshot((snapshot) => {
-        const notes = [];
-        snapshot.forEach((doc) => {
-            notes.push({ id: doc.id, ...doc.data() });
-        });
-        renderNotes(notes);
-    }, (error) => {
-        console.error("Error en la conexión en tiempo real:", error);
-    });
+    if (searchContainer && searchInput) {
+        const isHidden = searchContainer.classList.contains('hidden');
+        if (isHidden) {
+            searchContainer.classList.remove('hidden');
+            searchInput.focus();
+        } else {
+            searchContainer.classList.add('hidden');
+            searchInput.value = '';
+            searchInput.dispatchEvent(new Event('input'));
+        }
+    }
 }
 
+// ====================================================================
+// FUNCIONES DE FORMULARIO
+// ====================================================================
+
+/**
+ * Alterna la visibilidad del formulario de nueva nota.
+ */
 window.toggleNewNoteForm = function () {
     const card = document.getElementById('new-note-card');
     const fab = document.getElementById('show-note-form-fab');
@@ -472,12 +560,17 @@ window.toggleNewNoteForm = function () {
     }
 }
 
-// --- Ejecución ---
+// ====================================================================
+// INICIALIZACIÓN
+// ====================================================================
+
 window.addEventListener('load', () => {
+    // Aplicar tema guardado
     if (typeof window.applyColorMode === 'function') {
         window.applyColorMode();
     }
 
+    // Listener para cambios de tema
     window.addEventListener('storage', (e) => {
         if (e.key === 'portis-theme') {
             if (typeof window.applyColorMode === 'function') {
@@ -486,13 +579,16 @@ window.addEventListener('load', () => {
         }
     });
 
+    // Inicializar autenticación y datos
     checkAuthenticationAndSetup();
 
+    // Event listener para acciones de notas
     const listContainer = document.getElementById('notes-list');
     if (listContainer) {
         listContainer.addEventListener('click', handleNoteActions);
     }
 
+    // Event listener para búsqueda
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
         searchInput.addEventListener('input', () => {
@@ -501,4 +597,16 @@ window.addEventListener('load', () => {
             }
         });
     }
+
+    // Ejecutar al hacer scroll
+    window.addEventListener('scroll', updateCardBorderOpacity);
+
+    const appContent = document.getElementById('app-content');
+    if (appContent) {
+        appContent.addEventListener('scroll', updateCardBorderOpacity);
+    }
+
+    // Ejecutar una vez al cargar y al redimensionar
+    setTimeout(updateCardBorderOpacity, 100);
+    window.addEventListener('resize', updateCardBorderOpacity);
 });

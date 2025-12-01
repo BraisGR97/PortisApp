@@ -12,6 +12,21 @@
 
     <link rel="stylesheet" href="Settings.css">
 
+    <!-- Script inline para evitar parpadeo (FOUC) al cambiar de tema -->
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem('portis-theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+
+            if (theme === 'light') {
+                document.documentElement.classList.add('light-mode');
+            } else {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>

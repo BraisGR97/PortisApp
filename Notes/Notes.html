@@ -5,67 +5,79 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PortisApp | Gestión de Notas</title>
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
+    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
 
+    <!-- Estilos personalizados -->
     <link rel="stylesheet" href="./Notes.css">
 
+    <!-- Script inline para evitar parpadeo (FOUC) al cambiar de tema -->
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem('portis-theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+
+            if (theme === 'light') {
+                document.documentElement.classList.add('light-mode');
+            } else {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
-    <script>
-        // Configuración de Firebase, accesible globalmente
-        window.firebaseConfig = {
-            apiKey: "AIzaSyD_tC3KaK3UVyNOPiSsnI0s5k8Cd_qFJpg",
-            authDomain: "portisapp.firebaseapp.com",
-            projectId: "portisapp",
-            storageBucket: "portisapp.firebasestorage.app",
-            messagingSenderId: "38313359657",
-            appId: "1:38313359657:web:ae73a0f8f7556bed92df38",
-            measurementId: "G-HQ29Y8Z2DY"
-        };
-    </script>
 </head>
 
 <body class="antialiased">
     <div id="geometric-wrapper"></div>
 
     <div class="app-layout">
+        <!-- Navbar -->
         <header id="top-navbar"
             class="sticky top-0 z-40 p-4 flex justify-between items-center bg-opacity-95 backdrop-blur-sm">
             <button onclick="window.location.href='../Main/Main.html'"
                 class="text-xl p-2 rounded-full secondary-icon-btn">
                 <i class="ph ph-arrow-left"></i>
             </button>
-            <h1 class="text-xl font-bold text-center">Gestión de Notas</h1>
+            <h1 class="text-xl font-bold text-center navbar-title">Gestión de Notas</h1>
             <div id="current-user-display" class="user-id-display">Cargando...</div>
         </header>
 
+        <!-- Contenido Principal -->
         <main id="app-content" class="overflow-y-auto w-full max-w-4xl mx-auto">
 
+            <!-- Formulario de Nueva Nota -->
             <div id="new-note-card" class="card-container default-split mb-8 hidden">
                 <div class="card-inner-content">
-                    <h2 id="form-title" class="text-2xl font-bold mb-4 flex items-center gap-2"
-                        style="color: var(--color-text-light);">
-                        <i class="ph ph-notebook" style="color: var(--color-accent-red);"></i>
+                    <h2 id="form-title" class="text-2xl font-bold mb-4 flex items-center gap-2 card-title">
+                        <i class="ph ph-notebook card-icon"></i>
                         Nueva Nota
                     </h2>
                     <form id="new-note-form" class="space-y-4 form-content">
-                        <input type="hidden" id="note-id"> <!-- Hidden ID for editing -->
+                        <input type="hidden" id="note-id">
 
                         <div>
-                            <label for="title" class="block text-sm font-medium mb-1"
-                                style="color: var(--color-text-secondary);">Título <span
-                                    class="text-red-500">*</span></label>
+                            <label for="title" class="block text-sm font-medium mb-1 form-label">
+                                Título <span class="form-label-required">*</span>
+                            </label>
                             <input type="text" id="title" name="title"
                                 placeholder="Ejem: Lista de la compra, Ideas proyecto..." required
                                 class="minimal-input w-full">
                         </div>
 
                         <div>
-                            <label for="content" class="block text-sm font-medium mb-1"
-                                style="color: var(--color-text-secondary);">Contenido</label>
+                            <label for="content" class="block text-sm font-medium mb-1 form-label">Contenido</label>
                             <textarea id="content" name="content" placeholder="Escribe aquí tu nota..."
                                 class="minimal-input w-full resize-none h-40"></textarea>
                         </div>
@@ -85,11 +97,12 @@
                 </div>
             </div>
 
+            <!-- Lista de Notas -->
             <div class="card-container inverted-split">
                 <div class="card-inner-content">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-2xl font-bold flex items-center gap-2" style="color: var(--color-text-light);">
-                            <i class="ph ph-files" style="color: var(--color-accent-red);"></i>
+                        <h2 class="text-2xl font-bold flex items-center gap-2 card-title">
+                            <i class="ph ph-files card-icon"></i>
                             Mis Notas
                         </h2>
                         <button onclick="window.toggleSearch()" class="secondary-icon-btn p-2 rounded-full"
@@ -98,6 +111,7 @@
                         </button>
                     </div>
 
+                    <!-- Barra de Búsqueda -->
                     <div id="search-container" class="hidden mb-4 transition-all duration-300">
                         <div class="relative">
                             <i
@@ -107,6 +121,7 @@
                         </div>
                     </div>
 
+                    <!-- Contenedor de Notas -->
                     <div id="notes-list" class="space-y-3 grid grid-cols-1 gap-4">
                         <div class="loading-spinner"></div>
                     </div>
@@ -116,10 +131,15 @@
         </main>
     </div>
 
+    <!-- Botón Flotante (FAB) -->
     <button id="show-note-form-fab" type="button" onclick="toggleNewNoteForm()"
         class="fixed bottom-8 right-4 z-50 p-4 rounded-full primary-btn transition-transform duration-300 hover:scale-110 shadow-xl shadow-red-900/50">
         <i class="ph ph-plus text-2xl"></i>
     </button>
+
+    <!-- Scripts (Config.js contiene la configuración de Firebase) -->
     <script src="../Config/Config.js"></script>
     <script src="Notes.js"></script>
 </body>
+
+</html>
