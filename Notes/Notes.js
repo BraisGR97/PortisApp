@@ -193,6 +193,7 @@ async function saveNote(e) {
 
     const title = document.getElementById('title').value.trim();
     const content = document.getElementById('content').value.trim();
+    const imageUrl = document.getElementById('image-url').value;
 
     if (!title) return;
 
@@ -202,6 +203,7 @@ async function saveNote(e) {
     const noteData = {
         title,
         content,
+        imageUrl,
         userId: userId,
         timestamp: editId ? (IS_MOCK_MODE ? Date.now() : firebase.firestore.FieldValue.serverTimestamp()) : (IS_MOCK_MODE ? Date.now() : firebase.firestore.FieldValue.serverTimestamp())
     };
@@ -325,6 +327,15 @@ window.editNote = function (id) {
     document.getElementById('title').value = note.title;
     document.getElementById('content').value = note.content || '';
 
+    // Rellenar imagen si existe
+    if (note.imageUrl) {
+        document.getElementById('image-url').value = note.imageUrl;
+        document.getElementById('image-preview').src = note.imageUrl;
+        document.getElementById('image-preview-container').classList.remove('hidden');
+    } else {
+        clearImage();
+    }
+
     // Cambiar UI del formulario
     document.getElementById('form-title').innerHTML = `
         <i class="ph ph-pencil-simple card-icon"></i>
@@ -357,6 +368,7 @@ function resetForm() {
     const form = document.getElementById('new-note-form');
     form.reset();
     document.getElementById('note-id').value = '';
+    clearImage();
 
     document.getElementById('form-title').innerHTML = `
         <i class="ph ph-notebook card-icon"></i>
@@ -375,6 +387,115 @@ function resetForm() {
  * @param {Array} notes - Array de notas a renderizar
  * @param {boolean} updateCache - Si se debe actualizar el cache
  */
+// ====================================================================
+// GESTIÓN DE IMÁGENES Y MODAL
+// ====================================================================
+
+/**
+ * Maneja la selección de una imagen en el formulario.
+ */
+window.handleImageSelect = async function (event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+        alert("La imagen es demasiado grande. Máximo 5MB.");
+        return;
+    }
+
+    // Mostrar preview
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const preview = document.getElementById('image-preview');
+        const container = document.getElementById('image-preview-container');
+        preview.src = e.target.result;
+        container.classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+
+    document.getElementById('image-filename').textContent = file.name;
+
+    // Subir a Cloudinary
+    try {
+        const imageUrl = await uploadImageToCloudinary(file);
+        document.getElementById('image-url').value = imageUrl;
+    } catch (error) {
+        console.error("Error al subir imagen:", error);
+        alert("Error al subir la imagen. Inténtalo de nuevo.");
+        clearImage();
+    }
+};
+
+/**
+ * Sube una imagen a Cloudinary.
+ */
+async function uploadImageToCloudinary(file) {
+    const cloudName = window.cloudinaryConfig.cloudName;
+    const uploadPreset = window.cloudinaryConfig.uploadPreset;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', uploadPreset);
+
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/upload`, {
+        method: 'POST',
+        body: formData
+    });
+
+    if (!response.ok) throw new Error('Error en la subida a Cloudinary');
+
+    const data = await response.json();
+    return data.secure_url;
+}
+
+/**
+ * Limpia la imagen seleccionada.
+ */
+window.clearImage = function () {
+    document.getElementById('image-upload').value = '';
+    document.getElementById('image-url').value = '';
+    document.getElementById('image-filename').textContent = '';
+    document.getElementById('image-preview').src = '';
+    document.getElementById('image-preview-container').classList.add('hidden');
+};
+
+/**
+ * Abre el modal de visualización de nota.
+ */
+window.openViewModal = function (id) {
+    const notes = window.currentNotesData;
+    const note = notes.find(n => n.id === id);
+    if (!note) return;
+
+    document.getElementById('view-note-title').textContent = note.title;
+
+    const dateRaw = note.timestamp && note.timestamp.toDate ? note.timestamp.toDate() : new Date(note.timestamp);
+    const formattedDate = dateRaw.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    document.getElementById('view-note-date').textContent = formattedDate;
+
+    const contentEl = document.getElementById('view-note-content');
+    contentEl.textContent = note.content || 'Sin contenido...';
+
+    const imageEl = document.getElementById('view-note-image');
+    if (note.imageUrl) {
+        imageEl.src = note.imageUrl;
+        imageEl.classList.remove('hidden');
+    } else {
+        imageEl.classList.add('hidden');
+    }
+
+
+
+    document.getElementById('view-note-modal').classList.remove('hidden');
+};
+
+/**
+ * Cierra el modal de visualización.
+ */
+window.closeViewModal = function () {
+    document.getElementById('view-note-modal').classList.add('hidden');
+};
+
 function renderNotes(notes, updateCache = true) {
     if (updateCache) {
         window.currentNotesData = notes;
@@ -418,19 +539,32 @@ function renderNotes(notes, updateCache = true) {
         card.className = 'note-card';
         card.setAttribute('data-id', note.id);
 
+        // Añadir evento click para abrir modal (evitando botones de acción)
+        card.onclick = function (e) {
+            if (!e.target.closest('button')) {
+                window.openViewModal(note.id);
+            }
+        };
+
+        const imageHtml = note.imageUrl ?
+            `<img src="${note.imageUrl}" alt="Thumbnail" class="note-image-thumbnail">` : '';
+
         const noteHtml = `
-            <div class="flex justify-between items-start mb-2">
-                <h3 class="font-bold text-xl truncate pr-8 note-card-title">${note.title}</h3>
-                <span class="text-xs font-medium px-2 py-1 rounded-full note-card-date bg-gray-100 dark:bg-gray-800">
+            ${imageHtml}
+            <div class="note-header">
+                <div class="note-title-container">
+                    <h3 class="font-bold text-xl truncate note-card-title" title="${note.title}">${note.title}</h3>
+                </div>
+                <span class="text-xs font-medium px-2 py-1 rounded-full note-card-date bg-gray-100 dark:bg-gray-800 note-date-badge">
                     ${formattedDate}
                 </span>
             </div>
             
-            <div class="text-sm mb-4 whitespace-pre-line note-card-content" style="min-height: 40px;">
+            <div class="text-sm mb-4 whitespace-pre-line note-card-content line-clamp-3" style="min-height: 40px;">
                 ${note.content || '<span class="italic opacity-50">Sin contenido...</span>'}
             </div>
 
-            <div class="flex justify-end items-center pt-3 border-t gap-2" style="border-color: var(--color-border);">
+            <div class="flex justify-end items-center pt-3 border-t gap-2 mt-auto" style="border-color: var(--color-border);">
                 <button data-action="edit" data-id="${note.id}"
                     class="action-btn edit-btn p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-blue-500" 
                     title="Editar nota">
@@ -456,23 +590,22 @@ function renderNotes(notes, updateCache = true) {
  * Actualiza la opacidad del borde superior de las tarjetas basada en su posición.
  */
 function updateCardBorderOpacity() {
-    const cards = document.querySelectorAll('.note-card, .card-container');
+    // Actualizar tanto tarjetas como contenedores (ambos relativos al viewport)
+    const elements = document.querySelectorAll('.note-card, .card-container');
     const viewportHeight = window.innerHeight;
 
-    cards.forEach(card => {
-        const rect = card.getBoundingClientRect();
-        const cardTop = rect.top;
-        const cardHeight = rect.height;
+    elements.forEach(element => {
+        const rect = element.getBoundingClientRect();
+        const elementTop = rect.top;
+        const elementHeight = rect.height;
 
-        // Calcular la opacidad basada en la posición vertical
-        // Máxima opacidad cuando está en la parte superior (cerca del navbar)
-        // Mínima opacidad cuando está en la parte inferior
+        // Calcular la opacidad basada en la posición en el viewport
         let opacity = 0;
 
-        if (cardTop < viewportHeight && cardTop > -cardHeight) {
-            // La tarjeta está visible en el viewport
+        if (elementTop < viewportHeight && elementTop > -elementHeight) {
+            // El elemento está visible en el viewport
             // Normalizar la posición: 0 (arriba) a 1 (abajo)
-            const normalizedPosition = Math.max(0, Math.min(1, cardTop / (viewportHeight * 0.7)));
+            const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
 
             // Invertir para que la opacidad sea mayor arriba
             opacity = 1 - normalizedPosition;
@@ -482,7 +615,7 @@ function updateCardBorderOpacity() {
         }
 
         // Aplicar la opacidad al borde superior
-        card.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
+        element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
     });
 }
 
@@ -598,12 +731,18 @@ window.addEventListener('load', () => {
         });
     }
 
-    // Ejecutar al hacer scroll
+    // Ejecutar al hacer scroll en la página y en el contenedor de notas
     window.addEventListener('scroll', updateCardBorderOpacity);
 
     const appContent = document.getElementById('app-content');
     if (appContent) {
         appContent.addEventListener('scroll', updateCardBorderOpacity);
+    }
+
+    // Escuchar scroll del contenedor interno de notas
+    const scrollContainer = document.querySelector('.card-container.inverted-split .card-inner-content');
+    if (scrollContainer) {
+        scrollContainer.addEventListener('scroll', updateCardBorderOpacity);
     }
 
     // Ejecutar una vez al cargar y al redimensionar
