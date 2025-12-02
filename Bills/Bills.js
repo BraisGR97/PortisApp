@@ -2,9 +2,6 @@
  * ====================================================================
  * Bills.js - Lógica para la Gestión de Presupuestos
  * ====================================================================
- * 
- * Este módulo gestiona la creación, visualización y eliminación de
- * presupuestos y gastos, soportando modo Mock y Firebase.
  */
 
 // ====================================================================
@@ -12,53 +9,18 @@
 // ====================================================================
 
 const firebaseConfig = window.firebaseConfig;
-const cloudinaryConfig = window.cloudinaryConfig; // Configuración de Cloudinary
-const IS_MOCK_MODE = window.IS_MOCK_MODE;
-
-if (IS_MOCK_MODE) {
-    console.warn("Modo MOCK: Las operaciones de Firestore serán simuladas.");
-}
+const cloudinaryConfig = window.cloudinaryConfig;
+const appId = firebaseConfig ? firebaseConfig.projectId : 'portis-app-id';
 
 let app;
 let db;
 let auth;
-let userId = null;
+let userId = sessionStorage.getItem('portis-user-identifier') || null;
+let userDisplayName = sessionStorage.getItem('portis-user-display-name') || null;
 let isAuthReady = false;
-
-// Clave para guardar los presupuestos en localStorage en Mock Mode
-const MOCK_BILLS_STORAGE_KEY = 'mock_bills_data';
 
 // Cache de datos para búsqueda
 window.currentBillsData = [];
-
-// ====================================================================
-// FUNCIONES AUXILIARES MOCK
-// ====================================================================
-
-/**
- * Obtiene los presupuestos mock guardados.
- */
-function getLocalMockBills() {
-    try {
-        const storedBills = localStorage.getItem(MOCK_BILLS_STORAGE_KEY);
-        return storedBills ? JSON.parse(storedBills) : [];
-    } catch (e) {
-        console.error("Error al leer presupuestos mock:", e);
-        return [];
-    }
-}
-
-/**
- * Guarda los presupuestos mock en localStorage.
- */
-function saveLocalMockBills(bills) {
-    if (!IS_MOCK_MODE) return;
-    try {
-        localStorage.setItem(MOCK_BILLS_STORAGE_KEY, JSON.stringify(bills));
-    } catch (e) {
-        console.error("Error al guardar presupuestos mock:", e);
-    }
-}
 
 // ====================================================================
 // AUTENTICACIÓN Y SETUP
@@ -68,8 +30,6 @@ function saveLocalMockBills(bills) {
  * Valida la sesión del usuario y prepara la interfaz.
  */
 function checkAuthenticationAndSetup() {
-    userId = sessionStorage.getItem('portis-user-identifier');
-    const userDisplayName = sessionStorage.getItem('portis-user-display-name');
     const displayElement = document.getElementById('current-user-display');
 
     if (!userId || !userDisplayName) {
@@ -77,54 +37,7 @@ function checkAuthenticationAndSetup() {
         return;
     }
 
-    if (displayElement) {
-        displayElement.textContent = userDisplayName;
-    }
-
-    if (IS_MOCK_MODE) {
-        setupMockMode();
-    } else {
-        initializeAppAndAuth();
-    }
-
-    // Establecer fecha actual por defecto
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-
-    const dateInput = document.getElementById('bill_date');
-    if (dateInput) {
-        dateInput.value = `${yyyy}-${mm}-${dd}`;
-    }
-
-    document.getElementById('new-bill-form').addEventListener('submit', saveBill);
-}
-
-/**
- * Configura el entorno Mock.
- */
-function setupMockMode() {
-    console.warn("Modo MOCK activado.");
-    isAuthReady = true;
-
-    let mockBills = getLocalMockBills();
-
-    if (mockBills.length === 0) {
-        console.log("Creando datos mock iniciales.");
-        mockBills = [
-            { id: 'm1', concept: 'Presupuesto Inicial', bill_date: new Date().toISOString(), cost: '150.00', notes: 'Revisión general.', imageUrl: '', timestamp: Date.now(), status: 'Pendiente' },
-            { id: 'm2', concept: 'Pieza de Repuesto', bill_date: new Date('2025-10-20').toISOString(), cost: '85.50', notes: 'Pedido a proveedor B.', imageUrl: '', timestamp: Date.now() - 10000, status: 'Pagado' }
-        ];
-        saveLocalMockBills(mockBills);
-    }
-
-    const renderableBills = mockBills.map(b => ({
-        ...b,
-        bill_date: { toDate: () => new Date(b.bill_date) }
-    }));
-
-    renderBills(renderableBills);
+    if (displayElement) displayElement.textContent = userDisplayName;
 }
 
 /**
@@ -148,14 +61,9 @@ async function initializeAppAndAuth() {
                 window.location.href = '../index.html';
             }
         });
-
     } catch (error) {
-        console.error("Error Firebase:", error);
-        document.getElementById('bills-list').innerHTML = `
-            <div class="p-4 text-center text-red-400 border border-red-900 rounded-lg bg-red-900/20">
-                Error de conexión. No se pudo cargar el módulo.
-            </div>
-        `;
+        console.error("Error al inicializar Firebase:", error);
+        alert("Error crítico al cargar la aplicación.");
     }
 }
 
@@ -170,30 +78,27 @@ window.handleImageSelect = async function (event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-        alert("La imagen es demasiado grande. Máximo 5MB.");
-        return;
-    }
+    const previewContainer = document.getElementById('image-preview-container');
+    const preview = document.getElementById('image-preview');
+    const imageUrlInput = document.getElementById('image-url');
 
-    // Mostrar preview
+    // Mostrar previsualización
     const reader = new FileReader();
-    reader.onload = function (e) {
-        const preview = document.getElementById('image-preview');
-        const container = document.getElementById('image-preview-container');
+    reader.onload = (e) => {
         preview.src = e.target.result;
-        container.classList.remove('hidden');
+        previewContainer.classList.remove('hidden');
     };
     reader.readAsDataURL(file);
-
-    document.getElementById('image-filename').textContent = file.name;
 
     // Subir a Cloudinary
     try {
         const imageUrl = await uploadImageToCloudinary(file);
-        document.getElementById('image-url').value = imageUrl;
+        if (imageUrl) {
+            imageUrlInput.value = imageUrl;
+        }
     } catch (error) {
+        console.error("Error al subir imagen:", error);
         alert("Error al subir la imagen. Inténtalo de nuevo.");
-        clearImage();
     }
 };
 
@@ -201,19 +106,21 @@ window.handleImageSelect = async function (event) {
  * Sube una imagen a Cloudinary.
  */
 async function uploadImageToCloudinary(file) {
-    const cloudName = cloudinaryConfig.cloudName;
-    const uploadPreset = cloudinaryConfig.uploadPreset;
+    if (!cloudinaryConfig) {
+        alert("Error: Configuración de Cloudinary no encontrada.");
+        return null;
+    }
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', uploadPreset);
+    formData.append('upload_preset', cloudinaryConfig.uploadPreset);
 
-    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/upload`, {
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/image/upload`, {
         method: 'POST',
         body: formData
     });
 
-    if (!response.ok) throw new Error('Error en la subida a Cloudinary');
+    if (!response.ok) throw new Error('Error al subir imagen');
 
     const data = await response.json();
     return data.secure_url;
@@ -225,8 +132,6 @@ async function uploadImageToCloudinary(file) {
 window.clearImage = function () {
     document.getElementById('image-upload').value = '';
     document.getElementById('image-url').value = '';
-    document.getElementById('image-filename').textContent = '';
-    document.getElementById('image-preview').src = '';
     document.getElementById('image-preview-container').classList.add('hidden');
 };
 
@@ -234,46 +139,39 @@ window.clearImage = function () {
  * Abre el modal de visualización de imagen.
  */
 window.openImageModal = function (imageUrl, title) {
-    if (!imageUrl) return;
-    document.getElementById('view-image-src').src = imageUrl;
-    document.getElementById('view-image-title').textContent = title || 'Imagen del Presupuesto';
-    document.getElementById('view-image-modal').classList.remove('hidden');
-    // Asegurar que el modal se muestre (por si acaso hay conflicto de clases)
-    document.getElementById('view-image-modal').style.display = 'flex';
+    const modal = document.getElementById('view-image-modal');
+    const img = document.getElementById('modal-image');
+    const titleEl = document.getElementById('modal-image-title');
+
+    img.src = imageUrl;
+    titleEl.textContent = title;
+    modal.classList.remove('hidden');
 };
 
 /**
  * Cierra el modal de visualización de imagen.
  */
 window.closeImageModal = function () {
-    const modal = document.getElementById('view-image-modal');
-    modal.classList.add('hidden');
-    modal.style.display = ''; // Limpiar estilo inline
+    document.getElementById('view-image-modal').classList.add('hidden');
 };
-
 
 // ====================================================================
 // FUNCIONES DE FIREBASE
 // ====================================================================
 
 function getBillsCollectionRef() {
-    if (!db || !userId) return null;
     return db.collection(`users/${userId}/bills`);
 }
 
 function setupBillsListener() {
-    if (!db || !isAuthReady || !userId) return;
-
-    const billsQuery = getBillsCollectionRef().orderBy('timestamp', 'desc');
-
-    billsQuery.onSnapshot((snapshot) => {
+    getBillsCollectionRef().onSnapshot((snapshot) => {
         const bills = [];
         snapshot.forEach((doc) => {
             bills.push({ id: doc.id, ...doc.data() });
         });
         renderBills(bills);
     }, (error) => {
-        console.error("Error snapshot:", error);
+        console.error("Error al escuchar cambios:", error);
     });
 }
 
@@ -284,164 +182,86 @@ function setupBillsListener() {
 /**
  * Guarda un nuevo presupuesto.
  */
-async function saveBill(e) {
+window.saveBill = async function (e) {
     e.preventDefault();
-    if (!isAuthReady || !userId) return;
 
-    const form = document.getElementById('new-bill-form');
-    const submitButton = document.getElementById('save-bill-btn');
+    const form = e.target;
+    const submitButton = form.querySelector('button[type="submit"]');
+    const originalButtonText = submitButton.innerHTML;
 
-    const concept = document.getElementById('concept').value.trim();
-    const billDateStr = document.getElementById('bill_date').value;
-    const costInput = document.getElementById('cost').value;
-    const notes = document.getElementById('notes').value.trim();
-    const imageUrl = document.getElementById('image-url').value;
-
-    if (!concept || !billDateStr || !costInput) return;
-
-    const cost = parseFloat(costInput);
-    if (isNaN(cost) || cost < 0) {
-        alert('El coste debe ser un número positivo.');
-        return;
-    }
-
-    submitButton.innerHTML = '<i class="ph ph-circle-notch animate-spin mr-2"></i> Guardando...';
     submitButton.disabled = true;
-
-    const billDate = new Date(billDateStr + 'T00:00:00');
-
-    // MOCK MODE
-    if (IS_MOCK_MODE) {
-        const newMockBill = {
-            id: 'm' + Date.now(),
-            concept,
-            bill_date: billDate.toISOString(),
-            cost: cost.toFixed(2),
-            notes: notes || null,
-            imageUrl: imageUrl || null,
-            status: 'Pendiente',
-            userId: userId,
-            timestamp: Date.now()
-        };
-
-        let mockBills = getLocalMockBills();
-        mockBills.unshift(newMockBill);
-        saveLocalMockBills(mockBills);
-
-        const renderableBills = mockBills.map(b => ({
-            ...b,
-            bill_date: { toDate: () => new Date(b.bill_date) }
-        }));
-        renderBills(renderableBills);
-
-        finishSave(form, submitButton);
-        return;
-    }
-
-    // FIREBASE MODE
-    const billData = {
-        concept,
-        bill_date: firebase.firestore.Timestamp.fromDate(billDate),
-        cost: cost.toFixed(2),
-        notes: notes || null,
-        imageUrl: imageUrl || null,
-        status: 'Pendiente',
-        userId: userId,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    };
+    submitButton.innerHTML = '<i class="ph ph-circle-notch animate-spin mr-2"></i> Guardando...';
 
     try {
-        const billsRef = getBillsCollectionRef();
-        if (billsRef) {
-            await billsRef.add(billData);
-            finishSave(form, submitButton);
+        const concept = document.getElementById('concept').value.trim();
+        const cost = parseFloat(document.getElementById('cost').value);
+        const month = document.getElementById('month').value;
+        const status = document.getElementById('status').value;
+        const notes = document.getElementById('notes').value.trim();
+        const imageUrl = document.getElementById('image-url').value.trim();
+
+        if (!concept || isNaN(cost)) {
+            throw new Error("Por favor, completa todos los campos obligatorios.");
         }
+
+        const billData = {
+            concept,
+            cost: cost.toFixed(2),
+            month,
+            status,
+            notes,
+            imageUrl: imageUrl || '',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        await getBillsCollectionRef().add(billData);
+        finishSave(form, submitButton, originalButtonText);
+
     } catch (error) {
-        console.error("Error guardando:", error);
-        alert("Error al guardar el presupuesto.");
-        submitButton.innerHTML = '<i class="ph ph-floppy-disk mr-2"></i> Guardar Presupuesto';
+        console.error("Error al guardar:", error);
+        alert(error.message || "Error al guardar el presupuesto.");
         submitButton.disabled = false;
+        submitButton.innerHTML = originalButtonText;
     }
-}
+};
 
-function finishSave(form, submitButton) {
+function finishSave(form, submitButton, originalButtonText) {
     form.reset();
-    clearImage(); // Limpiar imagen
-    window.toggleNewBillForm();
-    submitButton.innerHTML = '<i class="ph ph-floppy-disk mr-2"></i> Guardar Presupuesto';
+    window.clearImage();
     submitButton.disabled = false;
+    submitButton.innerHTML = originalButtonText;
 
-    // Restaurar fecha
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    document.getElementById('bill_date').value = `${yyyy}-${mm}-${dd}`;
+    const newBillCard = document.getElementById('new-bill-card');
+    const fab = document.getElementById('show-bill-form-fab');
+
+    newBillCard.classList.add('hidden');
+    fab.classList.remove('rotate-45');
 }
 
 // ====================================================================
 // CRUD - ELIMINAR Y ACTUALIZAR ESTADO
 // ====================================================================
 
-window.deleteBill = async function (id) {
-    if (!isAuthReady || !userId) return;
-
-    if (!confirm("¿Estás seguro de que quieres eliminar este presupuesto?")) return;
-
-    const billElement = document.querySelector(`.bill-card[data-id="${id}"]`);
-    if (billElement) {
-        billElement.classList.add('opacity-0', 'transform', '-translate-x-full');
-        await new Promise(resolve => setTimeout(resolve, 300));
-    }
-
-    if (IS_MOCK_MODE) {
-        let mockBills = getLocalMockBills();
-        mockBills = mockBills.filter(b => b.id !== id);
-        saveLocalMockBills(mockBills);
-
-        const renderableBills = mockBills.map(b => ({
-            ...b,
-            bill_date: { toDate: () => new Date(b.bill_date) }
-        }));
-        renderBills(renderableBills);
-        return;
-    }
+async function deleteBill(id) {
+    if (!confirm('¿Estás seguro de que quieres eliminar este presupuesto?')) return;
 
     try {
-        const billsRef = getBillsCollectionRef();
-        if (billsRef) await billsRef.doc(id).delete();
+        await getBillsCollectionRef().doc(id).delete();
     } catch (error) {
-        console.error("Error eliminando:", error);
-        if (billElement) {
-            billElement.classList.remove('opacity-0', 'transform', '-translate-x-full');
-        }
+        console.error("Error al eliminar:", error);
+        alert("Error al eliminar el presupuesto.");
     }
 }
 
-window.toggleBillStatus = async function (id, newStatus) {
-    if (!isAuthReady || !userId) return;
-
-    if (IS_MOCK_MODE) {
-        let mockBills = getLocalMockBills();
-        const index = mockBills.findIndex(b => b.id === id);
-        if (index !== -1) {
-            mockBills[index].status = newStatus;
-            saveLocalMockBills(mockBills);
-
-            const renderableBills = mockBills.map(b => ({
-                ...b,
-                bill_date: { toDate: () => new Date(b.bill_date) }
-            }));
-            renderBills(renderableBills);
-        }
-        return;
-    }
-
+async function toggleBillStatus(id, newStatus) {
     try {
-        const billsRef = getBillsCollectionRef();
-        if (billsRef) await billsRef.doc(id).update({ status: newStatus });
+        await getBillsCollectionRef().doc(id).update({
+            status: newStatus,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
     } catch (error) {
-        console.error("Error actualizando estado:", error);
+        console.error("Error al actualizar estado:", error);
+        alert("Error al actualizar el estado.");
     }
 }
 
@@ -450,127 +270,73 @@ window.toggleBillStatus = async function (id, newStatus) {
 // ====================================================================
 
 function renderBills(bills, updateCache = true) {
+    const container = document.getElementById('bills-list');
+    const emptyState = document.getElementById('empty-state');
+
     if (updateCache) window.currentBillsData = bills;
 
-    const listContainer = document.getElementById('bills-list');
-    listContainer.innerHTML = '';
-
-    const searchInput = document.getElementById('search-input');
-    const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
-
-    let filteredBills = bills;
-    if (searchTerm) {
-        filteredBills = bills.filter(b =>
-            (b.concept && b.concept.toLowerCase().includes(searchTerm)) ||
-            (b.notes && b.notes.toLowerCase().includes(searchTerm)) ||
-            (b.cost && b.cost.toString().includes(searchTerm))
-        );
-    }
-
-    if (filteredBills.length === 0) {
-        listContainer.innerHTML = `
-            <div class="p-4 text-center rounded-lg" style="background-color: var(--color-bg-secondary); color: var(--color-text-secondary);">
-                ${searchTerm ? 'No se encontraron resultados.' : 'No hay presupuestos registrados.'}
-            </div>
-        `;
+    if (!bills || bills.length === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('hidden');
         return;
     }
 
-    // Ordenar y agrupar
-    filteredBills.sort((a, b) => {
-        const dateA = a.bill_date && a.bill_date.toDate ? a.bill_date.toDate() : new Date(a.bill_date);
-        const dateB = b.bill_date && b.bill_date.toDate ? b.bill_date.toDate() : new Date(b.bill_date);
+    emptyState.classList.add('hidden');
+
+    // Ordenar por fecha de creación (más reciente primero)
+    const sortedBills = [...bills].sort((a, b) => {
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
         return dateB - dateA;
     });
 
-    const billsByMonth = {};
-    filteredBills.forEach(bill => {
-        const dateRaw = bill.bill_date && bill.bill_date.toDate ? bill.bill_date.toDate() : new Date(bill.bill_date);
-        const monthKey = dateRaw.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-        const formattedMonthKey = monthKey.charAt(0).toUpperCase() + monthKey.slice(1);
+    container.innerHTML = sortedBills.map(bill => {
+        const statusClass = bill.status === 'Pagado' ? 'paid' : 'pending';
+        const statusText = bill.status === 'Pagado' ? 'Pagado' : 'Pendiente';
 
-        if (!billsByMonth[formattedMonthKey]) {
-            billsByMonth[formattedMonthKey] = { bills: [], total: 0 };
-        }
-        billsByMonth[formattedMonthKey].bills.push(bill);
-        billsByMonth[formattedMonthKey].total += parseFloat(bill.cost) || 0;
-    });
+        const imageButton = bill.imageUrl ?
+            `<button class="action-btn" data-action="view-image" data-id="${bill.id}" data-url="${bill.imageUrl}" data-concept="${bill.concept}" title="Ver Imagen">
+                <i class="ph ph-image"></i>
+            </button>` : '';
 
-    Object.keys(billsByMonth).forEach(monthKey => {
-        const group = billsByMonth[monthKey];
-
-        const monthHeader = document.createElement('div');
-        monthHeader.className = 'flex justify-between items-center px-2 py-3 mt-4 mb-2 border-b border-dashed';
-        monthHeader.style.borderColor = 'var(--color-border)';
-        monthHeader.innerHTML = `
-            <h3 class="text-lg font-bold" style="color: var(--color-text-primary);">${monthKey}</h3>
-            <span class="text-sm font-semibold px-3 py-1 rounded-full" style="background-color: var(--color-bg-tertiary); color: var(--color-accent-magenta);">
-                Total: ${group.total.toFixed(2)} €
-            </span>
-        `;
-        listContainer.appendChild(monthHeader);
-
-        group.bills.forEach(bill => {
-            const dateRaw = bill.bill_date && bill.bill_date.toDate ? bill.bill_date.toDate() : new Date(bill.bill_date);
-            const formattedDate = dateRaw.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
-
-            const card = document.createElement('div');
-            card.className = 'bill-card';
-            card.setAttribute('data-id', bill.id);
-
-            const statusClass = bill.status === 'Pagado' ? 'paid' : 'pending';
-
-            card.innerHTML = `
-                <div class="flex justify-between items-start mb-2">
-                    <h3 class="font-bold text-lg truncate pr-2 bill-card-title">${bill.concept}</h3>
-                    <span class="status-badge ${statusClass}">
-                        ${bill.status || 'Pendiente'}
-                    </span>
-                </div>
-                
-                <div class="text-sm mb-3 space-y-1 bill-card-content">
-                    <p class="flex items-center gap-2">
-                        <i class="ph ph-calendar-blank"></i>
-                        ${formattedDate}
-                    </p>
-                    <p class="flex items-center gap-2 italic line-clamp-2">
-                        <i class="ph ph-note"></i>
-                        ${bill.notes || 'Sin notas.'}
-                    </p>
-                </div>
-
-                <div class="flex justify-between items-center mt-3 pt-3 border-t" style="border-color: var(--color-border);">
-                    <span class="text-xl font-bold" style="color: var(--color-accent-green);">
-                        ${bill.cost} €
-                    </span>
-                    
-                    <div class="flex gap-2">
-                        ${bill.imageUrl ? `
-                        <button data-action="view-image" data-id="${bill.id}"
-                            class="secondary-icon-btn p-2 rounded-full hover:text-blue-500 hover:border-blue-500" 
-                            title="Ver Imagen">
-                            <i class="ph ph-image text-lg pointer-events-none"></i>
-                        </button>
-                        ` : ''}
-                        
-                        ${bill.status !== 'Pagado' ? `
-                        <button data-action="pay" data-id="${bill.id}"
-                            class="secondary-icon-btn p-2 rounded-full hover:text-green-500 hover:border-green-500" 
-                            title="Marcar como Pagado">
-                            <i class="ph ph-check-circle text-lg pointer-events-none"></i>
-                        </button>
-                        ` : ''}
-                        <button data-action="delete" data-id="${bill.id}"
-                            class="secondary-icon-btn p-2 rounded-full hover:text-red-500 hover:border-red-500" 
-                            title="Eliminar">
-                            <i class="ph ph-trash text-lg pointer-events-none"></i>
-                        </button>
+        return `
+            <div class="bill-card" data-id="${bill.id}">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="flex-1">
+                        <h3 class="bill-card-title text-lg font-semibold mb-1">${bill.concept}</h3>
+                        <p class="bill-card-content text-sm mb-2">
+                            <i class="ph ph-calendar-blank mr-1"></i>
+                            ${bill.month}
+                        </p>
+                        <p class="bill-card-content text-sm">
+                            <i class="ph ph-currency-eur mr-1"></i>
+                            ${parseFloat(bill.cost).toFixed(2)} €
+                        </p>
                     </div>
+                    <span class="status-badge ${statusClass}">${statusText}</span>
                 </div>
-            `;
-            listContainer.appendChild(card);
-        });
-    });
+
+                ${bill.notes ? `
+                    <div class="mb-3">
+                        <p class="bill-card-content text-sm line-clamp-2">
+                            <i class="ph ph-note mr-1"></i>
+                            ${bill.notes}
+                        </p>
+                    </div>
+                ` : ''}
+
+                <div class="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-700">
+                    ${imageButton}
+                    <button class="action-btn" data-action="toggle-status" data-id="${bill.id}" data-status="${bill.status}" title="Cambiar Estado">
+                        <i class="ph ${bill.status === 'Pagado' ? 'ph-x-circle' : 'ph-check-circle'}"></i>
+                    </button>
+                    <button class="action-btn delete-btn" data-action="delete" data-id="${bill.id}" title="Eliminar">
+                        <i class="ph ph-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
 
     setTimeout(updateCardBorderOpacity, 50);
 }
@@ -579,7 +345,7 @@ function renderBills(bills, updateCache = true) {
  * Actualiza la opacidad del borde superior de las tarjetas (Efecto Visual).
  */
 function updateCardBorderOpacity() {
-    const elements = document.querySelectorAll('.bill-card, .card-container');
+    const elements = document.querySelectorAll('.bill-card');
     const viewportHeight = window.innerHeight;
 
     elements.forEach(element => {
@@ -600,21 +366,22 @@ function updateCardBorderOpacity() {
 }
 
 function handleBillActions(e) {
-    const button = e.target.closest('button[data-action][data-id]');
+    const button = e.target.closest('[data-action]');
     if (!button) return;
 
     const action = button.dataset.action;
     const id = button.dataset.id;
 
     if (action === 'delete') {
-        window.deleteBill(id);
-    } else if (action === 'pay') {
-        window.toggleBillStatus(id, 'Pagado');
+        deleteBill(id);
+    } else if (action === 'toggle-status') {
+        const currentStatus = button.dataset.status;
+        const newStatus = currentStatus === 'Pagado' ? 'Pendiente' : 'Pagado';
+        toggleBillStatus(id, newStatus);
     } else if (action === 'view-image') {
-        const bill = window.currentBillsData.find(b => b.id === id);
-        if (bill && bill.imageUrl) {
-            window.openImageModal(bill.imageUrl, bill.concept);
-        }
+        const imageUrl = button.dataset.url;
+        const concept = button.dataset.concept;
+        window.openImageModal(imageUrl, concept);
     }
 }
 
@@ -622,53 +389,39 @@ window.toggleSearch = function () {
     const searchContainer = document.getElementById('search-container');
     const searchInput = document.getElementById('search-input');
 
-    if (searchContainer && searchInput) {
-        const isHidden = searchContainer.classList.contains('hidden');
-        if (isHidden) {
-            searchContainer.classList.remove('hidden');
-            searchInput.focus();
-        } else {
-            searchContainer.classList.add('hidden');
-            searchInput.value = '';
-            searchInput.dispatchEvent(new Event('input'));
-        }
+    searchContainer.classList.toggle('hidden');
+
+    if (!searchContainer.classList.contains('hidden')) {
+        searchInput.focus();
+    } else {
+        searchInput.value = '';
+        renderBills(window.currentBillsData, false);
     }
-}
+};
 
 window.toggleNewBillForm = function () {
-    const card = document.getElementById('new-bill-card');
+    const newBillCard = document.getElementById('new-bill-card');
     const fab = document.getElementById('show-bill-form-fab');
-    const form = document.getElementById('new-bill-form');
-
-    if (!card || !fab) return;
-
-    const isHidden = card.classList.contains('hidden');
+    const isHidden = newBillCard.classList.contains('hidden');
 
     if (isHidden) {
-        card.classList.remove('hidden');
+        newBillCard.classList.remove('hidden');
         fab.classList.add('rotate-45');
-        fab.querySelector('i').classList.replace('ph-plus', 'ph-x');
-        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.clearImage();
+        document.getElementById('new-bill-form').reset();
 
-        if (form && !document.getElementById('bill-id').value) {
-            form.reset();
-            clearImage(); // Limpiar imagen al abrir
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            document.getElementById('bill_date').value = `${yyyy}-${mm}-${dd}`;
-        }
+        setTimeout(() => {
+            newBillCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
     } else {
-        card.classList.add('hidden');
+        newBillCard.classList.add('hidden');
         fab.classList.remove('rotate-45');
-        fab.querySelector('i').classList.replace('ph-x', 'ph-plus');
     }
-}
+};
 
 window.cancelEdit = function () {
     window.toggleNewBillForm();
-}
+};
 
 // ====================================================================
 // INICIALIZACIÓN
@@ -684,26 +437,33 @@ window.addEventListener('load', () => {
     });
 
     checkAuthenticationAndSetup();
+    initializeAppAndAuth();
 
-    const listContainer = document.getElementById('bills-list');
-    if (listContainer) {
-        listContainer.addEventListener('click', handleBillActions);
-    }
+    // Event Listeners
+    const billsList = document.getElementById('bills-list');
+    if (billsList) billsList.addEventListener('click', handleBillActions);
 
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
-        searchInput.addEventListener('input', () => {
-            if (window.currentBillsData) {
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            if (!query) {
                 renderBills(window.currentBillsData, false);
+                return;
             }
+
+            const filtered = window.currentBillsData.filter(bill =>
+                bill.concept.toLowerCase().includes(query) ||
+                bill.month.toLowerCase().includes(query) ||
+                bill.notes?.toLowerCase().includes(query)
+            );
+
+            renderBills(filtered, false);
         });
     }
 
     // Efectos visuales
-    window.addEventListener('scroll', updateCardBorderOpacity);
-    const appContent = document.getElementById('app-content');
-    if (appContent) appContent.addEventListener('scroll', updateCardBorderOpacity);
-    const scrollContainer = document.querySelector('.card-container.inverted-split .card-inner-content');
+    const scrollContainer = document.getElementById('app-content');
     if (scrollContainer) scrollContainer.addEventListener('scroll', updateCardBorderOpacity);
 
     setTimeout(updateCardBorderOpacity, 100);
