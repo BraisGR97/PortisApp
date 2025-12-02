@@ -121,8 +121,8 @@ function setupSharedListener() {
     console.log('[SHARED] Configurando listener de recibidos para userId:', userId);
 
     try {
-        db.collection('shared_maintenance')
-            .where('receiverId', '==', userId)
+        db.collection('shared') // Corregido: shared_maintenance -> shared
+            .where('recipientId', '==', userId) // Corregido: receiverId -> recipientId
             .onSnapshot((snapshot) => {
                 const received = [];
                 snapshot.forEach((doc) => {
@@ -412,7 +412,7 @@ window.shareRepair = async function (repairId) {
     const sharedData = {
         senderId: userId,
         senderName: userDisplayName,
-        receiverId: recipientId,
+        recipientId: recipientId, // Corregido: receiverId -> recipientId
         recipientName: recipientName,
         repairData: repair,
         includeRecords: includeRecords,
@@ -423,8 +423,19 @@ window.shareRepair = async function (repairId) {
     // Incluir registros si está marcado
     if (includeRecords) {
         try {
-            const historyRef = db.collection(`users/${userId}/history`)
+            // NOTA: Según las reglas, history está en la raíz, no en users/{userId}/history
+            // Pero el código original usaba users/{userId}/history. 
+            // Si las reglas dicen match /history/{historyId}, entonces debería ser db.collection('history').
+            // Sin embargo, voy a respetar la estructura actual de Shared.js para history por ahora
+            // y solo corregir 'shared', a menos que history también falle aquí.
+            // Las reglas dicen: match /history/{historyId}.
+            // Entonces users/${userId}/history NO funcionará si no está definido en users.
+            // Voy a corregir history también aquí para prevenir errores.
+
+            const historyRef = db.collection('history')
+                .where('userId', '==', userId)
                 .where('location', '==', repair.location);
+
             const snapshot = await historyRef.get();
             sharedData.records = [];
             snapshot.forEach(doc => {
@@ -435,10 +446,10 @@ window.shareRepair = async function (repairId) {
         }
     }
 
-    // Guardar en base de datos o mock
+    // Guardar en base de datos
     try {
         if (!db) return;
-        await db.collection('shared_maintenance').add({
+        await db.collection('shared').add({ // Corregido: shared_maintenance -> shared
             ...sharedData,
             expiresAt: new Date(sharedData.expiresAt)
         });

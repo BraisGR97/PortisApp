@@ -204,7 +204,7 @@ async function handleProfileEdit() {
 
 async function loadAndCalculateStats() {
     console.log('[PROFILE] Iniciando carga de estadísticas...');
-    let repairs = [], bills = [], notes = [], history = [];
+    let repairs = [], bills = [], history = [];
     let sharedSent = [], sharedReceived = [];
 
     try {
@@ -214,22 +214,18 @@ async function loadAndCalculateStats() {
         const results = await Promise.allSettled([
             db.collection(`users/${userId}/repairs`).get(),
             db.collection(`users/${userId}/bills`).get(),
-            db.collection(`users/${userId}/notes`).get(),
-            db.collection(`users/${userId}/history`).get(),
-            db.collection('shared_maintenance').where('senderId', '==', userId).get(),
-            db.collection('shared_maintenance').where('receiverId', '==', userId).get()
+            db.collection('history').where('userId', '==', userId).get(),
+            db.collection('shared').where('senderId', '==', userId).get(),
+            db.collection('shared').where('recipientId', '==', userId).get()
         ]);
 
-        const [repairsResult, billsResult, notesResult, historyResult, sentResult, receivedResult] = results;
+        const [repairsResult, billsResult, historyResult, sentResult, receivedResult] = results;
 
         if (repairsResult.status === 'fulfilled') repairsResult.value.forEach(doc => repairs.push(doc.data()));
         else console.error('[PROFILE] Error cargando repairs:', repairsResult.reason);
 
         if (billsResult.status === 'fulfilled') billsResult.value.forEach(doc => bills.push(doc.data()));
         else console.error('[PROFILE] Error cargando bills:', billsResult.reason);
-
-        if (notesResult.status === 'fulfilled') notesResult.value.forEach(doc => notes.push(doc.data()));
-        else console.error('[PROFILE] Error cargando notes:', notesResult.reason);
 
         if (historyResult.status === 'fulfilled') historyResult.value.forEach(doc => history.push(doc.data()));
         else console.error('[PROFILE] Error cargando history:', historyResult.reason);
@@ -243,7 +239,6 @@ async function loadAndCalculateStats() {
         console.log('[PROFILE] Datos cargados:', {
             repairs: repairs.length,
             bills: bills.length,
-            notes: notes.length,
             history: history.length,
             sharedSent: sharedSent.length,
             sharedReceived: sharedReceived.length
@@ -257,7 +252,6 @@ async function loadAndCalculateStats() {
     // Cálculos
     const repairsCount = repairs.length;
     const billsCount = bills.length;
-    const notesCount = notes.length;
     const historyCount = history.length;
     const sentCount = sharedSent.length;
     const receivedCount = sharedReceived.length;
@@ -297,7 +291,6 @@ async function loadAndCalculateStats() {
     // Renderizar Textos
     updateStat('stat-repairs-count', repairsCount);
     updateStat('stat-history-count', historyCount);
-    updateStat('stat-notes-count', notesCount);
     updateStat('stat-high-priority', highPriorityCount);
     updateStat('stat-shared-total', totalShared);
     updateStat('stat-shared-split', `${sentCount} Env / ${receivedCount} Rec`);
@@ -308,7 +301,6 @@ async function loadAndCalculateStats() {
     console.log('[PROFILE] Estadísticas calculadas:', {
         repairsCount,
         historyCount,
-        notesCount,
         highPriorityCount,
         totalShared,
         billsCount,
@@ -348,7 +340,7 @@ function renderWorkloadChart(currentMonth, total) {
                 labels: ['Este Mes', 'Resto'],
                 datasets: [{
                     data: [currentMonth, Math.max(0, total - currentMonth)],
-                    backgroundColor: ['#E91E63', '#2a2a3e'],
+                    backgroundColor: ['#FF4081', '#3F51B5'], // Colores más vivos
                     borderWidth: 0,
                     hoverOffset: 4
                 }]
@@ -384,7 +376,8 @@ function renderSharedChart(sent, received) {
                 labels: ['Enviados', 'Recibidos'],
                 datasets: [{
                     data: [sent, received],
-                    backgroundColor: ['#9C27B0', '#2196F3'],
+                    data: [sent, received],
+                    backgroundColor: ['#E040FB', '#00B0FF'], // Colores más vivos
                     borderWidth: 0
                 }]
             },
@@ -419,7 +412,7 @@ function renderExpensesChart(paid, pending) {
                 datasets: [{
                     label: 'Importe (€)',
                     data: [paid, pending],
-                    backgroundColor: ['#4CAF50', '#FF9800'],
+                    backgroundColor: ['#00E676', '#FFAB40'], // Colores más vivos
                     borderRadius: 6,
                     barThickness: 40
                 }]

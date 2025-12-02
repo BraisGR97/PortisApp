@@ -40,7 +40,7 @@ function checkAuthenticationAndSetup() {
     }
 
     if (displayElement) displayElement.textContent = userDisplayName;
-    
+
     initializeAppAndAuth();
 }
 
@@ -199,19 +199,25 @@ window.saveBill = async function (e) {
     try {
         const concept = document.getElementById('concept').value.trim();
         const cost = parseFloat(document.getElementById('cost').value);
-        const month = document.getElementById('month').value;
-        const status = document.getElementById('status').value;
+        const dateValue = document.getElementById('date').value;
+        const status = 'Pendiente'; // Siempre se crea en Pendiente
         const notes = document.getElementById('notes').value.trim();
         const imageUrl = document.getElementById('image-url').value.trim();
 
-        if (!concept || isNaN(cost)) {
+        if (!concept || isNaN(cost) || !dateValue) {
             throw new Error("Por favor, completa todos los campos obligatorios.");
         }
+
+        // Formatear fecha para mostrar (ej: "12 de Octubre de 2023")
+        const dateObj = new Date(dateValue);
+        const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        const formattedDate = `${dateObj.getDate()} de ${monthNames[dateObj.getMonth()]} de ${dateObj.getFullYear()}`;
 
         const billData = {
             concept,
             cost: cost.toFixed(2),
-            month,
+            month: formattedDate, // Guardamos la fecha formateada en el campo 'month' para compatibilidad
+            rawDate: dateValue,   // Guardamos también la fecha cruda por si acaso
             status,
             notes,
             imageUrl: imageUrl || '',
@@ -413,6 +419,10 @@ window.toggleNewBillForm = function () {
         fab.classList.add('rotate-45');
         window.clearImage();
         document.getElementById('new-bill-form').reset();
+
+        // Establecer fecha actual por defecto
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('date').value = today;
 
         setTimeout(() => {
             newBillCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
