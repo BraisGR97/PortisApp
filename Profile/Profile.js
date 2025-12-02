@@ -203,7 +203,6 @@ async function handleProfileEdit() {
 // ====================================================================
 
 async function loadAndCalculateStats() {
-    console.log('[PROFILE] Iniciando carga de estadísticas...');
     let repairs = [], bills = [], history = [];
     let sharedSent = [], sharedReceived = [];
 
@@ -235,14 +234,6 @@ async function loadAndCalculateStats() {
 
         if (receivedResult.status === 'fulfilled') receivedResult.value.forEach(doc => sharedReceived.push(doc.data()));
         else console.error('[PROFILE] Error cargando sharedReceived:', receivedResult.reason);
-
-        console.log('[PROFILE] Datos cargados:', {
-            repairs: repairs.length,
-            bills: bills.length,
-            history: history.length,
-            sharedSent: sharedSent.length,
-            sharedReceived: sharedReceived.length
-        });
 
     } catch (error) {
         console.error("[PROFILE] Error cargando datos:", error);
@@ -298,23 +289,12 @@ async function loadAndCalculateStats() {
     updateStat('stat-total-cost', `${totalCost.toFixed(2)} €`);
     updateStat('stat-paid-cost', `${totalPaid.toFixed(2)} €`);
 
-    console.log('[PROFILE] Estadísticas calculadas:', {
-        repairsCount,
-        historyCount,
-        highPriorityCount,
-        totalShared,
-        billsCount,
-        totalCost: totalCost.toFixed(2),
-        totalPaid: totalPaid.toFixed(2),
-        currentMonthWorkload
-    });
+
 
     // Renderizar Gráficos
-    console.log('[PROFILE] Renderizando gráficos...');
     renderWorkloadChart(currentMonthWorkload, repairsCount);
     renderSharedChart(sentCount, receivedCount);
     renderExpensesChart(totalPaid, totalCost - totalPaid);
-    console.log('[PROFILE] Gráficos renderizados correctamente');
 }
 
 function updateStat(id, value) {

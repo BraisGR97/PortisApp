@@ -118,7 +118,7 @@ function setupSharedListener() {
         return;
     }
 
-    console.log('[SHARED] Configurando listener de recibidos para userId:', userId);
+
 
     try {
         db.collection('shared') // Corregido: shared_maintenance -> shared
@@ -141,7 +141,6 @@ function setupSharedListener() {
                     }
                 });
 
-                console.log('[SHARED] Recibidos actualizados:', received.length);
                 sharedReceived = received;
                 renderReceivedList(received);
             }, (error) => {
@@ -479,7 +478,6 @@ window.shareRepair = async function (repairId) {
                 includeRecords: includeRecords,
                 records: sharedData.records || []
             });
-            console.log("Compartido actualizado extendiendo expiración.");
         } else {
             // Crear nuevo
             await db.collection('shared').add({

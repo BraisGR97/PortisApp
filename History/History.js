@@ -8,18 +8,13 @@
 // 1. CONFIGURACIÓN Y VARIABLES GLOBALES
 // -----------------------------------------------------------------
 const firebaseConfig = window.firebaseConfig;
-const IS_MOCK_MODE = window.IS_MOCK_MODE;
-
-if (IS_MOCK_MODE) {
-    console.warn("History: Modo MOCK activado.");
-}
-
-const appId = firebaseConfig ? firebaseConfig.projectId : 'mock-app-id';
+const appId = firebaseConfig ? firebaseConfig.projectId : 'portis-app-id';
 
 let app;
 let db;
 let auth;
-let userId = null;
+let userId = sessionStorage.getItem('portis-user-identifier') || null;
+let userDisplayName = sessionStorage.getItem('portis-user-display-name') || null;
 let isAuthReady = false;
 
 // Variables de estado
@@ -27,53 +22,9 @@ let currentView = 'maintenances'; // 'maintenances' o 'records'
 let currentMaintenanceId = null;
 let currentMaintenanceLocation = null;
 
-// Claves de localStorage
-const MOCK_HISTORY_STORAGE_KEY = 'mock_history_data';
-const MOCK_REPAIRS_KEY = 'portis-repairs-mock';
-
 // Cache de datos
 let allMaintenancesData = [];
 let allRecordsData = [];
-
-/**
- * Función auxiliar para obtener
-
- el historial mock guardado.
- */
-function getLocalMockHistory() {
-    try {
-        const storedHistory = localStorage.getItem(MOCK_HISTORY_STORAGE_KEY);
-        return storedHistory ? JSON.parse(storedHistory) : [];
-    } catch (e) {
-        console.error("Error al leer historial mock de localStorage:", e);
-        return [];
-    }
-}
-
-/**
- * Función auxiliar para guardar el historial mock en localStorage.
- */
-function saveLocalMockHistory(history) {
-    if (!IS_MOCK_MODE) return;
-    try {
-        localStorage.setItem(MOCK_HISTORY_STORAGE_KEY, JSON.stringify(history));
-    } catch (e) {
-        console.error("Error al guardar historial mock en localStorage:", e);
-    }
-}
-
-/**
- * Función auxiliar para obtener mantenimientos mock.
- */
-function getLocalMockRepairs() {
-    try {
-        const storedRepairs = localStorage.getItem(MOCK_REPAIRS_KEY);
-        return storedRepairs ? JSON.parse(storedRepairs) : [];
-    } catch (e) {
-        console.error("Error al leer mantenimientos mock de localStorage:", e);
-        return [];
-    }
-}
 
 // -----------------------------------------------------------------
 // 2. AUTENTICACIÓN Y SETUP
@@ -85,7 +36,6 @@ function checkAuthenticationAndSetup() {
     const displayElement = document.getElementById('current-user-display');
 
     if (!userId || !userDisplayName) {
-        console.warn("Sesión no válida o caducada. Redirigiendo a Index.");
         window.location.href = '../index.html';
         return;
     }
@@ -94,13 +44,7 @@ function checkAuthenticationAndSetup() {
         displayElement.textContent = userDisplayName;
     }
 
-    if (IS_MOCK_MODE) {
-        console.warn("Modo MOCK activado. Usando datos no persistentes.");
-        isAuthReady = true;
-        loadMaintenances();
-    } else {
-        initializeAppAndAuth();
-    }
+    initializeAppAndAuth();
 }
 
 async function initializeAppAndAuth() {
@@ -118,7 +62,6 @@ async function initializeAppAndAuth() {
                 isAuthReady = true;
                 loadMaintenances();
             } else {
-                console.warn("Firebase no detecta sesión activa. Redirigiendo.");
                 window.location.href = '../index.html';
             }
         });
@@ -126,7 +69,7 @@ async function initializeAppAndAuth() {
     } catch (error) {
         console.error("Error al inicializar Firebase o al autenticar:", error);
         document.getElementById('maintenances-list').innerHTML = `
-            <div class="message-error p-3 mt-4 text-red-400 bg-red-900/40 border border-red-900 rounded-lg">
+            <div class="p-3 mt-4 text-red-400 bg-red-900/40 border border-red-900 rounded-lg">
                 Error de conexión. No se pudo cargar el historial.
             </div>
         `;
@@ -144,52 +87,33 @@ function getRepairsCollectionRef() {
 
 function getHistoryCollectionRef() {
     if (!db || !userId) return null;
-    // Colección raíz 'history' según las reglas de Firestore
-    // Filtraremos por userId en las queries
+    // Colección raíz 'history', filtrada por userId
     return db.collection('history');
 }
 
 async function loadMaintenances() {
-    if (IS_MOCK_MODE) {
-        // En mock mode, obtenemos todos los mantenimientos únicos
-        const mockRepairs = getLocalMockRepairs();
-        // Agrupamos por location para simular "mantenimientos únicos"
-        const uniqueMaintenances = [];
+    try {
+        const repairsRef = getRepairsCollectionRef();
+        if (!repairsRef) return;
+
+        const snapshot = await repairsRef.get();
+        const maintenances = [];
         const seen = new Set();
 
-        mockRepairs.forEach(repair => {
-            const key = `${repair.location}-${repair.model || ''}-${repair.contract}`;
+        snapshot.forEach(doc => {
+            const data = { id: doc.id, ...doc.data() };
+            // Agrupar por ubicación y contrato para mostrar mantenimientos únicos
+            const key = `${data.location}-${data.model || ''}-${data.contract}`;
             if (!seen.has(key)) {
                 seen.add(key);
-                uniqueMaintenances.push(repair);
+                maintenances.push(data);
             }
         });
 
-        allMaintenancesData = uniqueMaintenances;
-        renderMaintenances(uniqueMaintenances);
-    } else {
-        try {
-            const repairsRef = getRepairsCollectionRef();
-            if (!repairsRef) return;
-
-            const snapshot = await repairsRef.get();
-            const maintenances = [];
-            const seen = new Set();
-
-            snapshot.forEach(doc => {
-                const data = { id: doc.id, ...doc.data() };
-                const key = `${data.location}-${data.model || ''}-${data.contract}`;
-                if (!seen.has(key)) {
-                    seen.add(key);
-                    maintenances.push(data);
-                }
-            });
-
-            allMaintenancesData = maintenances;
-            renderMaintenances(maintenances);
-        } catch (error) {
-            console.error("Error al cargar mantenimientos:", error);
-        }
+        allMaintenancesData = maintenances;
+        renderMaintenances(maintenances);
+    } catch (error) {
+        console.error("Error al cargar mantenimientos:", error);
     }
 }
 
@@ -198,44 +122,34 @@ async function loadRecords(maintenanceId, location) {
     currentMaintenanceLocation = location;
 
     document.getElementById('records-title').innerHTML = `
-        <i class="ph ph-clock-counter-clockwise" style="color: var(--color-accent-red);"></i>
+        <i class="ph ph-clock-counter-clockwise card-icon"></i>
         Registros: ${location}
     `;
 
-    if (IS_MOCK_MODE) {
-        const mockHistory = getLocalMockHistory();
-        const records = mockHistory.filter(record =>
-            record.location === location
-        );
+    try {
+        const historyRef = getHistoryCollectionRef();
+        if (!historyRef) return;
+
+        const snapshot = await historyRef
+            .where('userId', '==', userId)
+            .where('location', '==', location)
+            .orderBy('completedAt', 'desc')
+            .get();
+
+        const records = [];
+        snapshot.forEach(doc => {
+            records.push({ id: doc.id, ...doc.data() });
+        });
+
         allRecordsData = records;
         renderRecords(records);
-    } else {
-        try {
-            const historyRef = getHistoryCollectionRef();
-            if (!historyRef) return;
-
-            // Filtrar por userId y location según las reglas de Firestore
-            const snapshot = await historyRef
-                .where('userId', '==', userId)
-                .where('location', '==', location)
-                .orderBy('completedAt', 'desc')
-                .get();
-
-            const records = [];
-            snapshot.forEach(doc => {
-                records.push({ id: doc.id, ...doc.data() });
-            });
-
-            allRecordsData = records;
-            renderRecords(records);
-        } catch (error) {
-            console.error("Error al cargar registros:", error);
-            document.getElementById('records-list').innerHTML = `
-                <div class="message-error p-3 text-red-400 bg-red-900/40 border border-red-900 rounded-lg">
-                    Error al cargar los registros.
-                </div>
-            `;
-        }
+    } catch (error) {
+        console.error("Error al cargar registros:", error);
+        document.getElementById('records-list').innerHTML = `
+            <div class="p-3 text-red-400 bg-red-900/40 border border-red-900 rounded-lg">
+                Error al cargar los registros.
+            </div>
+        `;
     }
 }
 
@@ -249,8 +163,9 @@ function renderMaintenances(maintenances) {
 
     if (maintenances.length === 0) {
         listContainer.innerHTML = `
-            <div class="p-4 text-center rounded-lg" style="background-color: var(--color-bg-secondary); color: var(--color-text-secondary);">
-                No hay mantenimientos registrados.
+            <div class="p-4 text-center rounded-lg" style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);">
+                <i class="ph ph-folder-open text-4xl mb-2"></i>
+                <p>No hay mantenimientos registrados.</p>
             </div>
         `;
         return;
@@ -263,36 +178,26 @@ function renderMaintenances(maintenances) {
         const card = createMaintenanceCard(maintenance);
         listContainer.appendChild(card);
     });
+
+    setTimeout(updateCardBorderOpacity, 50);
 }
 
 function createMaintenanceCard(item) {
     const card = document.createElement('div');
-    card.className = 'repair-card p-4 rounded-xl shadow-sm border relative group cursor-pointer transition-all duration-200 hover:shadow-md';
-    card.style.backgroundColor = 'var(--color-bg-secondary)';
-    card.style.borderColor = 'var(--color-border)';
+    card.className = 'repair-card';
 
-    const priorityColors = {
-        'alta': 'text-red-500',
-        'high': 'text-red-500',
-        'media': 'text-yellow-500',
-        'medium': 'text-yellow-500',
-        'baja': 'text-green-500',
-        'low': 'text-green-500'
-    };
-    const priorityKey = item.priority ? item.priority.toLowerCase() : 'low';
-    const priorityColor = priorityColors[priorityKey] || 'text-gray-500';
+    // Asignar clase de prioridad
+    const priorityKey = (item.priority || 'baja').toLowerCase();
+    const priorityClass = priorityKey === 'alta' || priorityKey === 'high' ? 'priority-alta' :
+        priorityKey === 'media' || priorityKey === 'medium' ? 'priority-media' : 'priority-baja';
+    card.classList.add(priorityClass);
 
     const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     const monthIndex = (item.maintenance_month >= 1 && item.maintenance_month <= 12) ? item.maintenance_month - 1 : 0;
     const maintenanceDate = `${monthNames[monthIndex]} de ${item.maintenance_year}`;
 
-    const priorityTranslations = {
-        'high': 'Alta',
-        'medium': 'Media',
-        'low': 'Baja'
-    };
-    const priorityLower = (item.priority || 'baja').toLowerCase();
-    const displayPriority = priorityTranslations[priorityLower] || (item.priority ? item.priority.charAt(0).toUpperCase() + item.priority.slice(1) : 'Baja');
+    const priorityTranslations = { 'high': 'Alta', 'medium': 'Media', 'low': 'Baja' };
+    const displayPriority = priorityTranslations[priorityKey] || (item.priority ? item.priority.charAt(0).toUpperCase() + item.priority.slice(1) : 'Baja');
 
     card.innerHTML = `
         <div class="flex justify-between items-start mb-2">
@@ -316,8 +221,8 @@ function createMaintenanceCard(item) {
         </div>
 
         <div class="flex justify-between items-center mt-3 pt-3 border-t" style="border-color: var(--color-border);">
-            <span class="text-sm font-semibold ${priorityColor}">
-                <i class="ph ph-warning-circle mr-1"></i> ${displayPriority}
+            <span class="text-sm font-semibold flex items-center gap-1">
+                <i class="ph ph-warning-circle"></i> ${displayPriority}
             </span>
             
             <button class="action-btn p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-blue-500" 
@@ -340,42 +245,32 @@ function renderRecords(records) {
 
     if (records.length === 0) {
         listContainer.innerHTML = `
-            <div class="p-4 text-center rounded-lg" style="background-color: var(--color-bg-secondary); color: var(--color-text-secondary);">
-                No hay registros de este mantenimiento.
+            <div class="p-4 text-center rounded-lg" style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);">
+                <i class="ph ph-clock-counter-clockwise text-4xl mb-2"></i>
+                <p>No hay registros de este mantenimiento.</p>
             </div>
         `;
         return;
     }
 
-    // 🔑 Ordenar por fecha descendente (más reciente arriba)
-    records.sort((a, b) => {
-        const dateA = a.completedAt ? (a.completedAt.toDate ? a.completedAt.toDate() : new Date(a.completedAt)) : new Date(0);
-        const dateB = b.completedAt ? (b.completedAt.toDate ? b.completedAt.toDate() : new Date(b.completedAt)) : new Date(0);
-        return dateB - dateA;
-    });
-
     records.forEach(record => {
         const card = createRecordCard(record);
         listContainer.appendChild(card);
     });
+
+    setTimeout(updateCardBorderOpacity, 50);
 }
 
 function createRecordCard(record) {
     const card = document.createElement('div');
-    card.className = 'repair-card p-4 rounded-xl shadow-sm border relative group cursor-pointer transition-all duration-200 hover:shadow-md';
-    card.style.backgroundColor = 'var(--color-bg-secondary)';
-    card.style.borderColor = 'var(--color-border)';
+    card.className = 'repair-card';
 
     // Formatear fecha de completado
     let completedDate = 'Fecha no disponible';
     if (record.completedAt) {
         const date = record.completedAt.toDate ? record.completedAt.toDate() : new Date(record.completedAt);
         completedDate = date.toLocaleDateString('es-ES', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+            day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
         });
     }
 
@@ -422,6 +317,30 @@ function createRecordCard(record) {
     return card;
 }
 
+/**
+ * Actualiza la opacidad del borde superior de las tarjetas (Efecto Visual).
+ */
+function updateCardBorderOpacity() {
+    const elements = document.querySelectorAll('.repair-card');
+    const viewportHeight = window.innerHeight;
+
+    elements.forEach(element => {
+        const rect = element.getBoundingClientRect();
+        const elementTop = rect.top;
+        const elementHeight = rect.height;
+
+        let opacity = 0;
+
+        if (elementTop < viewportHeight && elementTop > -elementHeight) {
+            const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
+            opacity = 1 - normalizedPosition;
+            opacity = 0.2 + (opacity * 0.8);
+        }
+
+        element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
+    });
+}
+
 // -----------------------------------------------------------------
 // 5. FUNCIONES DE NAVEGACIÓN
 // -----------------------------------------------------------------
@@ -438,7 +357,7 @@ function showMaintenancesView() {
     currentView = 'maintenances';
     document.getElementById('maintenances-view').classList.remove('hidden');
     document.getElementById('records-view').classList.add('hidden');
-    document.getElementById('page-title').textContent = 'Historial de Mantenimientos';
+    document.getElementById('page-title').textContent = 'Historial';
     currentMaintenanceId = null;
     currentMaintenanceLocation = null;
 }
@@ -463,11 +382,7 @@ function showRecordDetailsModal(record) {
     if (record.completedAt) {
         const date = record.completedAt.toDate ? record.completedAt.toDate() : new Date(record.completedAt);
         completedDate = date.toLocaleDateString('es-ES', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+            day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
         });
     }
 
@@ -478,15 +393,15 @@ function showRecordDetailsModal(record) {
     const contact = record.contact || {};
 
     const modalContent = `
-        <div class="modal-header p-4 border-b flex justify-between items-center" style="border-color: var(--color-border);">
+        <div class="modal-header p-4 border-b flex justify-between items-center">
             <h2 class="text-xl font-bold">Detalles del Registro</h2>
-            <button onclick="closeRecordModal()" class="secondary-icon-btn p-1 rounded-full border-2" style="border-color: var(--color-border);">
+            <button onclick="closeRecordModal()" class="secondary-icon-btn p-1 rounded-full border-2">
                 <i class="ph ph-x text-2xl"></i>
             </button>
         </div>
 
         <div class="modal-body p-4">
-            <div class="mb-4 p-3 rounded-lg" style="background-color: var(--color-bg-tertiary);">
+            <div class="mb-4 p-3 rounded-lg info-box">
                 <p class="text-lg font-semibold mb-2" style="color: var(--color-accent-blue);">
                     <i class="ph ph-calendar-check mr-2"></i> ${completedDate}
                 </p>
@@ -558,7 +473,7 @@ function showRecordDetailsModal(record) {
             ` : ''}
         </div>
 
-        <div class="modal-footer p-4 border-t flex justify-center" style="border-color: var(--color-border);">
+        <div class="modal-footer p-4 border-t flex justify-center">
             <button onclick="deleteRecord('${record.id}')" class="primary-btn bg-red-600 hover:bg-red-700 px-6 py-2 rounded-lg flex items-center gap-2">
                 <i class="ph ph-trash"></i>
                 <span>Eliminar Registro</span>
@@ -574,7 +489,6 @@ window.closeRecordModal = function () {
     document.getElementById('record-detail-modal').classList.add('hidden');
 };
 
-// Función para eliminar un registro del historial
 window.deleteRecord = async function (recordId) {
     if (!confirm('¿Estás seguro de que deseas eliminar este registro del historial?')) {
         return;
@@ -582,31 +496,19 @@ window.deleteRecord = async function (recordId) {
 
     closeRecordModal();
 
-    if (IS_MOCK_MODE) {
-        let history = getLocalMockHistory();
-        history = history.filter(r => r.id !== recordId);
-        saveLocalMockHistory(history);
+    try {
+        const historyRef = getHistoryCollectionRef();
+        if (!historyRef) return;
+
+        await historyRef.doc(recordId).delete();
 
         // Recargar la vista actual
         if (currentMaintenanceLocation) {
             loadRecords(currentMaintenanceId, currentMaintenanceLocation);
         }
-    } else {
-        try {
-            const historyRef = getHistoryCollectionRef();
-            if (!historyRef) return;
-
-            await historyRef.doc(recordId).delete();
-            console.log(`Registro ${recordId} eliminado del historial.`);
-
-            // Recargar la vista actual
-            if (currentMaintenanceLocation) {
-                loadRecords(currentMaintenanceId, currentMaintenanceLocation);
-            }
-        } catch (error) {
-            console.error("Error al eliminar el registro:", error);
-            alert("Error al eliminar el registro. Por favor, inténtalo de nuevo.");
-        }
+    } catch (error) {
+        console.error("Error al eliminar el registro:", error);
+        alert("Error al eliminar el registro. Por favor, inténtalo de nuevo.");
     }
 };
 
@@ -683,4 +585,9 @@ window.addEventListener('load', () => {
 
     checkAuthenticationAndSetup();
     setupSearch();
+
+    // Efectos visuales
+    const scrollContainer = document.getElementById('app-content');
+    if (scrollContainer) scrollContainer.addEventListener('scroll', updateCardBorderOpacity);
+    window.addEventListener('resize', updateCardBorderOpacity);
 });

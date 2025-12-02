@@ -11,20 +11,24 @@
 
     <link rel="stylesheet" href="./History.css">
 
+    <!-- Script inline para evitar parpadeo (FOUC) al cambiar de tema -->
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem('portis-theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+
+            if (theme === 'light') {
+                document.documentElement.classList.add('light-mode');
+            } else {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
-    <script>
-        window.firebaseConfig = {
-            apiKey: "AIzaSyD_tC3KaK3UVyNOPiSsnI0s5k8Cd_qFJpg",
-            authDomain: "portisapp.firebaseapp.com",
-            projectId: "portisapp",
-            storageBucket: "portisapp.firebasestorage.app",
-            messagingSenderId: "38313359657",
-            appId: "1:38313359657:web:ae73a0f8f7556bed92df38",
-            measurementId: "G-HQ29Y8Z2DY"
-        };
-    </script>
 </head>
 
 <body class="antialiased">
@@ -36,7 +40,7 @@
             <button id="back-btn" onclick="window.goBack()" class="text-xl p-2 rounded-full secondary-icon-btn">
                 <i class="ph ph-arrow-left"></i>
             </button>
-            <h1 id="page-title" class="text-xl font-bold text-center">Historial de Mantenimientos</h1>
+            <h1 id="page-title" class="text-xl font-bold text-center navbar-title">Historial</h1>
             <div id="current-user-display" class="user-id-display">Cargando...</div>
         </header>
 
@@ -46,9 +50,9 @@
             <div id="maintenances-view" class="card-container inverted-split">
                 <div class="card-inner-content">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-2xl font-bold flex items-center gap-2" style="color: var(--color-text-light);">
-                            <i class="ph ph-folder-open-fill" style="color: var(--color-accent-red);"></i>
-                            Todos los Mantenimientos
+                        <h2 class="text-2xl font-bold flex items-center gap-2 card-title">
+                            <i class="ph ph-folder-open-fill card-icon"></i>
+                            Mantenimientos
                         </h2>
                         <button onclick="window.toggleSearch()" class="secondary-icon-btn p-2 rounded-full"
                             title="Buscar">
@@ -75,10 +79,9 @@
             <!-- Vista de lista de registros de un mantenimiento específico -->
             <div id="records-view" class="card-container inverted-split hidden">
                 <div class="card-inner-content">
-                    <h2 id="records-title" class="text-2xl font-bold mb-4 flex items-center gap-2"
-                        style="color: var(--color-text-light);">
-                        <i class="ph ph-clock-counter-clockwise" style="color: var(--color-accent-red);"></i>
-                        Registros de Mantenimiento
+                    <h2 id="records-title" class="text-2xl font-bold mb-4 flex items-center gap-2 card-title">
+                        <i class="ph ph-clock-counter-clockwise card-icon"></i>
+                        Registros
                     </h2>
 
                     <div id="records-list" class="space-y-3">
@@ -92,9 +95,8 @@
 
     <!-- Modal para mostrar detalles del registro -->
     <div id="record-detail-modal"
-        class="fixed inset-0 z-50 hidden bg-black bg-opacity-70 flex justify-center items-center p-4">
-        <div class="modal-content w-full max-w-2xl rounded-xl shadow-2xl relative overflow-y-auto"
-            style="background-color: var(--color-bg-secondary); color: var(--color-text-primary); max-height: 90vh;">
+        class="fixed inset-0 z-50 hidden bg-black bg-opacity-70 flex justify-center items-center p-4 backdrop-blur-sm">
+        <div class="modal-content w-full max-w-2xl rounded-xl shadow-2xl relative overflow-y-auto max-h-[90vh]">
             <!-- El contenido se genera dinámicamente -->
         </div>
     </div>
