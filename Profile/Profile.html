@@ -5,13 +5,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PortisApp | Perfil de Usuario</title>
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
+    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
 
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <!-- Estilos personalizados -->
     <link rel="stylesheet" href="Profile.css">
 
+    <!-- Script inline para evitar parpadeo (FOUC) al cambiar de tema -->
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem('portis-theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+
+            if (theme === 'light') {
+                document.documentElement.classList.add('light-mode');
+            } else {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
@@ -21,115 +46,194 @@
     <div id="geometric-wrapper"></div>
 
     <div class="app-layout">
+        <!-- Navbar -->
         <header id="top-navbar"
             class="sticky top-0 z-40 p-4 flex justify-between items-center bg-opacity-95 backdrop-blur-sm">
             <button onclick="window.location.href='../Main/Main.html'"
                 class="text-xl p-2 rounded-full secondary-icon-btn">
                 <i class="ph ph-arrow-left"></i>
             </button>
-            <h1 class="text-xl font-bold text-center">Perfil de Usuario</h1>
+            <h1 class="text-xl font-bold text-center navbar-title">Perfil de Usuario</h1>
             <div id="current-user-display" class="user-id-display">Cargando...</div>
         </header>
 
+        <!-- Contenido Principal -->
         <main id="app-content" class="overflow-y-auto w-full max-w-4xl mx-auto">
 
-            <div id="profile-card" class="card-container default-split mb-8">
+            <!-- Tarjeta de Perfil -->
+            <div class="card-container mb-8">
                 <div class="card-inner-content">
-                    <h2 class="text-2xl font-bold mb-6 flex items-center gap-2" style="color: var(--color-text-light);">
-                        <i class="ph ph-user-circle-fill" style="color: var(--color-accent-red);"></i>
+                    <h2 class="text-2xl font-bold mb-6 flex items-center gap-2 card-title">
+                        <i class="ph ph-user-circle-fill card-icon"></i>
                         Datos de la Cuenta
                     </h2>
 
-                    <form id="profile-edit-form" class="space-y-6 form-content">
-
-                        <!-- Profile/Profile.html -->
-                        <div class="flex flex-col items-center space-y-3">
-                            <!-- Clickable Image Container -->
-                            <div class="relative w-32 h-32 rounded-full overflow-hidden border-4 border-gray-200 dark:border-gray-700 cursor-pointer group shadow-lg"
-                                onclick="openPhotoOptionsModal()">
+                    <form id="profile-edit-form" class="space-y-6">
+                        <div class="flex flex-col items-center space-y-4">
+                            <!-- Foto de Perfil -->
+                            <div class="profile-photo-container group" onclick="openPhotoOptionsModal()">
                                 <img id="profile-photo" src="../assets/logo.png" alt="Foto de Perfil"
                                     class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110">
-
-                                <!-- Hover Overlay -->
-                                <div
-                                    class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <div class="profile-photo-overlay">
                                     <i class="ph ph-camera text-white text-3xl"></i>
                                 </div>
                             </div>
-
-                            <p class="text-xs text-gray-500 mt-2">Toca la imagen para editar</p>
-
-                            <!-- Hidden File Input -->
+                            <p class="text-xs text-gray-500">Toca la imagen para editar</p>
                             <input type="file" id="profile-image-input" accept="image/*" class="hidden">
                         </div>
 
-                        <div>
-                            <label for="username" class="block text-sm font-medium mb-1"
-                                style="color: var(--color-text-secondary);">Nombre de Usuario</label>
-                            <input type="text" id="username" value="" required class="minimal-input w-full">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="username" class="block text-sm font-medium mb-1 form-label">Nombre de
+                                    Usuario</label>
+                                <div class="relative">
+                                    <i
+                                        class="ph ph-user absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                                    <input type="text" id="username" required class="minimal-input w-full pl-10">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="password"
+                                    class="block text-sm font-medium mb-1 form-label">Contraseña</label>
+                                <div class="relative">
+                                    <i
+                                        class="ph ph-lock-key absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                                    <input type="password" id="password" value="********" readonly
+                                        onclick="openPasswordModal()"
+                                        class="minimal-input w-full pl-10 cursor-pointer hover:border-gray-500">
+                                </div>
+                            </div>
                         </div>
 
-                        <div>
-                            <label for="password" class="block text-sm font-medium mb-1"
-                                style="color: var(--color-text-secondary);">Contraseña</label>
-                            <input type="password" id="password" value="********" readonly onclick="openPasswordModal()"
-                                class="minimal-input w-full cursor-pointer">
-                        </div>
-
-                        <button type="button" id="save-changes-btn" hidden
-                            class="primary-btn w-full py-3 mt-4 rounded-lg text-lg">
-                            <i class="ph ph-floppy-disk-fill mr-2"></i>
+                        <button type="button" id="save-changes-btn"
+                            class="primary-btn w-full py-3 mt-4 rounded-lg text-lg flex justify-center items-center hidden">
+                            <i class="ph ph-floppy-disk mr-2"></i>
                             Guardar Cambios
                         </button>
                     </form>
                 </div>
             </div>
 
-            <div class="card-container inverted-split">
+            <!-- Estadísticas -->
+            <div class="card-container">
                 <div class="card-inner-content">
-                    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2" style="color: var(--color-text-light);">
-                        <i class="ph ph-chart-bar-fill" style="color: var(--color-accent-red);"></i>
+                    <h2 class="text-2xl font-bold mb-6 flex items-center gap-2 card-title">
+                        <i class="ph ph-chart-bar-fill card-icon"></i>
                         Estadísticas de Uso
                     </h2>
 
-                    <div id="stats-grid" class="grid grid-cols-2 gap-4">
-
+                    <!-- Resumen General -->
+                    <div class="stats-grid mb-8">
                         <div class="stat-item">
                             <p class="stat-label">Fecha de Registro</p>
-                            <p id="stat-registration-date" class="stat-value">--/--/----</p>
+                            <p id="stat-registration-date" class="stat-value text-lg">--/--/----</p>
                         </div>
-
                         <div class="stat-item">
-                            <p class="stat-label">Total Mantenimientos</p>
-                            <p id="stat-repairs-count" class="stat-value">0</p>
+                            <p class="stat-label">Total Historial</p>
+                            <p id="stat-history-count" class="stat-value highlight">0</p>
+                            <p class="text-xs text-gray-500 mt-1">Registros completados</p>
                         </div>
-
-                        <div class="stat-item">
-                            <p class="stat-label">Total Registros (M+P)</p>
-                            <p id="stat-total-records" class="stat-value">0</p>
-                        </div>
-
-                        <div class="stat-item">
-                            <p class="stat-label">Gastos Totales</p>
-                            <p id="stat-total-cost" class="stat-value">0.00 €</p>
-                        </div>
-
                     </div>
+
+                    <div class="section-separator"></div>
+
+                    <!-- Mantenimiento y Notas -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                        <div>
+                            <h3 class="text-lg font-semibold mb-4 text-gray-400">Actividad</h3>
+                            <div class="stats-grid mb-4">
+                                <div class="stat-item">
+                                    <p class="stat-label">Mantenimientos</p>
+                                    <p id="stat-repairs-count" class="stat-value">0</p>
+                                </div>
+                                <div class="stat-item">
+                                    <p class="stat-label">Notas Creadas</p>
+                                    <p id="stat-notes-count" class="stat-value text-yellow-400">0</p>
+                                </div>
+                            </div>
+                            <div class="stat-item w-full">
+                                <p class="stat-label">Prioridad Alta</p>
+                                <p id="stat-high-priority" class="stat-value text-red-500">0</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <p class="stat-label mb-2">Carga de Trabajo (Este Mes)</p>
+                            <div class="chart-container">
+                                <canvas id="workloadChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-separator"></div>
+
+                    <!-- Compartidos -->
+                    <h3 class="text-lg font-semibold mb-4 text-gray-400">Colaboración</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <p class="stat-label">Total Compartidos</p>
+                                <p id="stat-shared-total" class="stat-value text-purple-400">0</p>
+                            </div>
+                            <div class="stat-item">
+                                <p class="stat-label">Enviados / Recibidos</p>
+                                <p id="stat-shared-split" class="stat-value text-sm">0 / 0</p>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="chart-container shared-chart">
+                                <canvas id="sharedChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-separator"></div>
+
+                    <!-- Finanzas -->
+                    <h3 class="text-lg font-semibold mb-4 text-gray-400">Finanzas</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <p class="stat-label">Total Presupuestos</p>
+                                <p id="stat-bills-count" class="stat-value">0</p>
+                            </div>
+                            <div class="stat-item">
+                                <p class="stat-label">Gastos Totales</p>
+                                <p id="stat-total-cost" class="stat-value green">0.00 €</p>
+                            </div>
+                            <div class="stat-item col-span-2">
+                                <p class="stat-label">Gastos Pagados</p>
+                                <p id="stat-paid-cost" class="stat-value text-blue-400">0.00 €</p>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="stat-label mb-2">Distribución de Gastos</p>
+                            <div class="chart-container">
+                                <canvas id="expensesChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
         </main>
     </div>
 
+    <!-- Modales -->
+
+    <!-- Password Modal -->
     <div id="password-modal"
-        class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm transition-opacity duration-300">
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-sm transform transition-all duration-300 scale-95"
-            style="background-color: var(--color-bg-secondary);">
-            <h3 class="text-xl font-bold mb-4" style="color: var(--color-text-light);">Restablecer Contraseña</h3>
-            <p class="text-sm mb-4" style="color: var(--color-text-secondary);">
+        class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay transition-opacity duration-300">
+        <div
+            class="modal-content p-6 rounded-xl shadow-2xl w-full max-w-sm transform transition-all duration-300 scale-95">
+            <h3 class="text-xl font-bold mb-4 text-white">Restablecer Contraseña</h3>
+            <p class="text-sm mb-4 text-gray-400">
                 Se enviará un enlace de restablecimiento de contraseña al correo electrónico asociado a tu cuenta:
             </p>
-            <p id="reset-email-display" class="font-mono text-xs p-2 rounded bg-gray-700 text-gray-200 mb-4 break-all">
+            <p id="reset-email-display"
+                class="font-mono text-xs p-2 rounded bg-gray-800 text-gray-200 mb-4 break-all border border-gray-700">
             </p>
 
             <div id="modal-message" class="hidden p-3 mb-4 rounded-lg text-sm font-medium text-center" role="alert">
@@ -141,8 +245,8 @@
                     Cancelar
                 </button>
                 <button type="button" onclick="sendPasswordReset()"
-                    class="primary-btn px-4 py-2 rounded-lg font-medium">
-                    <i class="ph ph-paper-plane-tilt"></i> Enviar Correo
+                    class="primary-btn px-4 py-2 rounded-lg font-medium flex items-center gap-2">
+                    <i class="ph ph-paper-plane-tilt"></i> Enviar
                 </button>
             </div>
         </div>
@@ -150,29 +254,30 @@
 
     <!-- Photo Options Modal -->
     <div id="photo-options-modal"
-        class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm transition-opacity duration-300">
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-xs transform transition-all duration-300 scale-95"
-            style="background-color: var(--color-bg-secondary);">
-            <h3 class="text-xl font-bold mb-6 text-center" style="color: var(--color-text-light);">Foto de Perfil</h3>
+        class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay transition-opacity duration-300">
+        <div
+            class="modal-content p-6 rounded-xl shadow-2xl w-full max-w-xs transform transition-all duration-300 scale-95">
+            <h3 class="text-xl font-bold mb-6 text-center text-white">Foto de Perfil</h3>
 
             <div class="space-y-3">
                 <button onclick="triggerPhotoUpload()"
-                    class="w-full py-3 px-4 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                    class="w-full py-3 px-4 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-lg">
                     <i class="ph ph-image"></i> Cambiar Foto
                 </button>
 
                 <button onclick="deleteProfilePhoto()"
-                    class="w-full py-3 px-4 rounded-lg font-medium bg-red-600 text-white hover:bg-red-700 transition flex items-center justify-center gap-2">
+                    class="w-full py-3 px-4 rounded-lg font-medium bg-red-600 text-white hover:bg-red-700 transition flex items-center justify-center gap-2 shadow-lg">
                     <i class="ph ph-trash"></i> Eliminar Foto
                 </button>
 
                 <button onclick="closePhotoOptionsModal()"
-                    class="w-full py-3 px-4 rounded-lg font-medium border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition mt-4">
+                    class="w-full py-3 px-4 rounded-lg font-medium border border-gray-600 hover:bg-gray-700 text-gray-300 transition mt-4">
                     Cancelar
                 </button>
             </div>
         </div>
     </div>
+
     <script src="../Config/Config.js"></script>
     <script src="Profile.js"></script>
 </body>

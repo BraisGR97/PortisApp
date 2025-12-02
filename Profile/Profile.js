@@ -1,525 +1,55 @@
 /**
  * ====================================================================
- * Profile.js - Lógica de la página de Perfil y configuración
+ * Profile.js - Lógica del Perfil de Usuario y Estadísticas
  * ====================================================================
  */
 
-// Las variables globales (firebaseConfig, IS_MOCK_MODE) están disponibles directamente en 'window'.
+// ====================================================================
+// CONFIGURACIÓN Y VARIABLES GLOBALES
+// ====================================================================
 
-const appId = window.firebaseConfig ? window.firebaseConfig.projectId : 'mock-app-id';
-const initialAuthToken = null;
+const firebaseConfig = window.firebaseConfig;
+const cloudinaryConfig = window.cloudinaryConfig;
+const appId = firebaseConfig ? firebaseConfig.projectId : 'portis-app-id';
 
 let app;
 let db;
 let auth;
-
-// Obtener el UID y el nombre de la sesión
 let userId = sessionStorage.getItem('portis-user-identifier') || null;
 let userDisplayName = sessionStorage.getItem('portis-user-display-name') || null;
-
 let isAuthReady = false;
-let initialUsername = ''; // Para detectar si el nombre de usuario ha cambiado
-let userEmail = ''; // Para el modal de restablecimiento de contraseña
+let initialUsername = '';
+let userEmail = '';
 
-// --- FUNCIÓN DE INICIALIZACIÓN PRINCIPAL ---
+// Instancias de gráficos
+let workloadChartInstance = null;
+let expensesChartInstance = null;
+let sharedChartInstance = null;
 
-/**
- * Inicializa Firebase, autentica al usuario y establece el listener de estado.
- */
-async function initializeAppAndAuth() {
-    const displayElement = document.getElementById('current-user-display');
+// ====================================================================
+// INICIALIZACIÓN
+// ====================================================================
 
-    // 1. Verificar la sesión local (Redirigir si no hay sesión válida)
-    if (!userId || !userDisplayName) {
-        console.warn("Sesión no válida o caducada. Redirigiendo a Index.");
-        // RUTA CORRECTA: '../index.html'
-        window.location.href = '../index.html';
-        return;
-    }
-
-    // Rellenar la UI con el nombre de sesión inmediatamente
-    if (displayElement) {
-        displayElement.textContent = userDisplayName;
-    }
-
-    // 2. Manejo del Mock Mode
-    if (window.IS_MOCK_MODE) { // Usa window.IS_MOCK_MODE
-        console.warn("Modo MOCK activado. Funcionalidad de Auth deshabilitada.");
-        isAuthReady = true;
-        // Simular datos de usuario en modo mock
-        displayUserData({
-            displayName: userDisplayName,
-            email: 'mock@example.com',
-            isAnonymous: false,
-            metadata: { creationTime: new Date().toISOString() }
-        });
-        loadAndCalculateStats(true); // Llamar a stats en modo mock
-        return;
-    }
-
-    // 3. Inicialización de Firebase
-    try {
-        if (!window.firebaseConfig || !window.firebaseConfig.apiKey) { // Usa window.firebaseConfig
-            throw new Error("La configuración de Firebase está incompleta.");
-        }
-
-        app = firebase.initializeApp(window.firebaseConfig);
-        auth = firebase.auth();
-        db = firebase.firestore();
-
-        // Observador de estado de autenticación
-        auth.onAuthStateChanged(async (user) => {
-            if (user && user.uid === userId) {
-                // Caso 1: Usuario autenticado y coincide con la sesión
-                userId = user.uid;
-                isAuthReady = true;
-
-                // 🔑 CLAVE: Obtener la foto más reciente de Firestore para evitar caché de Auth
-                let firestorePhotoURL = undefined;
-                try {
-                    const metaDoc = await db.doc(`artifacts/${appId}/users/${userId}/profileData/userMetadata`).get();
-                    if (metaDoc.exists) {
-                        firestorePhotoURL = metaDoc.data().photoURL;
-                    }
-                } catch (e) {
-                    console.warn("No se pudo obtener metadata de usuario:", e);
-                }
-
-                displayUserData(user, firestorePhotoURL);
-                loadAndCalculateStats();
-            } else {
-                // Caso 2: El usuario no coincide o ha cerrado sesión
-                console.warn("Sesión de Firebase no válida o caducada. Redirigiendo.");
-                window.location.href = '../index.html';
-            }
-        });
-
-    } catch (error) {
-        console.error("Error al inicializar Firebase o al autenticar:", error);
-        alert("Error crítico al cargar el módulo de perfil. Verifique la consola.");
-        displayElement.textContent = `Error de Conexión`;
-        loadAndCalculateStats(true);
-    }
-}
-
-/**
- * Muestra los datos editables e ineditables del usuario.
- * @param {Object} user - Objeto de usuario de Firebase Auth
- * @param {string|null} [overridePhotoURL] - URL de la foto desde Firestore (opcional)
- */
-function displayUserData(user, overridePhotoURL) {
-    const usernameInput = document.getElementById('username');
-    const registrationDateElement = document.getElementById('stat-registration-date');
-    const photoElement = document.getElementById('profile-photo');
-
-    if (photoElement) {
-        // Lógica de prioridad: 1. Firestore (si existe), 2. Auth, 3. Default
-        let finalPhotoURL = user.photoURL;
-        if (overridePhotoURL !== undefined) {
-            finalPhotoURL = overridePhotoURL;
-        }
-        photoElement.src = finalPhotoURL || '../assets/logo.png';
-    }
-
-    // 1. Manejo del Username
-    const currentUsername = user.displayName || userDisplayName || 'Admin';
-    usernameInput.value = currentUsername;
-    initialUsername = currentUsername;
-
-    // 2. Manejo del Email (para el modal)
-    userEmail = user.email || (user.isAnonymous ? 'Cuenta Anónima' : 'Correo no disponible');
-    document.getElementById('password').placeholder = user.email || 'Click para restablecer';
-
-    // 3. Listener para mostrar el botón de guardar
-    usernameInput.removeEventListener('input', toggleSaveButton);
-    usernameInput.addEventListener('input', toggleSaveButton);
-
-    // 4. Fecha de Registro
-    if (user.metadata && user.metadata.creationTime) {
-        const creationDate = new Date(user.metadata.creationTime);
-        const formattedDate = creationDate.toLocaleDateString('es-ES', {
-            year: 'numeric', month: '2-digit', day: '2-digit'
-        });
-        registrationDateElement.textContent = formattedDate;
-    } else {
-        registrationDateElement.textContent = '01/01/2024 (Mock)';
-    }
-}
-
-// --- GESTIÓN DE INTERFAZ Y DATOS ---
-
-/**
- * Muestra/Oculta el botón de guardar cambios si el username ha cambiado.
- */
-function toggleSaveButton() {
-    const usernameInput = document.getElementById('username');
-    const saveButton = document.getElementById('save-changes-btn');
-
-    const isModified = usernameInput.value.trim() !== initialUsername;
-
-    if (isModified) {
-        saveButton.removeAttribute('hidden');
-    } else {
-        saveButton.setAttribute('hidden', true);
-    }
-}
-
-/**
- * Maneja la edición del perfil (sólo nombre de usuario) y guarda en Firestore/Auth.
- */
-async function handleProfileEdit() {
-    const usernameInput = document.getElementById('username');
-    const newUsername = usernameInput.value.trim();
-    const saveButton = document.getElementById('save-changes-btn');
-
-    if (newUsername === initialUsername) return;
-    if (!newUsername) {
-        alert('El nombre de usuario no puede estar vacío.');
-        return;
-    }
-
-    if (window.IS_MOCK_MODE) {
-        alert(`Modo Mock: Nombre de usuario actualizado localmente a ${newUsername}. No persistido.`);
-        initialUsername = newUsername;
-        sessionStorage.setItem('portis-user-display-name', newUsername);
-        window.location.reload();
-        return;
-    }
-
-    saveButton.innerHTML = '<i class="ph ph-circle-notch animate-spin mr-2"></i> Guardando...';
-    saveButton.disabled = true;
-
-    try {
-        const user = auth.currentUser;
-        if (!user || user.isAnonymous) {
-            throw new Error("La edición de perfil requiere una cuenta autenticada (no anónima).");
-        }
-
-        // 1. Actualizar el displayName en Firebase Auth
-        await user.updateProfile({ displayName: newUsername });
-
-        // 2. Actualizar el nombre en Firestore 
-        const userDocRef = db.doc(`artifacts/${appId}/users/${userId}/profileData/userMetadata`);
-        await userDocRef.set({
-            displayName: newUsername,
-            lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-
-        // 3. Actualizar estado local y UI
-        initialUsername = newUsername;
-        sessionStorage.setItem('portis-user-display-name', newUsername);
-
-        alert(`Perfil actualizado con éxito. Nuevo nombre: ${newUsername}`);
-
-        // Recargar para reflejar el cambio en el navbar inmediatamente
-        window.location.reload();
-
-    } catch (error) {
-        console.error("Error al guardar cambios:", error);
-        alert(`Error al guardar cambios: ${error.message}`);
-    } finally {
-        saveButton.innerHTML = '<i class="ph ph-floppy-disk-fill mr-2"></i> Guardar Cambios';
-        saveButton.disabled = false;
-        toggleSaveButton(); // Ocultar después de guardar
-    }
-}
-
-
-// --- LÓGICA DEL MODAL DE CONTRASEÑA ---
-
-/**
- * Abre el modal de cambio de contraseña.
- */
-function openPasswordModal() {
-    if (window.IS_MOCK_MODE) {
-        alert('Funcionalidad de restablecimiento de contraseña deshabilitada en Modo Mock.');
-        return;
-    }
-
-    const user = auth.currentUser;
-
-    if (!user) {
-        alert('Autenticación no inicializada.');
-        return;
-    }
-
-    if (user.isAnonymous) {
-        alert('Las cuentas anónimas no tienen un correo electrónico asociado para restablecer la contraseña.');
-        return;
-    }
-
-    const email = user.email;
-    if (!email) {
-        alert('No se encontró un correo electrónico válido asociado a tu cuenta.');
-        return;
-    }
-
-    document.getElementById('reset-email-display').textContent = email;
-    document.getElementById('modal-message').setAttribute('hidden', true);
-
-    // Mostrar el modal con transición
-    document.getElementById('password-modal').classList.remove('hidden');
-    const modalContent = document.querySelector('#password-modal > div');
-    setTimeout(() => modalContent.classList.remove('scale-95'), 10);
-}
-
-/**
- * Cierra el modal de cambio de contraseña.
- */
-function closePasswordModal() {
-    const modalContent = document.querySelector('#password-modal > div');
-    modalContent.classList.add('scale-95');
-    setTimeout(() => document.getElementById('password-modal').classList.add('hidden'), 300);
-}
-
-/**
- * Envía el correo electrónico de restablecimiento de contraseña.
- */
-async function sendPasswordReset() {
-    if (window.IS_MOCK_MODE) return;
-
-    const modalMessage = document.getElementById('modal-message');
-    modalMessage.textContent = 'Enviando...';
-    modalMessage.className = 'p-3 mb-4 rounded-lg text-sm font-medium text-center bg-blue-900 text-white';
-    modalMessage.removeAttribute('hidden');
-
-    const email = auth.currentUser?.email;
-
-    if (!email) {
-        modalMessage.textContent = 'Error: No se encontró un correo electrónico para enviar el restablecimiento.';
-        modalMessage.className = 'p-3 mb-4 rounded-lg text-sm font-medium text-center bg-red-800 text-white';
-        return;
-    }
-
-    try {
-        await auth.sendPasswordResetEmail(email);
-        modalMessage.textContent = `Correo de restablecimiento enviado a ${email}. Revisa tu bandeja de entrada.`;
-        modalMessage.className = 'p-3 mb-4 rounded-lg text-sm font-medium text-center bg-green-700 text-white';
-
-        setTimeout(closePasswordModal, 4000);
-    } catch (error) {
-        console.error("Error al enviar el correo de restablecimiento:", error);
-        modalMessage.textContent = `Error al enviar el correo: ${error.message}`;
-        modalMessage.className = 'p-3 mb-4 rounded-lg text-sm font-medium text-center bg-red-800 text-white';
-    }
-}
-
-// --- GESTIÓN DE ESTADÍSTICAS ---
-
-async function loadAndCalculateStats(isMock = false) {
-    if (!isAuthReady || !userId) return console.warn("Autenticación no lista para cargar stats.");
-
-    if (isMock) {
-        // Simular datos en modo mock
-        document.getElementById('stat-repairs-count').textContent = 12;
-        document.getElementById('stat-total-records').textContent = 18;
-        document.getElementById('stat-total-cost').textContent = `450.00 €`;
-        return;
-    }
-
-    try {
-        // 🔧 RUTAS CORREGIDAS: Usar la misma estructura que Bills.js y Repairs.js
-        const repairsRef = db.collection(`users/${userId}/repairs`);
-        const billsRef = db.collection(`users/${userId}/bills`);
-
-        // 1. Contar mantenimientos (Repairs)
-        const repairsSnapshot = await repairsRef.get();
-        const repairsCount = repairsSnapshot.size;
-
-        // 2. Contar facturas (Bills)
-        const billsSnapshot = await billsRef.get();
-        const billsCount = billsSnapshot.size;
-
-        // 3. Calcular total gastado (suma de costes en Bills)
-        let totalCost = 0;
-        billsSnapshot.forEach(doc => {
-            const bill = doc.data();
-            const cost = parseFloat(bill.cost || 0);
-            if (!isNaN(cost)) {
-                totalCost += cost;
-            }
-        });
-
-        // 4. Renderizar las estadísticas
-        document.getElementById('stat-repairs-count').textContent = repairsCount;
-        // Total de Registros = Repairs + Bills (no History, ya que History es solo lectura)
-        document.getElementById('stat-total-records').textContent = repairsCount + billsCount;
-        document.getElementById('stat-total-cost').textContent = `${totalCost.toFixed(2)} €`;
-
-        console.log(`📊 Estadísticas cargadas: ${repairsCount} repairs, ${billsCount} bills, ${totalCost.toFixed(2)}€ total`);
-
-    } catch (error) {
-        console.error("Error al cargar y calcular estadísticas:", error);
-        document.getElementById('stat-repairs-count').textContent = `Error`;
-        document.getElementById('stat-total-records').textContent = `Error`;
-        document.getElementById('stat-total-cost').textContent = `Error`;
-    }
-}
-
-// --- PROFILE PHOTO MANAGEMENT ---
-
-function openPhotoOptionsModal() {
-    if (window.IS_MOCK_MODE) {
-        alert('Modo Mock: Funcionalidad limitada.');
-        return;
-    }
-    document.getElementById('photo-options-modal').classList.remove('hidden');
-    const modalContent = document.querySelector('#photo-options-modal > div');
-    setTimeout(() => modalContent.classList.remove('scale-95'), 10);
-}
-
-function closePhotoOptionsModal() {
-    const modalContent = document.querySelector('#photo-options-modal > div');
-    modalContent.classList.add('scale-95');
-    setTimeout(() => document.getElementById('photo-options-modal').classList.add('hidden'), 300);
-}
-
-function triggerPhotoUpload() {
-    closePhotoOptionsModal();
-    const photoInput = document.getElementById('profile-image-input');
-    if (photoInput) photoInput.click();
-}
-
-async function deleteProfilePhoto() {
-    if (!confirm('¿Estás seguro de que quieres eliminar tu foto de perfil?')) return;
-
-    closePhotoOptionsModal();
-    const photoElement = document.getElementById('profile-photo');
-    const originalSrc = photoElement.src;
-    photoElement.style.opacity = '0.5';
-
-    try {
-        const user = auth.currentUser;
-        if (user) {
-            // 1. Update Auth
-            await user.updateProfile({ photoURL: null });
-            await user.reload(); // 🔑 Forzar recarga del token para limpiar caché
-
-            // 2. Update Firestore (User Metadata)
-            await db.doc(`artifacts/${appId}/users/${userId}/profileData/userMetadata`).set({
-                photoURL: null,
-                lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-
-            // 3. Update Firestore (Public 'users' collection for Chat)
-            await db.collection('users').doc(userId).set({
-                photoURL: null,
-                lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-
-            // 4. Update UI
-            photoElement.src = '../assets/logo.png';
-            // alert('Foto de perfil eliminada.'); // Eliminado feedback intrusivo
-        }
-    } catch (error) {
-        console.error("Error deleting photo:", error);
-        alert('Error al eliminar la foto.');
-        photoElement.src = originalSrc;
-    } finally {
-        photoElement.style.opacity = '1';
-    }
-}
-
-async function uploadImageToCloudinary(file) {
-    const config = window.cloudinaryConfig;
-    if (!config) {
-        alert("Error: Configuración de Cloudinary no encontrada.");
-        return null;
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', config.uploadPreset);
-    formData.append('cloud_name', config.cloudName);
-
-    try {
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${config.cloudName}/image/upload`, {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) throw new Error('Fallo en la subida a Cloudinary');
-
-        const data = await response.json();
-        return data.secure_url;
-    } catch (error) {
-        console.error("Error subiendo imagen:", error);
-        alert('Error al subir la imagen.');
-        return null;
-    }
-}
-
-async function handleProfilePhotoChange(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-        alert('Por favor, selecciona un archivo de imagen válido.');
-        return;
-    }
-
-    // Feedback visual inmediato
-    const photoElement = document.getElementById('profile-photo');
-    const originalSrc = photoElement.src;
-    photoElement.style.opacity = '0.5';
-
-    try {
-        const imageUrl = await uploadImageToCloudinary(file);
-        if (!imageUrl) throw new Error("No se obtuvo URL de la imagen");
-
-        const user = auth.currentUser;
-        if (user) {
-            // 1. Update Auth
-            await user.updateProfile({ photoURL: imageUrl });
-
-            // 2. Update Firestore (User Metadata)
-            await db.doc(`artifacts/${appId}/users/${userId}/profileData/userMetadata`).set({
-                photoURL: imageUrl,
-                lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-
-            // 3. Update Firestore (Public 'users' collection for Chat) << ADD THIS BLOCK
-            await db.collection('users').doc(userId).set({
-                photoURL: imageUrl,
-                lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-
-            // 4. Update UI
-            photoElement.src = imageUrl;
-            // alert('Foto de perfil actualizada correctamente.'); // Eliminado feedback intrusivo
-        }
-    } catch (error) {
-        console.error(error);
-        alert('Error al actualizar la foto de perfil.');
-        photoElement.src = originalSrc; // Revertir en caso de error
-    } finally {
-        photoElement.style.opacity = '1';
-    }
-}
-
-// --- Ejecución ---
 window.addEventListener('load', () => {
-    // Aplicar el tema (Arreglo de CSS)
-    if (typeof window.applyColorMode === 'function') {
-        window.applyColorMode();
-    }
+    if (typeof window.applyColorMode === 'function') window.applyColorMode();
 
     initializeAppAndAuth();
 
-    // Solo necesitamos el input, ya que el modal se encarga de hacer el click()
+    // Listeners
     const photoInput = document.getElementById('profile-image-input');
+    if (photoInput) photoInput.addEventListener('change', handleProfilePhotoChange);
 
-    if (photoInput) {
-        // Cambio en el input dispara la subida
-        photoInput.addEventListener('change', handleProfilePhotoChange);
-    }
-    // Listener para el botón de edición
     const saveBtn = document.getElementById('save-changes-btn');
-    if (saveBtn) {
-        saveBtn.addEventListener('click', handleProfileEdit);
-    }
+    if (saveBtn) saveBtn.addEventListener('click', handleProfileEdit);
 
-    // Hacer que las funciones del modal sean globales para el onclick del HTML
+    // Efectos visuales
+    window.addEventListener('scroll', updateCardBorderOpacity);
+    const appContent = document.getElementById('app-content');
+    if (appContent) appContent.addEventListener('scroll', updateCardBorderOpacity);
+    window.addEventListener('resize', updateCardBorderOpacity);
+    setTimeout(updateCardBorderOpacity, 100);
+
+    // Exponer funciones globales
     window.openPasswordModal = openPasswordModal;
     window.closePasswordModal = closePasswordModal;
     window.sendPasswordReset = sendPasswordReset;
@@ -528,3 +58,449 @@ window.addEventListener('load', () => {
     window.triggerPhotoUpload = triggerPhotoUpload;
     window.deleteProfilePhoto = deleteProfilePhoto;
 });
+
+/**
+ * Inicializa Firebase y Autenticación.
+ */
+async function initializeAppAndAuth() {
+    const displayElement = document.getElementById('current-user-display');
+
+    if (!userId || !userDisplayName) {
+        window.location.href = '../index.html';
+        return;
+    }
+
+    if (displayElement) displayElement.textContent = userDisplayName;
+
+    try {
+        if (!firebaseConfig || !firebaseConfig.apiKey) throw new Error("Configuración incompleta.");
+
+        app = firebase.initializeApp(firebaseConfig);
+        auth = firebase.auth();
+        db = firebase.firestore();
+
+        auth.onAuthStateChanged(async (user) => {
+            if (user && user.uid === userId) {
+                userId = user.uid;
+                isAuthReady = true;
+
+                let firestorePhotoURL = undefined;
+                try {
+                    const metaDoc = await db.doc(`artifacts/${appId}/users/${userId}/profileData/userMetadata`).get();
+                    if (metaDoc.exists) firestorePhotoURL = metaDoc.data().photoURL;
+                } catch (e) {
+                    console.warn("Error metadata:", e);
+                }
+
+                displayUserData(user, firestorePhotoURL);
+                loadAndCalculateStats();
+            } else {
+                window.location.href = '../index.html';
+            }
+        });
+
+    } catch (error) {
+        console.error("Error init:", error);
+        if (displayElement) displayElement.textContent = `Error`;
+    }
+}
+
+// ====================================================================
+// GESTIÓN DE DATOS DE USUARIO
+// ====================================================================
+
+function displayUserData(user, overridePhotoURL) {
+    const usernameInput = document.getElementById('username');
+    const registrationDateElement = document.getElementById('stat-registration-date');
+    const photoElement = document.getElementById('profile-photo');
+
+    if (photoElement) {
+        let finalPhotoURL = user.photoURL;
+        if (overridePhotoURL !== undefined) finalPhotoURL = overridePhotoURL;
+        photoElement.src = finalPhotoURL || '../assets/logo.png';
+    }
+
+    const currentUsername = user.displayName || userDisplayName || 'Admin';
+    usernameInput.value = currentUsername;
+    initialUsername = currentUsername;
+
+    userEmail = user.email || (user.isAnonymous ? 'Cuenta Anónima' : 'No disponible');
+    document.getElementById('password').placeholder = user.email || 'Click para restablecer';
+
+    usernameInput.removeEventListener('input', toggleSaveButton);
+    usernameInput.addEventListener('input', toggleSaveButton);
+
+    // Asegurar que el botón esté oculto al cargar
+    const saveButton = document.getElementById('save-changes-btn');
+    if (saveButton) saveButton.classList.add('hidden');
+
+    if (user.metadata && user.metadata.creationTime) {
+        const creationDate = new Date(user.metadata.creationTime);
+        registrationDateElement.textContent = creationDate.toLocaleDateString('es-ES', {
+            year: 'numeric', month: '2-digit', day: '2-digit'
+        });
+    } else {
+        registrationDateElement.textContent = '01/01/2024';
+    }
+}
+
+function toggleSaveButton() {
+    const usernameInput = document.getElementById('username');
+    const saveButton = document.getElementById('save-changes-btn');
+    const isModified = usernameInput.value.trim() !== initialUsername;
+
+    if (isModified && usernameInput.value.trim() !== '') {
+        saveButton.classList.remove('hidden');
+    } else {
+        saveButton.classList.add('hidden');
+    }
+}
+
+async function handleProfileEdit() {
+    const usernameInput = document.getElementById('username');
+    const newUsername = usernameInput.value.trim();
+    const saveButton = document.getElementById('save-changes-btn');
+
+    if (newUsername === initialUsername || !newUsername) return;
+
+    saveButton.innerHTML = '<i class="ph ph-circle-notch animate-spin mr-2"></i> Guardando...';
+    saveButton.disabled = true;
+
+    try {
+        const user = auth.currentUser;
+        if (!user) throw new Error("No autenticado.");
+
+        await user.updateProfile({ displayName: newUsername });
+        await db.doc(`artifacts/${appId}/users/${userId}/profileData/userMetadata`).set({
+            displayName: newUsername,
+            lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        initialUsername = newUsername;
+        sessionStorage.setItem('portis-user-display-name', newUsername);
+        window.location.reload();
+
+    } catch (error) {
+        console.error("Error:", error);
+        alert(`Error: ${error.message}`);
+        saveButton.innerHTML = '<i class="ph ph-floppy-disk mr-2"></i> Guardar Cambios';
+        saveButton.disabled = false;
+    }
+}
+
+// ====================================================================
+// ESTADÍSTICAS Y GRÁFICOS
+// ====================================================================
+
+async function loadAndCalculateStats() {
+    let repairs = [], bills = [], notes = [], history = [];
+    let sharedSent = [], sharedReceived = [];
+
+    try {
+        // Fetch all collections in parallel
+        const [repairsSnap, billsSnap, notesSnap, historySnap, sentSnap, receivedSnap] = await Promise.all([
+            db.collection(`users/${userId}/repairs`).get(),
+            db.collection(`users/${userId}/bills`).get(),
+            db.collection(`users/${userId}/notes`).get(),
+            db.collection(`users/${userId}/history`).get(),
+            db.collection('shared_maintenance').where('senderId', '==', userId).get(),
+            db.collection('shared_maintenance').where('receiverId', '==', userId).get()
+        ]);
+
+        repairsSnap.forEach(doc => repairs.push(doc.data()));
+        billsSnap.forEach(doc => bills.push(doc.data()));
+        notesSnap.forEach(doc => notes.push(doc.data()));
+        historySnap.forEach(doc => history.push(doc.data()));
+        sentSnap.forEach(doc => sharedSent.push(doc.data()));
+        receivedSnap.forEach(doc => sharedReceived.push(doc.data()));
+
+    } catch (error) {
+        console.error("Error cargando datos:", error);
+        return;
+    }
+
+    // Cálculos
+    const repairsCount = repairs.length;
+    const billsCount = bills.length;
+    const notesCount = notes.length;
+    const historyCount = history.length;
+    const sentCount = sharedSent.length;
+    const receivedCount = sharedReceived.length;
+    const totalShared = sentCount + receivedCount;
+
+    let totalCost = 0;
+    let totalPaid = 0;
+    let highPriorityCount = 0;
+    let currentMonthWorkload = 0;
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    bills.forEach(bill => {
+        const cost = parseFloat(bill.cost || 0);
+        if (!isNaN(cost)) {
+            totalCost += cost;
+            if (bill.status === 'Pagado') totalPaid += cost;
+        }
+    });
+
+    repairs.forEach(repair => {
+        if (repair.priority === 'Alta') highPriorityCount++;
+        const dateStr = repair.date || repair.next_revision;
+        if (dateStr) {
+            const rDate = dateStr.toDate ? dateStr.toDate() : new Date(dateStr);
+            if (rDate.getMonth() === currentMonth && rDate.getFullYear() === currentYear) {
+                currentMonthWorkload++;
+            }
+        }
+    });
+
+    // Renderizar Textos
+    updateStat('stat-repairs-count', repairsCount);
+    updateStat('stat-history-count', historyCount);
+    updateStat('stat-notes-count', notesCount);
+    updateStat('stat-high-priority', highPriorityCount);
+    updateStat('stat-shared-total', totalShared);
+    updateStat('stat-shared-split', `${sentCount} Env / ${receivedCount} Rec`);
+    updateStat('stat-bills-count', billsCount);
+    updateStat('stat-total-cost', `${totalCost.toFixed(2)} €`);
+    updateStat('stat-paid-cost', `${totalPaid.toFixed(2)} €`);
+
+    // Renderizar Gráficos
+    renderWorkloadChart(currentMonthWorkload, repairsCount);
+    renderSharedChart(sentCount, receivedCount);
+    renderExpensesChart(totalPaid, totalCost - totalPaid);
+}
+
+function updateStat(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+}
+
+// --- GRÁFICOS CHART.JS ---
+
+function renderWorkloadChart(currentMonth, total) {
+    const ctx = document.getElementById('workloadChart').getContext('2d');
+    if (workloadChartInstance) workloadChartInstance.destroy();
+
+    workloadChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Este Mes', 'Resto'],
+            datasets: [{
+                data: [currentMonth, Math.max(0, total - currentMonth)],
+                backgroundColor: ['#E91E63', '#2a2a3e'],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#9999aa', font: { family: 'Inter' } } }
+            },
+            cutout: '70%'
+        }
+    });
+}
+
+function renderSharedChart(sent, received) {
+    const ctx = document.getElementById('sharedChart').getContext('2d');
+    if (sharedChartInstance) sharedChartInstance.destroy();
+
+    sharedChartInstance = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Enviados', 'Recibidos'],
+            datasets: [{
+                data: [sent, received],
+                backgroundColor: ['#9C27B0', '#2196F3'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { color: '#9999aa', font: { family: 'Inter' } } }
+            }
+        }
+    });
+}
+
+function renderExpensesChart(paid, pending) {
+    const ctx = document.getElementById('expensesChart').getContext('2d');
+    if (expensesChartInstance) expensesChartInstance.destroy();
+
+    expensesChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Pagado', 'Pendiente'],
+            datasets: [{
+                label: 'Importe (€)',
+                data: [paid, pending],
+                backgroundColor: ['#4CAF50', '#FF9800'],
+                borderRadius: 6,
+                barThickness: 40
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#2a2a3e' }, ticks: { color: '#9999aa' } },
+                x: { grid: { display: false }, ticks: { color: '#9999aa' } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
+// ====================================================================
+// EFECTOS VISUALES
+// ====================================================================
+
+function updateCardBorderOpacity() {
+    const elements = document.querySelectorAll('.card-container');
+    const viewportHeight = window.innerHeight;
+
+    elements.forEach(element => {
+        const rect = element.getBoundingClientRect();
+        const elementTop = rect.top;
+        const elementHeight = rect.height;
+
+        let opacity = 0;
+
+        if (elementTop < viewportHeight && elementTop > -elementHeight) {
+            const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
+            opacity = 1 - normalizedPosition;
+            opacity = 0.2 + (opacity * 0.8);
+        }
+
+        element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
+    });
+}
+
+// ====================================================================
+// MODALES Y FOTOS
+// ====================================================================
+
+function openPasswordModal() {
+    const user = auth.currentUser;
+    if (!user || !user.email) return alert('No hay email asociado.');
+
+    document.getElementById('reset-email-display').textContent = user.email;
+    document.getElementById('modal-message').classList.add('hidden');
+    document.getElementById('password-modal').classList.remove('hidden');
+    setTimeout(() => document.querySelector('#password-modal > div').classList.remove('scale-95'), 10);
+}
+
+function closePasswordModal() {
+    document.querySelector('#password-modal > div').classList.add('scale-95');
+    setTimeout(() => document.getElementById('password-modal').classList.add('hidden'), 300);
+}
+
+async function sendPasswordReset() {
+    const msg = document.getElementById('modal-message');
+    msg.textContent = 'Enviando...';
+    msg.className = 'p-3 mb-4 rounded-lg text-sm font-medium text-center bg-blue-900 text-white';
+    msg.classList.remove('hidden');
+
+    try {
+        await auth.sendPasswordResetEmail(auth.currentUser.email);
+        msg.textContent = 'Correo enviado.';
+        msg.className = 'p-3 mb-4 rounded-lg text-sm font-medium text-center bg-green-700 text-white';
+        setTimeout(closePasswordModal, 2000);
+    } catch (e) {
+        msg.textContent = 'Error: ' + e.message;
+        msg.className = 'p-3 mb-4 rounded-lg text-sm font-medium text-center bg-red-800 text-white';
+    }
+}
+
+function openPhotoOptionsModal() {
+    document.getElementById('photo-options-modal').classList.remove('hidden');
+    setTimeout(() => document.querySelector('#photo-options-modal > div').classList.remove('scale-95'), 10);
+}
+
+function closePhotoOptionsModal() {
+    document.querySelector('#photo-options-modal > div').classList.add('scale-95');
+    setTimeout(() => document.getElementById('photo-options-modal').classList.add('hidden'), 300);
+}
+
+function triggerPhotoUpload() {
+    closePhotoOptionsModal();
+    document.getElementById('profile-image-input').click();
+}
+
+async function handleProfilePhotoChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const photoElement = document.getElementById('profile-photo');
+    const originalSrc = photoElement.src;
+    photoElement.style.opacity = '0.5';
+
+    try {
+        const imageUrl = await uploadImageToCloudinary(file);
+        if (!imageUrl) throw new Error("Error subida imagen");
+
+        const user = auth.currentUser;
+        await user.updateProfile({ photoURL: imageUrl });
+
+        const updateData = { photoURL: imageUrl, lastUpdate: firebase.firestore.FieldValue.serverTimestamp() };
+        await db.doc(`artifacts/${appId}/users/${userId}/profileData/userMetadata`).set(updateData, { merge: true });
+        await db.collection('users').doc(userId).set(updateData, { merge: true });
+
+        photoElement.src = imageUrl;
+    } catch (error) {
+        console.error(error);
+        alert('Error al actualizar foto.');
+        photoElement.src = originalSrc;
+    } finally {
+        photoElement.style.opacity = '1';
+    }
+}
+
+async function uploadImageToCloudinary(file) {
+    if (!cloudinaryConfig) return null;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', cloudinaryConfig.uploadPreset);
+
+    try {
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/image/upload`, {
+            method: 'POST', body: formData
+        });
+        if (!res.ok) throw new Error('Error Cloudinary');
+        const data = await res.json();
+        return data.secure_url;
+    } catch (e) {
+        console.error(e);
+        return null;
+    }
+}
+
+async function deleteProfilePhoto() {
+    if (!confirm('¿Eliminar foto?')) return;
+    closePhotoOptionsModal();
+
+    const photoElement = document.getElementById('profile-photo');
+    photoElement.style.opacity = '0.5';
+
+    try {
+        const user = auth.currentUser;
+        await user.updateProfile({ photoURL: null });
+
+        const updateData = { photoURL: null, lastUpdate: firebase.firestore.FieldValue.serverTimestamp() };
+        await db.doc(`artifacts/${appId}/users/${userId}/profileData/userMetadata`).set(updateData, { merge: true });
+        await db.collection('users').doc(userId).set(updateData, { merge: true });
+
+        photoElement.src = '../assets/logo.png';
+    } catch (error) {
+        alert('Error al eliminar foto.');
+    } finally {
+        photoElement.style.opacity = '1';
+    }
+}

@@ -1,52 +1,94 @@
+@charset "UTF-8";
+
+/**
+ * ====================================================================
+ * Profile.css - Estilos para el Perfil de Usuario
+ * ====================================================================
+ */
+
+/* ================================================================
+   VARIABLES DE COLOR (Idénticas a Notes.css y Bills.css)
+   ================================================================ */
+
 :root {
-    /* 🛑 CAMBIO 2: Paleta de colores de Main.css (DARK DEFAULT) */
+    color-scheme: dark;
+
+    /* Colores de fondo (Dark Mode por defecto) */
     --color-bg-primary: #12121e;
     --color-bg-secondary: #1f1f33;
     --color-bg-tertiary: #2a2a3e;
+    --color-bg-glass: rgba(0, 0, 0, 0.5);
+
+    /* Colores de texto */
     --color-text-primary: #f0f0f5;
     --color-text-secondary: #9999aa;
     --color-text-light: #ffffff;
 
-    /* 🛑 CAMBIO: Bordes y Acentos Magenta para Dark Mode */
-    --color-border: #632b3e;
-    /* Borde Magenta Oscuro sutil */
-    --color-shadow: rgba(0, 0, 0, 0.5);
+    /* Bordes y sombras */
+    --color-border: #47475f;
+    --color-border-light: #dee2e6;
+    --color-shadow: rgba(0, 0, 0, 0.6);
+    --color-shadow-light: rgba(255, 255, 255, 0.6);
 
-    /* 🛑 CAMBIO: Acento Principal ahora es Magenta en Dark Mode */
-    --color-accent-blue: #E91E63;
-
-    --color-accent-red: #ef4444;
-
-    /* 🛑 RESTAURADO: Gradiente Naranja/Rojo original */
+    /* Acentos */
+    --color-accent-magenta: #E91E63;
+    --color-accent-red: #dc3545;
+    --color-accent-green: #4CAF50;
+    --color-accent-orange: #FF9800;
+    --color-accent-blue: #2196F3;
     --gradient-primary: linear-gradient(135deg, #FF5722, #E91E63);
 }
 
-/* --- LIGHT MODE PALETTE --- */
-body.light-mode {
-    --color-bg-primary: #f8f9fa;
-    --color-bg-secondary: #ffffff;
+/* Light Mode Variables */
+html.light-mode,
+html.light-mode body {
+    color-scheme: light;
+
+    /* Colores de fondo (Light Mode) */
+    --color-bg-primary: #ffffff;
+    --color-bg-secondary: #f8f9fa;
     --color-bg-tertiary: #e9ecef;
+    --color-bg-glass: rgba(255, 255, 255, 0.5);
+
+    /* Colores de texto */
     --color-text-primary: #212529;
     --color-text-secondary: #6c757d;
     --color-text-light: #212529;
+
+    /* Bordes y sombras */
     --color-border: #dee2e6;
+    --color-border-light: #dee2e6;
     --color-shadow: rgba(0, 0, 0, 0.1);
-    --color-accent-blue: #0d6efd;
-    /* Mantenemos azul en light mode por legibilidad, o cambiar si se pide */
+    --color-shadow-light: rgba(255, 255, 255, 0.6);
+
+    /* Acentos */
+    --color-accent-magenta: #E91E63;
     --color-accent-red: #dc3545;
+    --color-accent-green: #198754;
+    --color-accent-orange: #fd7e14;
+    --color-accent-blue: #0d6efd;
     --gradient-primary: linear-gradient(135deg, #FF5722, #E91E63);
 }
 
+/* ================================================================
+   LAYOUT GENERAL
+   ================================================================ */
+
 body {
-    background-color: var(--color-bg-primary);
+    background: radial-gradient(circle at center, #050505 0%, #12121e 100%);
+    background-attachment: fixed;
     color: var(--color-text-primary);
     transition: background-color 0.3s, color 0.3s;
     min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow-x: hidden;
 }
 
-.overflow-y-auto {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+html.light-mode body {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    background-attachment: fixed;
 }
 
 .app-layout {
@@ -55,99 +97,111 @@ body {
     min-height: 100vh;
 }
 
-#top-navbar {
-    background-color: var(--color-bg-primary);
-    border-bottom: 1px solid var(--color-border);
+/* Scrollbar oculta */
+* {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
+
+*::-webkit-scrollbar {
+    display: none;
+}
+
+/* ================================================================
+   NAVBAR
+   ================================================================ */
+
+#top-navbar {
+    background-color: var(--color-bg-glass);
+    border-bottom: 1px solid var(--color-border-light);
+    box-shadow: 0 0 25px var(--color-shadow-light);
+    border-radius: 0;
+}
+
+.navbar-title {
+    color: var(--color-text-light);
+}
+
+/* ================================================================
+   CONTENIDO PRINCIPAL
+   ================================================================ */
 
 #app-content {
     padding: 1rem;
     flex-grow: 1;
     padding-bottom: 5rem;
-    /* Espacio para el FAB */
 }
 
-/* Card styles */
+/* ================================================================
+   CARDS Y CONTENEDORES
+   ================================================================ */
+
 .card-container {
     background-color: var(--color-bg-secondary);
-    border: 1px solid var(--color-border);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid #2b2b3a;
     border-radius: 1rem;
-    box-shadow: 0 4px 10px var(--color-shadow);
+    box-shadow: 0 0 5px var(--color-shadow);
     overflow: hidden;
+    margin-bottom: 1.5rem;
+    transition: border-top-color 0.3s ease;
 }
 
 .card-inner-content {
     padding: 1.5rem;
 }
 
-/* 🛑 Input/Form styles con borde negro fino por defecto, y magenta al seleccionar */
-.minimal-input {
-    background-color: var(--color-bg-primary);
-    border: 1px solid var(--color-border);
-    /* Borde fino */
+.card-title {
     color: var(--color-text-light);
-    padding: 0.6rem 0.8rem;
-    border-radius: 0.5rem;
-    transition: border-color 0.2s, background-color 0.2s;
 }
 
-.minimal-input:focus {
-    border-color: var(--color-accent-blue);
-    /* Magenta al enfocar */
-    outline: none;
-    box-shadow: 0 0 0 1px var(--color-accent-blue);
+.card-icon {
+    color: var(--color-accent-magenta);
 }
 
-.minimal-input::placeholder {
-    color: var(--color-text-secondary);
-}
+/* ================================================================
+   ESTILOS ESPECÍFICOS DE PERFIL
+   ================================================================ */
 
-/* Button styles */
-.primary-btn {
-    background-image: var(--gradient-primary);
-    color: var(--color-text-light);
-    font-weight: 600;
-    padding: 0.6rem 1rem;
-    border-radius: 0.5rem;
-    border: none;
-    transition: opacity 0.2s;
-}
-
-.primary-btn:hover {
-    opacity: 0.9;
-}
-
-.secondary-icon-btn {
-    background-color: var(--color-bg-tertiary);
-    color: var(--color-text-secondary);
-    border: 1px solid var(--color-border);
-    transition: background-color 0.2s, color 0.2s;
-}
-
-.secondary-icon-btn:hover {
-    background-color: var(--color-bg-primary);
-    color: var(--color-text-light);
-    border-color: var(--color-accent-blue);
-    /* Borde magenta al hover */
-}
-
-/* --- Estilos Específicos de Perfil --- */
-
-.profile-photo-placeholder {
-    width: 100px;
-    height: 100px;
+/* Foto de Perfil */
+.profile-photo-container {
+    position: relative;
+    width: 8rem;
+    height: 8rem;
     border-radius: 50%;
-    background-color: var(--color-bg-primary);
-    display: block;
-    object-fit: contain;
-    border: 3px solid var(--color-accent-blue);
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    overflow: hidden;
+    border: 4px solid var(--color-bg-tertiary);
+    box-shadow: 0 0 20px rgba(233, 30, 99, 0.3);
     cursor: pointer;
-    transition: transform 0.2s, background-color 0.3s;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.profile-photo-placeholder:hover {
+.profile-photo-container:hover {
     transform: scale(1.05);
+    box-shadow: 0 0 25px rgba(233, 30, 99, 0.5);
+    border-color: var(--color-accent-magenta);
+}
+
+.profile-photo-overlay {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.profile-photo-container:hover .profile-photo-overlay {
+    opacity: 1;
+}
+
+/* Estadísticas */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
 }
 
 .stat-item {
@@ -155,47 +209,170 @@ body {
     padding: 1rem;
     border-radius: 0.75rem;
     border: 1px solid var(--color-border);
-    transition: background-color 0.3s, border-color 0.3s;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.stat-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--color-shadow);
+    border-color: var(--color-accent-magenta);
 }
 
 .stat-label {
     color: var(--color-text-secondary);
-    font-size: 0.85rem;
-    font-weight: 500;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     margin-bottom: 0.25rem;
 }
 
 .stat-value {
-    color: var(--color-text-light);
+    color: var(--color-text-primary);
     font-size: 1.5rem;
     font-weight: 700;
 }
 
-#stat-total-cost {
-    color: #10b981;
-    /* Green */
+.stat-value.highlight {
+    color: var(--color-accent-magenta);
+}
+
+.stat-value.green {
+    color: var(--color-accent-green);
+}
+
+/* Separadores */
+.section-separator {
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--color-border), transparent);
+    margin: 2rem 0;
+}
+
+/* Gráficos */
+.chart-container {
+    background-color: var(--color-bg-tertiary);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    border: 1px solid var(--color-border);
+    height: 250px;
+    position: relative;
+}
+
+.chart-container.shared-chart {
+    height: 200px;
+}
+
+/* ================================================================
+   FORMULARIOS E INPUTS
+   ================================================================ */
+
+.form-label {
+    color: var(--color-text-secondary);
+}
+
+.minimal-input {
+    background-color: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-light);
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+}
+
+.minimal-input:focus {
+    border-color: var(--color-accent-magenta);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(233, 30, 99, 0.2);
+}
+
+.minimal-input:read-only {
+    cursor: default;
+    opacity: 0.8;
+}
+
+.minimal-input.cursor-pointer {
+    cursor: pointer;
+}
+
+/* ================================================================
+   BOTONES
+   ================================================================ */
+
+.primary-btn {
+    background-image: var(--gradient-primary);
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    border: none;
+    transition: opacity 0.2s, transform 0.1s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.primary-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.primary-btn:active {
+    transform: translateY(0);
+}
+
+.secondary-icon-btn {
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.secondary-icon-btn:hover {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-light);
+    border-color: var(--color-accent-magenta);
 }
 
 .user-id-display {
     font-size: 0.75rem;
     font-weight: 500;
-    padding: 0.25rem 0.5rem;
+    padding: 0.25rem 0.75rem;
     border-radius: 9999px;
     background-color: var(--color-bg-tertiary);
     color: var(--color-text-secondary);
-    max-width: 100px;
+    max-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    border: 1px solid var(--color-border);
 }
 
-/* Responsive */
+/* ================================================================
+   MODALES
+   ================================================================ */
+
+.modal-overlay {
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ================================================================
+   RESPONSIVE
+   ================================================================ */
+
 @media (max-width: 640px) {
-    body {
-        padding: 0;
+    .stats-grid {
+        grid-template-columns: 1fr;
     }
 
-    #stats-grid {
-        grid-template-columns: 1fr;
+    .chart-container {
+        height: 200px;
     }
 }
