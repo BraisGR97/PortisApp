@@ -121,10 +121,13 @@ async function loadRecords(maintenanceId, location) {
     currentMaintenanceId = maintenanceId;
     currentMaintenanceLocation = location;
 
-    document.getElementById('records-title').innerHTML = `
-        <i class="ph ph-clock-counter-clockwise card-icon"></i>
-        Registros: ${location}
-    `;
+    const titleEl = document.getElementById('records-title');
+    if (titleEl) {
+        titleEl.innerHTML = `
+            <i class="ph ph-clock-counter-clockwise card-icon"></i>
+            Registros: ${location}
+        `;
+    }
 
     try {
         const historyRef = getHistoryCollectionRef();
@@ -186,16 +189,13 @@ function createMaintenanceCard(item) {
     const card = document.createElement('div');
     card.className = 'repair-card';
 
-    // Asignar clase de prioridad
-    const priorityKey = (item.priority || 'baja').toLowerCase();
-    const priorityClass = priorityKey === 'alta' || priorityKey === 'high' ? 'priority-alta' :
-        priorityKey === 'media' || priorityKey === 'medium' ? 'priority-media' : 'priority-baja';
-    card.classList.add(priorityClass);
+    // NOTA: Se eliminaron las clases de prioridad (priority-alta, etc.) para quitar el borde lateral.
 
     const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     const monthIndex = (item.maintenance_month >= 1 && item.maintenance_month <= 12) ? item.maintenance_month - 1 : 0;
     const maintenanceDate = `${monthNames[monthIndex]} de ${item.maintenance_year}`;
 
+    const priorityKey = (item.priority || 'baja').toLowerCase();
     const priorityTranslations = { 'high': 'Alta', 'medium': 'Media', 'low': 'Baja' };
     const displayPriority = priorityTranslations[priorityKey] || (item.priority ? item.priority.charAt(0).toUpperCase() + item.priority.slice(1) : 'Baja');
 
@@ -345,22 +345,22 @@ function updateCardBorderOpacity() {
 // 5. FUNCIONES DE NAVEGACIÓN
 // -----------------------------------------------------------------
 
-function showRecordsView(maintenanceId, location) {
+window.showRecordsView = function (maintenanceId, location) {
     currentView = 'records';
     document.getElementById('maintenances-view').classList.add('hidden');
     document.getElementById('records-view').classList.remove('hidden');
     document.getElementById('page-title').textContent = 'Registros';
     loadRecords(maintenanceId, location);
-}
+};
 
-function showMaintenancesView() {
+window.showMaintenancesView = function () {
     currentView = 'maintenances';
     document.getElementById('maintenances-view').classList.remove('hidden');
     document.getElementById('records-view').classList.add('hidden');
     document.getElementById('page-title').textContent = 'Historial';
     currentMaintenanceId = null;
     currentMaintenanceLocation = null;
-}
+};
 
 window.goBack = function () {
     if (currentView === 'records') {

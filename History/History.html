@@ -79,10 +79,16 @@
             <!-- Vista de lista de registros de un mantenimiento específico -->
             <div id="records-view" class="card-container hidden">
                 <div class="card-inner-content">
-                    <h2 id="records-title" class="text-2xl font-bold mb-4 flex items-center gap-2 card-title">
-                        <i class="ph ph-clock-counter-clockwise card-icon"></i>
-                        Registros
-                    </h2>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 id="records-title" class="text-2xl font-bold flex items-center gap-2 card-title">
+                            <i class="ph ph-clock-counter-clockwise card-icon"></i>
+                            Registros
+                        </h2>
+                        <button onclick="window.showMaintenancesView()" class="secondary-icon-btn p-2 rounded-full"
+                            title="Cerrar vista de registros">
+                            <i class="ph ph-x text-xl"></i>
+                        </button>
+                    </div>
 
                     <div id="records-list" class="space-y-3">
                         <div class="loading-spinner"></div>

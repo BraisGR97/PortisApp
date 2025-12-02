@@ -211,18 +211,8 @@ html.light-mode body {
     border-top-color: var(--color-accent-magenta) !important;
 }
 
-/* Priority Colors (Borde izquierdo) */
-.priority-alta {
-    border-left: 4px solid var(--color-accent-red);
-}
-
-.priority-media {
-    border-left: 4px solid #FFC107;
-}
-
-.priority-baja {
-    border-left: 4px solid var(--color-accent-green);
-}
+/* Priority Colors (Borde izquierdo ELIMINADO) */
+/* Se eliminaron los estilos .priority-* para quitar el borde lateral */
 
 /* ================================================================
    INPUTS Y BOTONES
