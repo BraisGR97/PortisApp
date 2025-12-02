@@ -4,7 +4,7 @@
  * ====================================================================
  * 
  * Este módulo gestiona la creación, edición, eliminación y visualización
- * de notas personales del usuario. Soporta tanto modo Firebase como Mock.
+ * de notas personales del usuario.
  */
 
 // ====================================================================
@@ -12,13 +12,6 @@
 // ====================================================================
 
 const firebaseConfig = window.firebaseConfig;
-const IS_MOCK_MODE = window.IS_MOCK_MODE;
-
-if (IS_MOCK_MODE) {
-    console.warn("Modo MOCK: Las operaciones de Firestore serán simuladas.");
-}
-
-const appId = firebaseConfig ? firebaseConfig.projectId : 'mock-app-id';
 
 let app;
 let db;
@@ -26,42 +19,8 @@ let auth;
 let userId = null;
 let isAuthReady = false;
 
-// Clave para guardar las notas en localStorage en Mock Mode
-const MOCK_NOTES_STORAGE_KEY = 'mock_notes_data';
-
 // Cache de datos para búsqueda
 window.currentNotesData = [];
-
-// ====================================================================
-// FUNCIONES AUXILIARES - MOCK MODE
-// ====================================================================
-
-/**
- * Obtiene las notas guardadas en localStorage (Mock Mode).
- * @returns {Array} Array de notas o array vacío si no hay datos
- */
-function getLocalMockNotes() {
-    try {
-        const storedNotes = localStorage.getItem(MOCK_NOTES_STORAGE_KEY);
-        return storedNotes ? JSON.parse(storedNotes) : [];
-    } catch (e) {
-        console.error("Error al leer notas mock de localStorage:", e);
-        return [];
-    }
-}
-
-/**
- * Guarda las notas en localStorage (Mock Mode).
- * @param {Array} notes - Array de notas a guardar
- */
-function saveLocalMockNotes(notes) {
-    if (!IS_MOCK_MODE) return;
-    try {
-        localStorage.setItem(MOCK_NOTES_STORAGE_KEY, JSON.stringify(notes));
-    } catch (e) {
-        console.error("Error al guardar notas mock en localStorage:", e);
-    }
-}
 
 // ====================================================================
 // AUTENTICACIÓN Y SETUP
@@ -76,7 +35,6 @@ function checkAuthenticationAndSetup() {
     const displayElement = document.getElementById('current-user-display');
 
     if (!userId || !userDisplayName) {
-        console.warn("Sesión no válida o caducada. Redirigiendo a Index.");
         window.location.href = '../index.html';
         return;
     }
@@ -85,27 +43,7 @@ function checkAuthenticationAndSetup() {
         displayElement.textContent = userDisplayName;
     }
 
-    if (IS_MOCK_MODE) {
-        console.warn("Modo MOCK activado. Usando datos no persistentes.");
-        isAuthReady = true;
-
-        let mockNotes = getLocalMockNotes();
-
-        if (mockNotes.length === 0) {
-            console.log("Creando datos mock iniciales por primera vez.");
-            mockNotes = [
-                { id: 'n1', title: 'Bienvenida', content: 'Esta es tu primera nota. Puedes editarla o borrarla.', timestamp: Date.now() },
-                { id: 'n2', title: 'Lista de Tareas', content: '- Comprar leche\n- Llamar al fontanero\n- Revisar facturas', timestamp: Date.now() - 10000 },
-            ];
-            saveLocalMockNotes(mockNotes);
-        }
-
-        renderNotes(mockNotes);
-
-    } else {
-        initializeAppAndAuth();
-    }
-
+    initializeAppAndAuth();
     document.getElementById('new-note-form').addEventListener('submit', saveNote);
 }
 
@@ -127,13 +65,11 @@ async function initializeAppAndAuth() {
                 isAuthReady = true;
                 setupNotesListener();
             } else {
-                console.warn("Firebase no detecta sesión activa. Redirigiendo.");
                 window.location.href = '../index.html';
             }
         });
 
     } catch (error) {
-        console.error("Error al inicializar Firebase o al autenticar:", error);
         document.getElementById('notes-list').innerHTML = `
             <div class="message-error p-3 mt-4 text-red-400 bg-red-900/40 border border-red-900 rounded-lg">
                 Error de conexión. No se pudo cargar el módulo de datos.
@@ -170,7 +106,7 @@ function setupNotesListener() {
         });
         renderNotes(notes);
     }, (error) => {
-        console.error("Error en la conexión en tiempo real:", error);
+        // Error en la conexión
     });
 }
 
@@ -184,7 +120,7 @@ function setupNotesListener() {
  */
 async function saveNote(e) {
     e.preventDefault();
-    if (!isAuthReady || !userId) return console.warn("Autenticación no lista.");
+    if (!isAuthReady || !userId) return;
 
     const form = document.getElementById('new-note-form');
     const submitButton = document.getElementById('save-note-btn');
@@ -205,63 +141,29 @@ async function saveNote(e) {
         content,
         imageUrl,
         userId: userId,
-        timestamp: editId ? (IS_MOCK_MODE ? Date.now() : firebase.firestore.FieldValue.serverTimestamp()) : (IS_MOCK_MODE ? Date.now() : firebase.firestore.FieldValue.serverTimestamp())
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    if (IS_MOCK_MODE) {
-        let mockNotes = getLocalMockNotes();
+    try {
+        const notesRef = getNotesCollectionRef();
+        if (!notesRef) return;
 
         if (editId) {
-            // Editar nota existente
-            const index = mockNotes.findIndex(n => n.id === editId);
-            if (index !== -1) {
-                mockNotes[index] = { ...mockNotes[index], ...noteData, timestamp: Date.now() };
-                console.log('Modo Mock: Nota actualizada.');
-            }
+            await notesRef.doc(editId).update({
+                title,
+                content,
+                imageUrl,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
         } else {
-            // Crear nota nueva
-            const newNote = {
-                id: 'n' + Date.now(),
-                ...noteData,
-                timestamp: Date.now()
-            };
-            mockNotes.unshift(newNote);
-            console.log('Modo Mock: Nota creada.');
+            await notesRef.add(noteData);
         }
 
-        saveLocalMockNotes(mockNotes);
-        renderNotes(mockNotes);
-
-        await new Promise(resolve => setTimeout(resolve, 500));
         resetForm();
         window.toggleNewNoteForm();
 
-    } else {
-        // Modo Firebase
-        try {
-            const notesRef = getNotesCollectionRef();
-            if (!notesRef) return;
-
-            if (editId) {
-                await notesRef.doc(editId).update({
-                    title,
-                    content,
-                    imageUrl,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                console.log("Nota actualizada con éxito.");
-            } else {
-                await notesRef.add(noteData);
-                console.log("Nota creada con éxito.");
-            }
-
-            resetForm();
-            window.toggleNewNoteForm();
-
-        } catch (error) {
-            console.error("Error al guardar la nota:", error);
-            alert("Error al guardar la nota. Inténtalo de nuevo.");
-        }
+    } catch (error) {
+        alert("Error al guardar la nota. Inténtalo de nuevo.");
     }
 
     submitButton.innerHTML = '<i class="ph ph-floppy-disk mr-2"></i> Guardar Nota';
@@ -277,7 +179,7 @@ async function saveNote(e) {
  * @param {string} id - ID de la nota a eliminar
  */
 window.deleteNote = async function (id) {
-    if (!isAuthReady || !userId) return console.warn("Autenticación no lista.");
+    if (!isAuthReady || !userId) return;
 
     if (!confirm("¿Estás seguro de que quieres eliminar esta nota?")) {
         return;
@@ -289,22 +191,14 @@ window.deleteNote = async function (id) {
         await new Promise(resolve => setTimeout(resolve, 300));
     }
 
-    if (IS_MOCK_MODE) {
-        let mockNotes = getLocalMockNotes();
-        mockNotes = mockNotes.filter(n => n.id !== id);
-        saveLocalMockNotes(mockNotes);
-        renderNotes(mockNotes);
-    } else {
-        try {
-            const notesRef = getNotesCollectionRef();
-            if (notesRef) {
-                await notesRef.doc(id).delete();
-            }
-        } catch (error) {
-            console.error("Error al eliminar la nota:", error);
-            if (noteElement) {
-                noteElement.classList.remove('opacity-0', 'transform', '-translate-x-full');
-            }
+    try {
+        const notesRef = getNotesCollectionRef();
+        if (notesRef) {
+            await notesRef.doc(id).delete();
+        }
+    } catch (error) {
+        if (noteElement) {
+            noteElement.classList.remove('opacity-0', 'transform', '-translate-x-full');
         }
     }
 }
@@ -380,15 +274,6 @@ function resetForm() {
 }
 
 // ====================================================================
-// RENDERIZADO Y UI
-// ====================================================================
-
-/**
- * Renderiza las notas en la interfaz.
- * @param {Array} notes - Array de notas a renderizar
- * @param {boolean} updateCache - Si se debe actualizar el cache
- */
-// ====================================================================
 // GESTIÓN DE IMÁGENES Y MODAL
 // ====================================================================
 
@@ -421,7 +306,6 @@ window.handleImageSelect = async function (event) {
         const imageUrl = await uploadImageToCloudinary(file);
         document.getElementById('image-url').value = imageUrl;
     } catch (error) {
-        console.error("Error al subir imagen:", error);
         alert("Error al subir la imagen. Inténtalo de nuevo.");
         clearImage();
     }
@@ -485,8 +369,6 @@ window.openViewModal = function (id) {
         imageEl.classList.add('hidden');
     }
 
-
-
     document.getElementById('view-note-modal').classList.remove('hidden');
 };
 
@@ -497,6 +379,15 @@ window.closeViewModal = function () {
     document.getElementById('view-note-modal').classList.add('hidden');
 };
 
+// ====================================================================
+// RENDERIZADO Y UI
+// ====================================================================
+
+/**
+ * Renderiza las notas en la interfaz.
+ * @param {Array} notes - Array de notas a renderizar
+ * @param {boolean} updateCache - Si se debe actualizar el cache
+ */
 function renderNotes(notes, updateCache = true) {
     if (updateCache) {
         window.currentNotesData = notes;

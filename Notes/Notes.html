@@ -153,19 +153,14 @@
             </div>
 
             <!-- Modal de Visualización de Nota -->
-            <div id="view-note-modal"
-                class="fixed inset-0 z-[60] hidden flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                <div class="w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden"
-                    style="background-color: var(--color-bg-secondary); border: 1px solid var(--color-border); border-top: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 2px 10px var(--color-shadow);">
+            <div id="view-note-modal" class="view-modal-overlay">
+                <div class="view-modal-container">
 
                     <!-- Header -->
-                    <div class="p-4 border-b flex justify-between items-center shrink-0"
-                        style="border-color: var(--color-border);">
+                    <div class="view-modal-header">
                         <div class="flex-1 min-w-0 mr-4">
-                            <h3 id="view-note-title" class="text-xl font-bold break-words"
-                                style="color: var(--color-text-primary);"></h3>
-                            <span id="view-note-date" class="text-xs mt-1 block"
-                                style="color: var(--color-text-secondary);"></span>
+                            <h3 id="view-note-title" class="view-modal-title"></h3>
+                            <span id="view-note-date" class="view-modal-date"></span>
                         </div>
                         <button onclick="closeViewModal()" class="secondary-icon-btn p-2 rounded-full shrink-0"
                             title="Cerrar">
@@ -174,10 +169,9 @@
                     </div>
 
                     <!-- Content -->
-                    <div class="p-5 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
+                    <div class="view-modal-content">
                         <img id="view-note-image" src="" alt="Nota imagen" class="hidden note-image-full mb-4">
-                        <div id="view-note-content" class="whitespace-pre-line leading-relaxed text-base break-words"
-                            style="color: var(--color-text-primary);"></div>
+                        <div id="view-note-content" class="view-modal-text"></div>
                     </div>
                 </div>
             </div>
