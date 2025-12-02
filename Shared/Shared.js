@@ -125,10 +125,16 @@ function setupSharedListener() {
             .where('recipientId', '==', userId) // Corregido: receiverId -> recipientId
             .onSnapshot((snapshot) => {
                 const received = [];
+                const now = Date.now();
                 snapshot.forEach((doc) => {
-                    received.push({ id: doc.id, ...doc.data() });
+                    const data = doc.data();
+                    const expiresAt = data.expiresAt ? (data.expiresAt.toDate ? data.expiresAt.toDate().getTime() : new Date(data.expiresAt).getTime()) : 0;
+
+                    if (expiresAt > now) {
+                        received.push({ id: doc.id, ...data });
+                    }
                 });
-                console.log('[SHARED] Recibidos actualizados:', received.length);
+                console.log('[SHARED] Recibidos actualizados (filtrados):', received.length);
                 sharedReceived = received;
                 renderReceivedList(received);
             }, (error) => {
@@ -446,13 +452,34 @@ window.shareRepair = async function (repairId) {
         }
     }
 
-    // Guardar en base de datos
+    // Guardar en base de datos (Evitar duplicados)
     try {
         if (!db) return;
-        await db.collection('shared').add({ // Corregido: shared_maintenance -> shared
-            ...sharedData,
-            expiresAt: new Date(sharedData.expiresAt)
-        });
+
+        // Buscar si ya existe un compartido activo para este usuario y reparación
+        const existingQuery = await db.collection('shared')
+            .where('senderId', '==', userId)
+            .where('recipientId', '==', recipientId)
+            .where('repairData.id', '==', repair.id)
+            .get();
+
+        if (!existingQuery.empty) {
+            // Actualizar existente
+            const docId = existingQuery.docs[0].id;
+            await db.collection('shared').doc(docId).update({
+                expiresAt: new Date(sharedData.expiresAt),
+                sharedAt: sharedData.sharedAt,
+                includeRecords: includeRecords,
+                records: sharedData.records || []
+            });
+            console.log("Compartido actualizado extendiendo expiración.");
+        } else {
+            // Crear nuevo
+            await db.collection('shared').add({
+                ...sharedData,
+                expiresAt: new Date(sharedData.expiresAt)
+            });
+        }
 
         if (messageDiv) {
             messageDiv.textContent = `✓ Compartido con ${recipientName}`;

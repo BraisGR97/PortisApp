@@ -199,7 +199,12 @@ window.saveBill = async function (e) {
     try {
         const concept = document.getElementById('concept').value.trim();
         const cost = parseFloat(document.getElementById('cost').value);
-        const dateValue = document.getElementById('date').value;
+
+        // Validación segura del input de fecha
+        const dateInput = document.getElementById('date');
+        if (!dateInput) throw new Error("Error interno: Input de fecha no encontrado.");
+        const dateValue = dateInput.value;
+
         const status = 'Pendiente'; // Siempre se crea en Pendiente
         const notes = document.getElementById('notes').value.trim();
         const imageUrl = document.getElementById('image-url').value.trim();
@@ -421,8 +426,11 @@ window.toggleNewBillForm = function () {
         document.getElementById('new-bill-form').reset();
 
         // Establecer fecha actual por defecto
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('date').value = today;
+        const dateInput = document.getElementById('date');
+        if (dateInput) {
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.value = today;
+        }
 
         setTimeout(() => {
             newBillCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
