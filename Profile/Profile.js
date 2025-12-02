@@ -193,6 +193,7 @@ async function handleProfileEdit() {
 // ====================================================================
 
 async function loadAndCalculateStats() {
+    console.log('[PROFILE] Iniciando carga de estadísticas...');
     let repairs = [], bills = [], notes = [], history = [];
     let sharedSent = [], sharedReceived = [];
 
@@ -214,8 +215,17 @@ async function loadAndCalculateStats() {
         sentSnap.forEach(doc => sharedSent.push(doc.data()));
         receivedSnap.forEach(doc => sharedReceived.push(doc.data()));
 
+        console.log('[PROFILE] Datos cargados:', {
+            repairs: repairs.length,
+            bills: bills.length,
+            notes: notes.length,
+            history: history.length,
+            sharedSent: sharedSent.length,
+            sharedReceived: sharedReceived.length
+        });
+
     } catch (error) {
-        console.error("Error cargando datos:", error);
+        console.error("[PROFILE] Error cargando datos:", error);
         return;
     }
 
@@ -247,10 +257,13 @@ async function loadAndCalculateStats() {
 
     repairs.forEach(repair => {
         if (repair.priority === 'Alta') highPriorityCount++;
-        const dateStr = repair.date || repair.next_revision;
-        if (dateStr) {
-            const rDate = dateStr.toDate ? dateStr.toDate() : new Date(dateStr);
-            if (rDate.getMonth() === currentMonth && rDate.getFullYear() === currentYear) {
+
+        // Usar maintenance_month y maintenance_year en lugar de date
+        if (repair.maintenance_month && repair.maintenance_year) {
+            const repairMonth = parseInt(repair.maintenance_month) - 1; // Los meses en JS son 0-indexed
+            const repairYear = parseInt(repair.maintenance_year);
+
+            if (repairMonth === currentMonth && repairYear === currentYear) {
                 currentMonthWorkload++;
             }
         }
@@ -267,10 +280,24 @@ async function loadAndCalculateStats() {
     updateStat('stat-total-cost', `${totalCost.toFixed(2)} €`);
     updateStat('stat-paid-cost', `${totalPaid.toFixed(2)} €`);
 
+    console.log('[PROFILE] Estadísticas calculadas:', {
+        repairsCount,
+        historyCount,
+        notesCount,
+        highPriorityCount,
+        totalShared,
+        billsCount,
+        totalCost: totalCost.toFixed(2),
+        totalPaid: totalPaid.toFixed(2),
+        currentMonthWorkload
+    });
+
     // Renderizar Gráficos
+    console.log('[PROFILE] Renderizando gráficos...');
     renderWorkloadChart(currentMonthWorkload, repairsCount);
     renderSharedChart(sentCount, receivedCount);
     renderExpensesChart(totalPaid, totalCost - totalPaid);
+    console.log('[PROFILE] Gráficos renderizados correctamente');
 }
 
 function updateStat(id, value) {
@@ -281,81 +308,111 @@ function updateStat(id, value) {
 // --- GRÁFICOS CHART.JS ---
 
 function renderWorkloadChart(currentMonth, total) {
-    const ctx = document.getElementById('workloadChart').getContext('2d');
-    if (workloadChartInstance) workloadChartInstance.destroy();
-
-    workloadChartInstance = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Este Mes', 'Resto'],
-            datasets: [{
-                data: [currentMonth, Math.max(0, total - currentMonth)],
-                backgroundColor: ['#E91E63', '#2a2a3e'],
-                borderWidth: 0,
-                hoverOffset: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'bottom', labels: { color: '#9999aa', font: { family: 'Inter' } } }
-            },
-            cutout: '70%'
+    try {
+        const canvas = document.getElementById('workloadChart');
+        if (!canvas) {
+            console.error('[PROFILE] Canvas workloadChart no encontrado');
+            return;
         }
-    });
+        const ctx = canvas.getContext('2d');
+        if (workloadChartInstance) workloadChartInstance.destroy();
+
+        workloadChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Este Mes', 'Resto'],
+                datasets: [{
+                    data: [currentMonth, Math.max(0, total - currentMonth)],
+                    backgroundColor: ['#E91E63', '#2a2a3e'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#9999aa', font: { family: 'Inter' } } }
+                },
+                cutout: '70%'
+            }
+        });
+        console.log('[PROFILE] Gráfico de carga de trabajo renderizado');
+    } catch (error) {
+        console.error('[PROFILE] Error renderizando workloadChart:', error);
+    }
 }
 
 function renderSharedChart(sent, received) {
-    const ctx = document.getElementById('sharedChart').getContext('2d');
-    if (sharedChartInstance) sharedChartInstance.destroy();
-
-    sharedChartInstance = new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: ['Enviados', 'Recibidos'],
-            datasets: [{
-                data: [sent, received],
-                backgroundColor: ['#9C27B0', '#2196F3'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'right', labels: { color: '#9999aa', font: { family: 'Inter' } } }
-            }
+    try {
+        const canvas = document.getElementById('sharedChart');
+        if (!canvas) {
+            console.error('[PROFILE] Canvas sharedChart no encontrado');
+            return;
         }
-    });
+        const ctx = canvas.getContext('2d');
+        if (sharedChartInstance) sharedChartInstance.destroy();
+
+        sharedChartInstance = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Enviados', 'Recibidos'],
+                datasets: [{
+                    data: [sent, received],
+                    backgroundColor: ['#9C27B0', '#2196F3'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#9999aa', font: { family: 'Inter' } } }
+                }
+            }
+        });
+        console.log('[PROFILE] Gráfico de compartidos renderizado');
+    } catch (error) {
+        console.error('[PROFILE] Error renderizando sharedChart:', error);
+    }
 }
 
 function renderExpensesChart(paid, pending) {
-    const ctx = document.getElementById('expensesChart').getContext('2d');
-    if (expensesChartInstance) expensesChartInstance.destroy();
-
-    expensesChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Pagado', 'Pendiente'],
-            datasets: [{
-                label: 'Importe (€)',
-                data: [paid, pending],
-                backgroundColor: ['#4CAF50', '#FF9800'],
-                borderRadius: 6,
-                barThickness: 40
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, grid: { color: '#2a2a3e' }, ticks: { color: '#9999aa' } },
-                x: { grid: { display: false }, ticks: { color: '#9999aa' } }
-            },
-            plugins: { legend: { display: false } }
+    try {
+        const canvas = document.getElementById('expensesChart');
+        if (!canvas) {
+            console.error('[PROFILE] Canvas expensesChart no encontrado');
+            return;
         }
-    });
+        const ctx = canvas.getContext('2d');
+        if (expensesChartInstance) expensesChartInstance.destroy();
+
+        expensesChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Pagado', 'Pendiente'],
+                datasets: [{
+                    label: 'Importe (€)',
+                    data: [paid, pending],
+                    backgroundColor: ['#4CAF50', '#FF9800'],
+                    borderRadius: 6,
+                    barThickness: 40
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#2a2a3e' }, ticks: { color: '#9999aa' } },
+                    x: { grid: { display: false }, ticks: { color: '#9999aa' } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+        console.log('[PROFILE] Gráfico de gastos renderizado');
+    } catch (error) {
+        console.error('[PROFILE] Error renderizando expensesChart:', error);
+    }
 }
 
 // ====================================================================

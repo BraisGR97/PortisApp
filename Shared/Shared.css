@@ -1,58 +1,94 @@
+@charset "UTF-8";
+
+/**
+ * ====================================================================
+ * Shared.css - Estilos para el Módulo de Compartidos
+ * ====================================================================
+ */
+
+/* ================================================================
+   VARIABLES DE COLOR (Idénticas a Notes.css, Bills.css y Profile.css)
+   ================================================================ */
+
 :root {
-    /* 🛑 CAMBIO 2: Paleta de colores de Main.css (DARK DEFAULT) */
+    color-scheme: dark;
+
+    /* Colores de fondo (Dark Mode por defecto) */
     --color-bg-primary: #12121e;
     --color-bg-secondary: #1f1f33;
     --color-bg-tertiary: #2a2a3e;
+    --color-bg-glass: rgba(0, 0, 0, 0.5);
+
+    /* Colores de texto */
     --color-text-primary: #f0f0f5;
     --color-text-secondary: #9999aa;
     --color-text-light: #ffffff;
 
-    /* 🛑 CAMBIO: Bordes y Acentos Magenta para Dark Mode */
-    --color-border: #632b3e;
-    /* Borde Magenta Oscuro sutil */
-    --color-shadow: rgba(0, 0, 0, 0.5);
+    /* Bordes y sombras */
+    --color-border: #47475f;
+    --color-border-light: #dee2e6;
+    --color-shadow: rgba(0, 0, 0, 0.6);
+    --color-shadow-light: rgba(255, 255, 255, 0.6);
 
-    /* 🛑 CAMBIO: Acento Principal ahora es Magenta en Dark Mode */
-    --color-accent-blue: #E91E63;
-
-    --color-accent-red: #ef4444;
-
-    /* 🛑 RESTAURADO: Gradiente Naranja/Rojo original */
+    /* Acentos */
+    --color-accent-magenta: #E91E63;
+    --color-accent-red: #dc3545;
+    --color-accent-green: #4CAF50;
+    --color-accent-orange: #FF9800;
+    --color-accent-blue: #2196F3;
     --gradient-primary: linear-gradient(135deg, #FF5722, #E91E63);
-
-    /* --- NAV BAR --- */
-    --nav-bg-color: rgba(18, 18, 30, 0.9);
 }
 
-/* --- LIGHT MODE PALETTE --- */
-body.light-mode {
-    --color-bg-primary: #f8f9fa;
-    --color-bg-secondary: #ffffff;
+/* Light Mode Variables */
+html.light-mode,
+html.light-mode body {
+    color-scheme: light;
+
+    /* Colores de fondo (Light Mode) */
+    --color-bg-primary: #ffffff;
+    --color-bg-secondary: #f8f9fa;
     --color-bg-tertiary: #e9ecef;
+    --color-bg-glass: rgba(255, 255, 255, 0.5);
+
+    /* Colores de texto */
     --color-text-primary: #212529;
     --color-text-secondary: #6c757d;
     --color-text-light: #212529;
-    --color-border: #dee2e6;
-    --color-shadow: rgba(0, 0, 0, 0.1);
-    --color-accent-blue: #0d6efd;
-    /* Mantenemos azul en light mode por legibilidad, o cambiar si se pide */
-    --color-accent-red: #dc3545;
-    --gradient-primary: linear-gradient(135deg, #FF5722, #E91E63);
 
-    /* NAV BAR Light Mode */
-    --nav-bg-color: rgba(255, 255, 255, 0.95);
+    /* Bordes y sombras */
+    --color-border: #dee2e6;
+    --color-border-light: #dee2e6;
+    --color-shadow: rgba(0, 0, 0, 0.1);
+    --color-shadow-light: rgba(255, 255, 255, 0.6);
+
+    /* Acentos */
+    --color-accent-magenta: #E91E63;
+    --color-accent-red: #dc3545;
+    --color-accent-green: #198754;
+    --color-accent-orange: #fd7e14;
+    --color-accent-blue: #0d6efd;
+    --gradient-primary: linear-gradient(135deg, #FF5722, #E91E63);
 }
 
+/* ================================================================
+   LAYOUT GENERAL
+   ================================================================ */
+
 body {
-    background-color: var(--color-bg-primary);
+    background: radial-gradient(circle at center, #050505 0%, #12121e 100%);
+    background-attachment: fixed;
     color: var(--color-text-primary);
     transition: background-color 0.3s, color 0.3s;
     min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow-x: hidden;
 }
 
-.overflow-y-auto {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+html.light-mode body {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    background-attachment: fixed;
 }
 
 .app-layout {
@@ -61,32 +97,69 @@ body {
     min-height: 100vh;
 }
 
-#top-navbar {
-    background-color: var(--color-bg-primary);
-    border-bottom: 1px solid var(--color-border);
+/* Scrollbar oculta */
+* {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
+
+*::-webkit-scrollbar {
+    display: none;
+}
+
+/* ================================================================
+   NAVBAR
+   ================================================================ */
+
+#top-navbar {
+    background-color: var(--color-bg-glass);
+    border-bottom: 1px solid var(--color-border-light);
+    box-shadow: 0 0 25px var(--color-shadow-light);
+    border-radius: 0;
+}
+
+.navbar-title {
+    color: var(--color-text-light);
+}
+
+/* ================================================================
+   CONTENIDO PRINCIPAL
+   ================================================================ */
 
 #app-content {
     padding: 1rem;
     flex-grow: 1;
-    padding-bottom: 5rem;
-    /* Espacio para el FAB */
+    padding-bottom: 6rem;
 }
 
-/* Card styles */
+/* ================================================================
+   CARDS Y CONTENEDORES
+   ================================================================ */
+
 .card-container {
     background-color: var(--color-bg-secondary);
-    border: 1px solid var(--color-border);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid #2b2b3a;
     border-radius: 1rem;
-    box-shadow: 0 4px 10px var(--color-shadow);
+    box-shadow: 0 0 5px var(--color-shadow);
     overflow: hidden;
+    margin-bottom: 1.5rem;
+    transition: border-top-color 0.3s ease;
 }
 
 .card-inner-content {
     padding: 1.5rem;
 }
 
-/* Vistas: controla qué tarjeta se ve */
+.card-title {
+    color: var(--color-text-light);
+}
+
+.card-icon {
+    color: var(--color-accent-magenta);
+}
+
+/* Vistas */
 .hidden-view {
     display: none;
 }
@@ -95,63 +168,167 @@ body {
     display: block;
 }
 
-/* 🛑 Input/Form styles con borde negro fino por defecto, y magenta al seleccionar */
-.minimal-input {
-    background-color: var(--color-bg-primary);
+/* ================================================================
+   TARJETAS DE MANTENIMIENTOS COMPARTIDOS
+   ================================================================ */
+
+.repair-card {
+    background-color: var(--color-bg-tertiary);
     border: 1px solid var(--color-border);
-    /* Borde fino */
-    color: var(--color-text-light);
-    padding: 0.6rem 0.8rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 1rem;
+    border-radius: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, border-top-color 0.15s ease-out;
+    margin-bottom: 0.75rem;
+}
+
+.repair-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px var(--color-shadow);
+    border-color: var(--color-accent-magenta);
+    border-top-color: var(--color-accent-magenta) !important;
+}
+
+/* Estados */
+.status-pendiente {
+    color: var(--color-accent-orange);
+}
+
+.status-en-progreso {
+    color: var(--color-accent-blue);
+}
+
+.status-completado {
+    color: var(--color-accent-green);
+}
+
+/* ================================================================
+   FORMULARIOS - CHECKBOX Y SELECT PERSONALIZADOS
+   ================================================================ */
+
+/* Checkbox personalizado */
+.custom-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid var(--color-border);
+    border-radius: 0.375rem;
+    background-color: var(--color-bg-primary);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.custom-checkbox:hover {
+    border-color: var(--color-accent-magenta);
+}
+
+.custom-checkbox:checked {
+    background-color: var(--color-accent-magenta);
+    border-color: var(--color-accent-magenta);
+}
+
+.custom-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 0.875rem;
+    font-weight: bold;
+}
+
+/* Select personalizado */
+.custom-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+    padding: 0.75rem 2.5rem 0.75rem 0.75rem;
     border-radius: 0.5rem;
-    transition: border-color 0.2s, background-color 0.2s;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239999aa' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
 }
 
-.minimal-input:focus {
-    border-color: var(--color-accent-blue);
-    /* Magenta al enfocar */
+.custom-select:hover {
+    border-color: var(--color-accent-magenta);
+}
+
+.custom-select:focus {
     outline: none;
-    box-shadow: 0 0 0 1px var(--color-accent-blue);
+    border-color: var(--color-accent-magenta);
+    box-shadow: 0 0 0 2px rgba(233, 30, 99, 0.2);
 }
 
-.minimal-input::placeholder {
-    color: var(--color-text-secondary);
+html.light-mode .custom-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
 }
 
-/* Button styles */
+/* ================================================================
+   BOTONES
+   ================================================================ */
+
 .primary-btn {
     background-image: var(--gradient-primary);
-    color: var(--color-text-light);
+    color: #ffffff;
     font-weight: 600;
     padding: 0.6rem 1rem;
     border-radius: 0.5rem;
     border: none;
-    transition: opacity 0.2s;
+    transition: opacity 0.2s, transform 0.1s;
 }
 
 .primary-btn:hover {
     opacity: 0.9;
+    transform: translateY(-1px);
 }
 
 .secondary-icon-btn {
     background-color: var(--color-bg-tertiary);
     color: var(--color-text-secondary);
     border: 1px solid var(--color-border);
-    transition: background-color 0.2s, color 0.2s;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
 }
 
 .secondary-icon-btn:hover {
     background-color: var(--color-bg-primary);
     color: var(--color-text-light);
-    border-color: var(--color-accent-blue);
-    /* Borde magenta al hover */
+    border-color: var(--color-accent-magenta);
 }
 
-/* --- BARRA DE NAVEGACIÓN INFERIOR --- */
+.user-id-display {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border: 1px solid var(--color-border);
+}
+
+/* ================================================================
+   BARRA DE NAVEGACIÓN INFERIOR
+   ================================================================ */
+
 #bottom-navbar {
-    background-color: var(--nav-bg-color);
+    background-color: var(--color-bg-glass);
     box-shadow: 0 -5px 20px var(--color-shadow);
-    border-top: 1px solid var(--color-border);
-    transition: background-color 0.5s, box-shadow 0.5s, border-top 0.5s;
+    border-top: 1px solid var(--color-border-light);
+    transition: background-color 0.3s, box-shadow 0.3s, border-top 0.3s;
 }
 
 .nav-button {
@@ -160,15 +337,14 @@ body {
     color: var(--color-text-secondary);
     padding: 0.75rem;
     border-radius: 9999px;
-    transition: color 0.3s, background-color 0.3s;
-    position: relative;
+    transition: color 0.3s, background-color 0.3s, box-shadow 0.3s;
     cursor: pointer;
 }
 
 .nav-button.active {
-    color: var(--color-accent-blue);
+    color: var(--color-accent-magenta);
     background-color: var(--color-bg-tertiary);
-    box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 0 15px rgba(233, 30, 99, 0.3);
 }
 
 .nav-button:not(.active):hover {
@@ -176,71 +352,94 @@ body {
     background-color: var(--color-bg-tertiary);
 }
 
-/* Repair Card Specific Styles */
-.repair-card {
-    background-color: var(--color-bg-secondary);
-    border: 1px solid var(--color-border);
-    padding: 1rem;
-    border-radius: 0.75rem;
-    display: flex;
-    flex-direction: column;
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-    margin-bottom: 0.75rem;
-}
+/* ================================================================
+   ANIMACIONES DE SWIPE
+   ================================================================ */
 
-.repair-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
-    border-color: var(--color-accent-blue);
-}
-
-/* Status colors */
-.status-pendiente {
-    color: #f97316;
-}
-
-/* Orange */
-.status-en-progreso {
-    color: var(--color-accent-blue);
-}
-
-/* Blue/Magenta */
-.status-completado {
-    color: #10b981;
-}
-
-/* Emerald Green */
-
-/* Priority Colors */
-.repair-card.priority-alta {
-    border-left: 4px solid var(--color-accent-red);
-}
-
-.repair-card.priority-media {
-    border-left: 4px solid #FFC107;
-}
-
-.repair-card.priority-baja {
-    border-left: 4px solid #10b981;
-}
-
-.user-id-display {
-    font-size: 0.75rem;
-    font-weight: 500;
-    padding: 0.25rem 0.5rem;
-    border-radius: 9999px;
-    background-color: var(--color-bg-tertiary);
-    color: var(--color-text-secondary);
-    max-width: 100px;
+.swipe-container {
+    position: relative;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    touch-action: pan-y;
 }
 
-/* Responsive */
+.swipe-view {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.swipe-view.swipe-left {
+    transform: translateX(-100%);
+}
+
+.swipe-view.swipe-right {
+    transform: translateX(100%);
+}
+
+/* ================================================================
+   UTILIDADES
+   ================================================================ */
+
+.loading-spinner {
+    border: 4px solid var(--color-bg-tertiary);
+    border-top: 4px solid var(--color-accent-magenta);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 2rem auto;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* ================================================================
+   RESPONSIVE
+   ================================================================ */
+
 @media (max-width: 640px) {
     body {
         padding: 0;
     }
+
+    #app-content {
+        padding: 0.5rem;
+        padding-bottom: 6rem;
+    }
+}
+/* ================================================================
+   SLIDER DE VISTAS (ANIMACI�N TIPO APP M�VIL)
+   ================================================================ */
+
+#views-slider {
+    display: flex;
+    width: 200%; /* El contenedor mide el doble para albergar las dos vistas */
+    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); /* Transici�n suave */
+    will-change: transform;
+}
+
+.view-section {
+    width: 50%; /* Cada vista ocupa la mitad del slider (100% de la pantalla) */
+    flex-shrink: 0;
+    padding: 0 4px; /* Peque�o espaciado */
+    box-sizing: border-box;
+}
+
+/* Estados del slider */
+.slider-show-upload {
+    transform: translateX(0%);
+}
+
+.slider-show-download {
+    transform: translateX(-50%);
+}
+
+/* Ocultar scrollbar horizontal en el contenedor principal por si acaso */
+#app-content {
+    overflow-x: hidden;
 }

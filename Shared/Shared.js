@@ -4,11 +4,19 @@
  * ====================================================================
  * Permite compartir mantenimientos entre usuarios con opción de incluir
  * registros históricos. Los datos compartidos expiran en 48 horas.
+ * 
+ * Funcionalidades:
+ * - Enviar mantenimientos a otros usuarios
+ * - Recibir mantenimientos compartidos
+ * - Incluir registros históricos opcionales
+ * - Expiración automática de datos compartidos (48h)
+ * - Soporte para Mock Mode y Firebase
+ * - Navegación por swipe y efectos visuales
  */
 
-// -----------------------------------------------------------------
-// 1. CONFIGURACIÓN Y VARIABLES GLOBALES
-// -----------------------------------------------------------------
+// ====================================================================
+// CONFIGURACIÓN Y VARIABLES GLOBALES
+// ====================================================================
 
 const firebaseConfig = window.firebaseConfig;
 const IS_MOCK_MODE = window.IS_MOCK_MODE;
@@ -38,10 +46,13 @@ let allRepairs = [];
 let allUsers = [];
 let sharedReceived = [];
 
-// -----------------------------------------------------------------
-// 2. FUNCIONES AUXILIARES DE MOCK MODE
-// -----------------------------------------------------------------
+// ====================================================================
+// FUNCIONES AUXILIARES DE MOCK MODE
+// ====================================================================
 
+/**
+ * Obtiene los mantenimientos mock del localStorage.
+ */
 function getLocalMockRepairs() {
     try {
         const stored = localStorage.getItem(MOCK_REPAIRS_KEY);
@@ -52,6 +63,9 @@ function getLocalMockRepairs() {
     }
 }
 
+/**
+ * Obtiene el historial mock del localStorage.
+ */
 function getLocalMockHistory() {
     try {
         const stored = localStorage.getItem(MOCK_HISTORY_KEY);
@@ -62,6 +76,9 @@ function getLocalMockHistory() {
     }
 }
 
+/**
+ * Obtiene los datos compartidos enviados (mock).
+ */
 function getLocalMockSharedSent() {
     try {
         const stored = localStorage.getItem(MOCK_SHARED_SENT_KEY);
@@ -71,6 +88,9 @@ function getLocalMockSharedSent() {
     }
 }
 
+/**
+ * Guarda los datos compartidos enviados (mock).
+ */
 function saveLocalMockSharedSent(data) {
     try {
         localStorage.setItem(MOCK_SHARED_SENT_KEY, JSON.stringify(data));
@@ -79,6 +99,9 @@ function saveLocalMockSharedSent(data) {
     }
 }
 
+/**
+ * Obtiene los datos compartidos recibidos (mock).
+ */
 function getLocalMockSharedReceived() {
     try {
         const stored = localStorage.getItem(MOCK_SHARED_RECEIVED_KEY);
@@ -88,6 +111,9 @@ function getLocalMockSharedReceived() {
     }
 }
 
+/**
+ * Guarda los datos compartidos recibidos (mock).
+ */
 function saveLocalMockSharedReceived(data) {
     try {
         localStorage.setItem(MOCK_SHARED_RECEIVED_KEY, JSON.stringify(data));
@@ -96,6 +122,9 @@ function saveLocalMockSharedReceived(data) {
     }
 }
 
+/**
+ * Devuelve una lista de usuarios mock para pruebas.
+ */
 function getMockUsers() {
     return [
         { id: 'Alfonso_Perez_UID', name: 'Alfonso Pérez' },
@@ -104,10 +133,13 @@ function getMockUsers() {
     ];
 }
 
-// -----------------------------------------------------------------
-// 3. AUTENTICACIÓN Y SETUP
-// -----------------------------------------------------------------
+// ====================================================================
+// AUTENTICACIÓN Y SETUP
+// ====================================================================
 
+/**
+ * Valida la sesión del usuario y prepara la interfaz.
+ */
 function checkAuthenticationAndSetup() {
     userId = sessionStorage.getItem('portis-user-identifier');
     userDisplayName = sessionStorage.getItem('portis-user-display-name');
@@ -132,6 +164,9 @@ function checkAuthenticationAndSetup() {
     }
 }
 
+/**
+ * Inicializa Firebase y establece el listener de autenticación.
+ */
 async function initializeAppAndAuth() {
     try {
         if (!firebaseConfig || !firebaseConfig.apiKey) {
@@ -155,17 +190,21 @@ async function initializeAppAndAuth() {
     } catch (error) {
         console.error("Error al inicializar Firebase:", error);
         document.getElementById('upload-list').innerHTML = `
-            <div class="message-error p-3 text-red-400 bg-red-900/40 border border-red-900 rounded-lg">
-                Error de conexión. No se pudo cargar los datos.
+            <div class="p-4 text-center rounded-lg bg-red-900/40 border border-red-900 text-red-400">
+                <i class="ph ph-warning-circle text-2xl mb-2"></i>
+                <p>Error de conexión. No se pudo cargar los datos.</p>
             </div>
         `;
     }
 }
 
-// -----------------------------------------------------------------
-// 4. FUNCIONES DE CARGA DE DATOS
-// -----------------------------------------------------------------
+// ====================================================================
+// FUNCIONES DE CARGA DE DATOS
+// ====================================================================
 
+/**
+ * Carga todos los datos necesarios en paralelo.
+ */
 async function loadData() {
     await Promise.all([
         loadRepairs(),
@@ -174,6 +213,9 @@ async function loadData() {
     ]);
 }
 
+/**
+ * Carga los mantenimientos del usuario actual.
+ */
 async function loadRepairs() {
     if (IS_MOCK_MODE) {
         allRepairs = getLocalMockRepairs();
@@ -196,6 +238,9 @@ async function loadRepairs() {
     }
 }
 
+/**
+ * Carga la lista de usuarios disponibles para compartir.
+ */
 async function loadUsers() {
     if (IS_MOCK_MODE) {
         allUsers = getMockUsers().filter(u => u.id !== userId);
@@ -234,6 +279,10 @@ async function loadUsers() {
     }
 }
 
+/**
+ * Carga los mantenimientos compartidos recibidos.
+ * Filtra automáticamente los que han expirado (>48h).
+ */
 async function loadSharedReceived() {
     if (IS_MOCK_MODE) {
         let received = getLocalMockSharedReceived();
@@ -250,8 +299,8 @@ async function loadSharedReceived() {
     } else {
         try {
             if (!db || !userId) return;
-            const sharedRef = db.collection('shared')
-                .where('recipientId', '==', userId)
+            const sharedRef = db.collection('shared_maintenance')
+                .where('receiverId', '==', userId)
                 .where('expiresAt', '>', new Date());
 
             const snapshot = await sharedRef.get();
@@ -267,18 +316,22 @@ async function loadSharedReceived() {
     }
 }
 
-// -----------------------------------------------------------------
-// 5. RENDERIZADO - VISTA ENVIAR
-// -----------------------------------------------------------------
+// ====================================================================
+// RENDERIZADO - VISTA ENVIAR
+// ====================================================================
 
+/**
+ * Renderiza la lista de mantenimientos disponibles para enviar.
+ */
 function renderSendView() {
     const container = document.getElementById('upload-list');
     container.innerHTML = '';
 
     if (allRepairs.length === 0) {
         container.innerHTML = `
-            <div class="p-4 text-center rounded-lg" style="background-color: var(--color-bg-secondary); color: var(--color-text-secondary);">
-                No hay mantenimientos para compartir.
+            <div class="p-6 text-center rounded-lg" style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);">
+                <i class="ph ph-folder-open text-4xl mb-2"></i>
+                <p>No hay mantenimientos para compartir.</p>
             </div>
         `;
         return;
@@ -290,17 +343,16 @@ function renderSendView() {
     });
 }
 
+/**
+ * Crea una tarjeta de mantenimiento para enviar.
+ */
 function createSendCard(repair) {
     const card = document.createElement('div');
-    card.className = 'repair-card p-4 rounded-xl shadow-sm border relative group';
-    card.style.backgroundColor = 'var(--color-bg-secondary)';
-    card.style.borderColor = 'var(--color-border)';
+    card.className = `repair-card priority-${repair.priority?.toLowerCase() || 'media'}`;
 
     const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     const monthIndex = (repair.maintenance_month >= 1 && repair.maintenance_month <= 12) ? repair.maintenance_month - 1 : 0;
     const maintenanceDate = `${monthNames[monthIndex]} de ${repair.maintenance_year}`;
-
-    console.log('[SHARED] createSendCard - allUsers:', allUsers);
 
     card.innerHTML = `
         <div class="mb-3">
@@ -318,8 +370,7 @@ function createSendCard(repair) {
         </div>
 
         <div class="flex items-center gap-2 mb-3">
-            <select id="user-select-${repair.id}" class="flex-1 px-3 py-2 rounded-lg text-sm" 
-                    style="background-color: var(--color-bg-tertiary); color: var(--color-text-primary); border: 1px solid var(--color-border);">
+            <select id="user-select-${repair.id}" class="custom-select flex-1">
                 <option value="">Seleccionar usuario...</option>
                 ${allUsers.map(user => `<option value="${user.id}">${user.name}</option>`).join('')}
             </select>
@@ -328,8 +379,7 @@ function createSendCard(repair) {
         <div class="flex items-center justify-between pt-3 border-t" style="border-color: var(--color-border);">
             <label class="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" id="include-records-${repair.id}" 
-                       class="w-4 h-4 rounded cursor-pointer" 
-                       style="accent-color: var(--color-accent-red);">
+                       class="custom-checkbox">
                 <span class="text-sm" style="color: var(--color-text-secondary);">Incluir registros</span>
             </label>
 
@@ -341,7 +391,7 @@ function createSendCard(repair) {
         </div>
 
         <div id="share-message-${repair.id}" class="hidden mt-2 p-2 rounded text-sm text-center" 
-             style="background-color: var(--color-accent-blue); color: white;">
+             style="background-color: var(--color-accent-magenta); color: white;">
         </div>
     `;
 
@@ -363,18 +413,22 @@ function createSendCard(repair) {
     return card;
 }
 
-// -----------------------------------------------------------------
-// 6. RENDERIZADO - VISTA RECIBIDOS
-// -----------------------------------------------------------------
+// ====================================================================
+// RENDERIZADO - VISTA RECIBIDOS
+// ====================================================================
 
+/**
+ * Renderiza la lista de mantenimientos recibidos.
+ */
 function renderReceiveView() {
     const container = document.getElementById('download-list');
     container.innerHTML = '';
 
     if (sharedReceived.length === 0) {
         container.innerHTML = `
-            <div class="p-4 text-center rounded-lg" style="background-color: var(--color-bg-secondary); color: var(--color-text-secondary);">
-                No has recibido mantenimientos compartidos.
+            <div class="p-6 text-center rounded-lg" style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);">
+                <i class="ph ph-inbox text-4xl mb-2"></i>
+                <p>No has recibido mantenimientos compartidos.</p>
             </div>
         `;
         return;
@@ -386,13 +440,14 @@ function renderReceiveView() {
     });
 }
 
+/**
+ * Crea una tarjeta de mantenimiento recibido.
+ */
 function createReceivedCard(shared) {
     const card = document.createElement('div');
-    card.className = 'repair-card p-4 rounded-xl shadow-sm border relative group cursor-pointer transition-all duration-200 hover:shadow-md';
-    card.style.backgroundColor = 'var(--color-bg-secondary)';
-    card.style.borderColor = 'var(--color-border)';
-
     const repair = shared.repairData || {};
+    card.className = `repair-card priority-${repair.priority?.toLowerCase() || 'media'}`;
+
     const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     const monthIndex = (repair.maintenance_month >= 1 && repair.maintenance_month <= 12) ? repair.maintenance_month - 1 : 0;
     const maintenanceDate = `${monthNames[monthIndex]} de ${repair.maintenance_year}`;
@@ -405,8 +460,8 @@ function createReceivedCard(shared) {
     card.innerHTML = `
         <div class="mb-2">
             <div class="flex items-center justify-between mb-2">
-                <p class="text-xs font-medium" style="color: var(--color-accent-blue);">
-                    <i class="ph ph-user mr-1"></i> Compartido por: ${shared.senderName || 'Usuario'}
+                <p class="text-xs font-medium" style="color: var(--color-accent-magenta);">
+                    <i class="ph ph-user mr-1"></i> Compartido por: <span class="font-semibold">${shared.senderName || 'Usuario'}</span>
                 </p>
                 <span class="text-xs px-2 py-1 rounded-full" style="background-color: var(--color-accent-red); color: white;">
                     <i class="ph ph-clock mr-1"></i> ${hoursLeft}h restantes
@@ -439,10 +494,14 @@ function createReceivedCard(shared) {
     return card;
 }
 
-// -----------------------------------------------------------------
-// 7. FUNCIONES DE COMPARTIR
-// -----------------------------------------------------------------
+// ====================================================================
+// FUNCIONES DE COMPARTIR
+// ====================================================================
 
+/**
+ * Comparte un mantenimiento con otro usuario.
+ * @param {string} repairId - ID del mantenimiento a compartir
+ */
 window.shareRepair = async function (repairId) {
     const repair = allRepairs.find(r => r.id === repairId);
     if (!repair) return;
@@ -469,7 +528,7 @@ window.shareRepair = async function (repairId) {
     const sharedData = {
         senderId: userId,
         senderName: userDisplayName,
-        recipientId: recipientId,
+        receiverId: recipientId,
         recipientName: recipientName,
         repairData: repair,
         includeRecords: includeRecords,
@@ -484,8 +543,7 @@ window.shareRepair = async function (repairId) {
             sharedData.records = allHistory.filter(r => r.location === repair.location);
         } else {
             try {
-                const historyRef = db.collection('history')
-                    .where('userId', '==', userId)
+                const historyRef = db.collection(`users/${userId}/history`)
                     .where('location', '==', repair.location);
                 const snapshot = await historyRef.get();
                 sharedData.records = [];
@@ -518,7 +576,7 @@ window.shareRepair = async function (repairId) {
     } else {
         try {
             if (!db) return;
-            await db.collection('shared').add({
+            await db.collection('shared_maintenance').add({
                 ...sharedData,
                 expiresAt: new Date(sharedData.expiresAt)
             });
@@ -545,14 +603,19 @@ window.shareRepair = async function (repairId) {
     }
 };
 
-// -----------------------------------------------------------------
-// 8. MODAL DE DETALLES
-// -----------------------------------------------------------------
+// ====================================================================
+// MODAL DE DETALLES
+// ====================================================================
 
+/**
+ * Muestra un modal con los detalles completos del mantenimiento compartido.
+ * @param {Object} shared - Datos del mantenimiento compartido
+ */
 function showSharedDetailModal(shared) {
     const modal = document.createElement('div');
     modal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4';
-    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    modal.style.backdropFilter = 'blur(4px)';
     modal.id = 'shared-detail-modal';
 
     const repair = shared.repairData || {};
@@ -563,16 +626,19 @@ function showSharedDetailModal(shared) {
     const contact = repair.contact || {};
 
     modal.innerHTML = `
-        <div class="modal-content max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-xl shadow-2xl" 
-             style="background-color: var(--color-bg-primary);">
-            <div class="modal-header p-4 border-b flex justify-between items-center" style="border-color: var(--color-border);">
-                <h2 class="text-xl font-bold">Detalles del Mantenimiento Compartido</h2>
-                <button onclick="closeSharedModal()" class="secondary-icon-btn p-1 rounded-full border-2" style="border-color: var(--color-border);">
-                    <i class="ph ph-x text-2xl"></i>
+        <div class="max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-xl shadow-2xl" 
+             style="background-color: var(--color-bg-secondary); border: 1px solid var(--color-border);">
+            <div class="p-4 border-b flex justify-between items-center" style="border-color: var(--color-border);">
+                <h2 class="text-xl font-bold" style="color: var(--color-text-light);">
+                    <i class="ph ph-share-network mr-2" style="color: var(--color-accent-magenta);"></i>
+                    Detalles del Mantenimiento Compartido
+                </h2>
+                <button onclick="closeSharedModal()" class="secondary-icon-btn p-2 rounded-full">
+                    <i class="ph ph-x text-xl"></i>
                 </button>
             </div>
 
-            <div class="modal-body p-4">
+            <div class="p-4">
                 <div class="mb-4 p-3 rounded-lg" style="background-color: var(--color-bg-tertiary);">
                     <p class="text-sm mb-1" style="color: var(--color-text-secondary);">
                         <i class="ph ph-user mr-2"></i> Compartido por: <span class="font-semibold">${shared.senderName || 'Usuario'}</span>
@@ -614,7 +680,7 @@ function showSharedDetailModal(shared) {
                 </div>
 
                 ${(contact.name || contact.phone || contact.notes) ? `
-                <h3 class="text-sm font-semibold mt-4 mb-2" style="color: var(--color-accent-red);">Contacto</h3>
+                <h3 class="text-sm font-semibold mt-4 mb-2" style="color: var(--color-accent-magenta);">Contacto</h3>
                 <div class="grid grid-cols-2 gap-4 text-sm">
                     ${contact.name ? `
                     <div class="space-y-1">
@@ -673,6 +739,9 @@ function showSharedDetailModal(shared) {
     document.body.appendChild(modal);
 }
 
+/**
+ * Cierra el modal de detalles.
+ */
 window.closeSharedModal = function () {
     const modal = document.getElementById('shared-detail-modal');
     if (modal) {
@@ -680,41 +749,115 @@ window.closeSharedModal = function () {
     }
 };
 
-// -----------------------------------------------------------------
-// 9. NAVEGACIÓN ENTRE VISTAS
-// -----------------------------------------------------------------
+// ====================================================================
+// NAVEGACIÓN ENTRE VISTAS
+// ====================================================================
 
+/**
+ * Cambia entre las vistas de Enviar y Recibidos usando animación de slider.
+ * @param {string} targetViewId - ID de la vista a mostrar ('upload-view' o 'download-view')
+ */
 function switchView(targetViewId) {
-    const views = ['upload-view', 'download-view'];
+    const slider = document.getElementById('views-slider');
     const buttons = document.querySelectorAll('#bottom-navbar .nav-button');
 
-    views.forEach(id => {
-        const view = document.getElementById(id);
-        if (view) {
-            view.classList.remove('active-view');
-            view.classList.add('hidden-view');
-        }
-    });
-
+    // Actualizar botones de navegación
     buttons.forEach(button => {
         button.classList.remove('active');
     });
+    const activeButton = document.querySelector(`[data-target="${targetViewId}"]`);
+    if (activeButton) {
+        activeButton.classList.add('active');
+    }
 
-    const targetView = document.getElementById(targetViewId);
-    if (targetView) {
-        targetView.classList.remove('hidden-view');
-        targetView.classList.add('active-view');
+    // Mover el slider
+    if (slider) {
+        if (targetViewId === 'upload-view') {
+            slider.classList.remove('slider-show-download');
+            slider.classList.add('slider-show-upload');
+        } else if (targetViewId === 'download-view') {
+            slider.classList.remove('slider-show-upload');
+            slider.classList.add('slider-show-download');
+        }
+    }
 
-        const activeButton = document.querySelector(`[data-target="${targetViewId}"]`);
-        if (activeButton) {
-            activeButton.classList.add('active');
+    currentView = targetViewId;
+}
+
+// ====================================================================
+// EFECTOS VISUALES
+// ====================================================================
+
+/**
+ * Actualiza la opacidad del borde superior de las tarjetas según el scroll.
+ */
+function updateCardBorderOpacity() {
+    const elements = document.querySelectorAll('.card-container');
+    const viewportHeight = window.innerHeight;
+
+    elements.forEach(element => {
+        const rect = element.getBoundingClientRect();
+        const elementTop = rect.top;
+        const elementHeight = rect.height;
+
+        let opacity = 0;
+
+        if (elementTop < viewportHeight && elementTop > -elementHeight) {
+            const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
+            opacity = 1 - normalizedPosition;
+            opacity = 0.2 + (opacity * 0.8);
+        }
+
+        element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
+    });
+}
+
+// ====================================================================
+// FUNCIONALIDAD DE SWIPE
+// ====================================================================
+
+let touchStartX = 0;
+let touchEndX = 0;
+let currentView = 'upload-view';
+
+/**
+ * Detecta gestos de swipe para cambiar entre vistas.
+ */
+function handleSwipeGesture() {
+    const swipeThreshold = 50; // Mínimo de píxeles para considerar un swipe
+    const diff = touchStartX - touchEndX;
+
+    if (Math.abs(diff) > swipeThreshold) {
+        if (diff > 0 && currentView === 'upload-view') {
+            // Swipe izquierda: ir a vista de recibidos
+            switchView('download-view');
+        } else if (diff < 0 && currentView === 'download-view') {
+            // Swipe derecha: volver a vista de enviar
+            switchView('upload-view');
         }
     }
 }
 
-// -----------------------------------------------------------------
-// 10. INICIALIZACIÓN
-// -----------------------------------------------------------------
+/**
+ * Inicializa los event listeners para swipe.
+ */
+function initializeSwipe() {
+    const appContent = document.getElementById('app-content');
+    if (!appContent) return;
+
+    appContent.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    appContent.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipeGesture();
+    }, { passive: true });
+}
+
+// ====================================================================
+// INICIALIZACIÓN
+// ====================================================================
 
 window.addEventListener('load', () => {
     if (typeof window.applyColorMode === 'function') {
@@ -732,7 +875,7 @@ window.addEventListener('load', () => {
     checkAuthenticationAndSetup();
     switchView('upload-view');
 
-    // Listeners para navegación.
+    // Listeners para navegación
     document.querySelectorAll('#bottom-navbar .nav-button').forEach(button => {
         button.addEventListener('click', (e) => {
             const target = e.currentTarget.getAttribute('data-target');
@@ -741,4 +884,14 @@ window.addEventListener('load', () => {
             }
         });
     });
+
+    // Inicializar swipe
+    initializeSwipe();
+
+    // Efectos visuales de borde animado
+    const appContent = document.getElementById('app-content');
+    if (appContent) appContent.addEventListener('scroll', updateCardBorderOpacity);
+    window.addEventListener('scroll', updateCardBorderOpacity);
+    window.addEventListener('resize', updateCardBorderOpacity);
+    setTimeout(updateCardBorderOpacity, 100);
 });
