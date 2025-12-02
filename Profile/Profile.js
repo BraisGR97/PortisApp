@@ -33,7 +33,7 @@ let sharedChartInstance = null;
 window.addEventListener('load', () => {
     if (typeof window.applyColorMode === 'function') window.applyColorMode();
 
-    initializeAppAndAuth();
+    checkAuthenticationAndSetup();
 
     // Listeners
     const photoInput = document.getElementById('profile-image-input');
@@ -60,9 +60,11 @@ window.addEventListener('load', () => {
 });
 
 /**
- * Inicializa Firebase y Autenticación.
+ * Valida la sesión del usuario y prepara la interfaz.
  */
-async function initializeAppAndAuth() {
+function checkAuthenticationAndSetup() {
+    userId = sessionStorage.getItem('portis-user-identifier');
+    userDisplayName = sessionStorage.getItem('portis-user-display-name');
     const displayElement = document.getElementById('current-user-display');
 
     if (!userId || !userDisplayName) {
@@ -71,6 +73,14 @@ async function initializeAppAndAuth() {
     }
 
     if (displayElement) displayElement.textContent = userDisplayName;
+
+    initializeAppAndAuth();
+}
+
+/**
+ * Inicializa Firebase y Autenticación.
+ */
+async function initializeAppAndAuth() {
 
     try {
         if (!firebaseConfig || !firebaseConfig.apiKey) throw new Error("Configuración incompleta.");

@@ -30,6 +30,8 @@ window.currentBillsData = [];
  * Valida la sesión del usuario y prepara la interfaz.
  */
 function checkAuthenticationAndSetup() {
+    userId = sessionStorage.getItem('portis-user-identifier');
+    const userDisplayName = sessionStorage.getItem('portis-user-display-name');
     const displayElement = document.getElementById('current-user-display');
 
     if (!userId || !userDisplayName) {
@@ -38,6 +40,8 @@ function checkAuthenticationAndSetup() {
     }
 
     if (displayElement) displayElement.textContent = userDisplayName;
+    
+    initializeAppAndAuth();
 }
 
 /**
@@ -437,7 +441,6 @@ window.addEventListener('load', () => {
     });
 
     checkAuthenticationAndSetup();
-    initializeAppAndAuth();
 
     // Event Listeners
     const billsList = document.getElementById('bills-list');

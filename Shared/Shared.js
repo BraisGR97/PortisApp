@@ -155,13 +155,7 @@ function checkAuthenticationAndSetup() {
         displayElement.textContent = userDisplayName;
     }
 
-    if (IS_MOCK_MODE) {
-        console.warn("Modo MOCK activado. Usando datos no persistentes.");
-        isAuthReady = true;
-        loadData();
-    } else {
-        initializeAppAndAuth();
-    }
+    initializeAppAndAuth();
 }
 
 /**
