@@ -19,12 +19,6 @@
 // ====================================================================
 
 const firebaseConfig = window.firebaseConfig;
-const IS_MOCK_MODE = window.IS_MOCK_MODE;
-
-if (IS_MOCK_MODE) {
-    console.warn("Shared: Modo MOCK activado.");
-}
-
 const appId = firebaseConfig ? firebaseConfig.projectId : 'mock-app-id';
 
 let app;
@@ -34,104 +28,10 @@ let userId = null;
 let userDisplayName = null;
 let isAuthReady = false;
 
-// Claves de localStorage para modo mock
-const MOCK_SHARED_SENT_KEY = 'portis-shared-sent-mock';
-const MOCK_SHARED_RECEIVED_KEY = 'portis-shared-received-mock';
-const MOCK_REPAIRS_KEY = 'portis-repairs-mock';
-const MOCK_HISTORY_KEY = 'mock_history_data';
-const MOCK_USERS_KEY = 'portis-mock-users';
-
 // Cache de datos
 let allRepairs = [];
 let allUsers = [];
 let sharedReceived = [];
-
-// ====================================================================
-// FUNCIONES AUXILIARES DE MOCK MODE
-// ====================================================================
-
-/**
- * Obtiene los mantenimientos mock del localStorage.
- */
-function getLocalMockRepairs() {
-    try {
-        const stored = localStorage.getItem(MOCK_REPAIRS_KEY);
-        return stored ? JSON.parse(stored) : [];
-    } catch (e) {
-        console.error("Error al leer repairs mock:", e);
-        return [];
-    }
-}
-
-/**
- * Obtiene el historial mock del localStorage.
- */
-function getLocalMockHistory() {
-    try {
-        const stored = localStorage.getItem(MOCK_HISTORY_KEY);
-        return stored ? JSON.parse(stored) : [];
-    } catch (e) {
-        console.error("Error al leer history mock:", e);
-        return [];
-    }
-}
-
-/**
- * Obtiene los datos compartidos enviados (mock).
- */
-function getLocalMockSharedSent() {
-    try {
-        const stored = localStorage.getItem(MOCK_SHARED_SENT_KEY);
-        return stored ? JSON.parse(stored) : [];
-    } catch (e) {
-        return [];
-    }
-}
-
-/**
- * Guarda los datos compartidos enviados (mock).
- */
-function saveLocalMockSharedSent(data) {
-    try {
-        localStorage.setItem(MOCK_SHARED_SENT_KEY, JSON.stringify(data));
-    } catch (e) {
-        console.error("Error al guardar shared sent mock:", e);
-    }
-}
-
-/**
- * Obtiene los datos compartidos recibidos (mock).
- */
-function getLocalMockSharedReceived() {
-    try {
-        const stored = localStorage.getItem(MOCK_SHARED_RECEIVED_KEY);
-        return stored ? JSON.parse(stored) : [];
-    } catch (e) {
-        return [];
-    }
-}
-
-/**
- * Guarda los datos compartidos recibidos (mock).
- */
-function saveLocalMockSharedReceived(data) {
-    try {
-        localStorage.setItem(MOCK_SHARED_RECEIVED_KEY, JSON.stringify(data));
-    } catch (e) {
-        console.error("Error al guardar shared received mock:", e);
-    }
-}
-
-/**
- * Devuelve una lista de usuarios mock para pruebas.
- */
-function getMockUsers() {
-    return [
-        { id: 'Alfonso_Perez_UID', name: 'Alfonso Pérez' },
-        { id: 'Beatriz_Lopez_UID', name: 'Beatriz López' },
-        { id: 'Carlos_Martin_UID', name: 'Carlos Martín' }
-    ];
-}
 
 // ====================================================================
 // AUTENTICACIÓN Y SETUP
@@ -211,10 +111,7 @@ async function loadData() {
  * Configura el listener en tiempo real para mantenimientos compartidos.
  */
 function setupSharedListener() {
-    if (IS_MOCK_MODE) {
-        loadSharedReceivedMock();
-        return;
-    }
+
 
     if (!db || !userId) {
         console.error("[SHARED] No se puede configurar listener: db o userId faltantes");
@@ -242,44 +139,25 @@ function setupSharedListener() {
     }
 }
 
-/**
- * Carga mocks de recibidos (fallback).
- */
-function loadSharedReceivedMock() {
-    let received = getLocalMockSharedReceived();
-    const now = Date.now();
-    received = received.filter(item => {
-        const sharedTime = item.sharedAt || 0;
-        const hoursPassed = (now - sharedTime) / (1000 * 60 * 60);
-        return hoursPassed < 48;
-    });
-    saveLocalMockSharedReceived(received);
-    sharedReceived = received;
-    renderReceivedList(sharedReceived);
-}
+
 
 /**
  * Carga los mantenimientos del usuario actual.
  */
 async function loadRepairs() {
-    if (IS_MOCK_MODE) {
-        allRepairs = getLocalMockRepairs();
+    try {
+        if (!db || !userId) return;
+        const repairsRef = db.collection(`users/${userId}/repairs`);
+        const snapshot = await repairsRef.get();
+
+        allRepairs = [];
+        snapshot.forEach(doc => {
+            allRepairs.push({ id: doc.id, ...doc.data() });
+        });
+
         renderSendView();
-    } else {
-        try {
-            if (!db || !userId) return;
-            const repairsRef = db.collection(`users/${userId}/repairs`);
-            const snapshot = await repairsRef.get();
-
-            allRepairs = [];
-            snapshot.forEach(doc => {
-                allRepairs.push({ id: doc.id, ...doc.data() });
-            });
-
-            renderSendView();
-        } catch (error) {
-            console.error("Error al cargar mantenimientos:", error);
-        }
+    } catch (error) {
+        console.error("Error al cargar mantenimientos:", error);
     }
 }
 
@@ -287,40 +165,35 @@ async function loadRepairs() {
  * Carga la lista de usuarios disponibles para compartir.
  */
 async function loadUsers() {
-    if (IS_MOCK_MODE) {
-        allUsers = getMockUsers().filter(u => u.id !== userId);
-        console.log('[SHARED] MOCK: Usuarios cargados:', allUsers);
-    } else {
-        try {
-            if (!db) {
-                console.error('[SHARED] loadUsers: db no inicializada');
-                return;
-            }
-            console.log('[SHARED] Cargando usuarios desde Firestore...');
-            const usersRef = db.collection('users');
-            const snapshot = await usersRef.get();
-            console.log('[SHARED] Snapshot usuarios, tamaño:', snapshot.size);
-
-            allUsers = [];
-            snapshot.forEach(doc => {
-                const userData = doc.data();
-                console.log('[SHARED] Usuario encontrado:', doc.id, userData);
-                if (doc.id !== userId) {
-                    allUsers.push({
-                        id: doc.id,
-                        name: userData.username || userData.displayName || userData.email || 'Usuario'
-                    });
-                }
-            });
-            console.log('[SHARED] Total usuarios (sin actual):', allUsers.length);
-            console.log('[SHARED] Lista usuarios:', allUsers);
-
-            // Re-renderizar las tarjetas para actualizar los selectores con los usuarios cargados
-            renderSendView();
-        } catch (error) {
-            console.error("Error al cargar usuarios:", error);
-            allUsers = [];
+    try {
+        if (!db) {
+            console.error('[SHARED] loadUsers: db no inicializada');
+            return;
         }
+        console.log('[SHARED] Cargando usuarios desde Firestore...');
+        const usersRef = db.collection('users');
+        const snapshot = await usersRef.get();
+        console.log('[SHARED] Snapshot usuarios, tamaño:', snapshot.size);
+
+        allUsers = [];
+        snapshot.forEach(doc => {
+            const userData = doc.data();
+            console.log('[SHARED] Usuario encontrado:', doc.id, userData);
+            if (doc.id !== userId) {
+                allUsers.push({
+                    id: doc.id,
+                    name: userData.username || userData.displayName || userData.email || 'Usuario'
+                });
+            }
+        });
+        console.log('[SHARED] Total usuarios (sin actual):', allUsers.length);
+        console.log('[SHARED] Lista usuarios:', allUsers);
+
+        // Re-renderizar las tarjetas para actualizar los selectores con los usuarios cargados
+        renderSendView();
+    } catch (error) {
+        console.error("Error al cargar usuarios:", error);
+        allUsers = [];
     }
 }
 
@@ -549,30 +422,26 @@ window.shareRepair = async function (repairId) {
 
     // Incluir registros si está marcado
     if (includeRecords) {
-        if (IS_MOCK_MODE) {
-            const allHistory = getLocalMockHistory();
-            sharedData.records = allHistory.filter(r => r.location === repair.location);
-        } else {
-            try {
-                const historyRef = db.collection(`users/${userId}/history`)
-                    .where('location', '==', repair.location);
-                const snapshot = await historyRef.get();
-                sharedData.records = [];
-                snapshot.forEach(doc => {
-                    sharedData.records.push(doc.data());
-                });
-            } catch (error) {
-                console.error("Error al obtener registros:", error);
-            }
+        try {
+            const historyRef = db.collection(`users/${userId}/history`)
+                .where('location', '==', repair.location);
+            const snapshot = await historyRef.get();
+            sharedData.records = [];
+            snapshot.forEach(doc => {
+                sharedData.records.push(doc.data());
+            });
+        } catch (error) {
+            console.error("Error al obtener registros:", error);
         }
     }
 
     // Guardar en base de datos o mock
-    if (IS_MOCK_MODE) {
-        const received = getLocalMockSharedReceived();
-        sharedData.id = `shared_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        received.push(sharedData);
-        saveLocalMockSharedReceived(received);
+    try {
+        if (!db) return;
+        await db.collection('shared_maintenance').add({
+            ...sharedData,
+            expiresAt: new Date(sharedData.expiresAt)
+        });
 
         if (messageDiv) {
             messageDiv.textContent = `✓ Compartido con ${recipientName}`;
@@ -584,32 +453,13 @@ window.shareRepair = async function (repairId) {
                 if (includeRecordsCheckbox) includeRecordsCheckbox.checked = false;
             }, 2000);
         }
-    } else {
-        try {
-            if (!db) return;
-            await db.collection('shared_maintenance').add({
-                ...sharedData,
-                expiresAt: new Date(sharedData.expiresAt)
-            });
-
-            if (messageDiv) {
-                messageDiv.textContent = `✓ Compartido con ${recipientName}`;
-                messageDiv.style.backgroundColor = '#4CAF50';
-                messageDiv.classList.remove('hidden');
-                setTimeout(() => {
-                    messageDiv.classList.add('hidden');
-                    userSelect.value = '';
-                    if (includeRecordsCheckbox) includeRecordsCheckbox.checked = false;
-                }, 2000);
-            }
-        } catch (error) {
-            console.error("Error al compartir:", error);
-            if (messageDiv) {
-                messageDiv.textContent = '✗ Error al compartir';
-                messageDiv.style.backgroundColor = 'var(--color-accent-red)';
-                messageDiv.classList.remove('hidden');
-                setTimeout(() => messageDiv.classList.add('hidden'), 3000);
-            }
+    } catch (error) {
+        console.error("Error al compartir:", error);
+        if (messageDiv) {
+            messageDiv.textContent = '✗ Error al compartir';
+            messageDiv.style.backgroundColor = 'var(--color-accent-red)';
+            messageDiv.classList.remove('hidden');
+            setTimeout(() => messageDiv.classList.add('hidden'), 3000);
         }
     }
 };
