@@ -382,8 +382,10 @@ html.light-mode body {
 /* Truncamiento de texto */
 .line-clamp-3 {
     display: -webkit-box;
-    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    /* Propiedad estándar moderna */
     overflow: hidden;
     text-overflow: ellipsis;
 }
