@@ -126,15 +126,22 @@ function setupSharedListener() {
             .onSnapshot((snapshot) => {
                 const received = [];
                 const now = Date.now();
+
                 snapshot.forEach((doc) => {
                     const data = doc.data();
                     const expiresAt = data.expiresAt ? (data.expiresAt.toDate ? data.expiresAt.toDate().getTime() : new Date(data.expiresAt).getTime()) : 0;
 
-                    if (expiresAt > now) {
+                    if (expiresAt <= now) {
+                        // Si ha expirado, borrarlo de la BD
+                        db.collection('shared').doc(doc.id).delete().catch(err => {
+                            console.warn(`[SHARED] No se pudo eliminar expirado: ${err.message}`);
+                        });
+                    } else {
                         received.push({ id: doc.id, ...data });
                     }
                 });
-                console.log('[SHARED] Recibidos actualizados (filtrados):', received.length);
+
+                console.log('[SHARED] Recibidos actualizados:', received.length);
                 sharedReceived = received;
                 renderReceivedList(received);
             }, (error) => {
