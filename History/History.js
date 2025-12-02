@@ -589,5 +589,10 @@ window.addEventListener('load', () => {
     // Efectos visuales
     const scrollContainer = document.getElementById('app-content');
     if (scrollContainer) scrollContainer.addEventListener('scroll', updateCardBorderOpacity);
+    window.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
     window.addEventListener('resize', updateCardBorderOpacity);
+
+    // Forzar actualización inicial
+    setTimeout(updateCardBorderOpacity, 100);
+    setTimeout(updateCardBorderOpacity, 500);
 });
