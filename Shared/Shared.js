@@ -175,6 +175,7 @@ async function initializeAppAndAuth() {
             if (user && user.uid === userId) {
                 isAuthReady = true;
                 loadData();
+                setupSharedListener();
             } else {
                 console.warn("Firebase no detecta sesión activa. Redirigiendo.");
                 window.location.href = '../index.html';
@@ -202,9 +203,59 @@ async function initializeAppAndAuth() {
 async function loadData() {
     await Promise.all([
         loadRepairs(),
-        loadUsers(),
-        loadSharedReceived()
+        loadUsers()
     ]);
+}
+
+/**
+ * Configura el listener en tiempo real para mantenimientos compartidos.
+ */
+function setupSharedListener() {
+    if (IS_MOCK_MODE) {
+        loadSharedReceivedMock();
+        return;
+    }
+
+    if (!db || !userId) {
+        console.error("[SHARED] No se puede configurar listener: db o userId faltantes");
+        return;
+    }
+
+    console.log('[SHARED] Configurando listener de recibidos para userId:', userId);
+
+    try {
+        db.collection('shared_maintenance')
+            .where('receiverId', '==', userId)
+            .onSnapshot((snapshot) => {
+                const received = [];
+                snapshot.forEach((doc) => {
+                    received.push({ id: doc.id, ...doc.data() });
+                });
+                console.log('[SHARED] Recibidos actualizados:', received.length);
+                sharedReceived = received;
+                renderReceivedList(received);
+            }, (error) => {
+                console.error("[SHARED] Error al escuchar recibidos:", error);
+            });
+    } catch (error) {
+        console.error("[SHARED] Excepción al configurar listener:", error);
+    }
+}
+
+/**
+ * Carga mocks de recibidos (fallback).
+ */
+function loadSharedReceivedMock() {
+    let received = getLocalMockSharedReceived();
+    const now = Date.now();
+    received = received.filter(item => {
+        const sharedTime = item.sharedAt || 0;
+        const hoursPassed = (now - sharedTime) / (1000 * 60 * 60);
+        return hoursPassed < 48;
+    });
+    saveLocalMockSharedReceived(received);
+    sharedReceived = received;
+    renderReceivedList(sharedReceived);
 }
 
 /**
@@ -277,37 +328,27 @@ async function loadUsers() {
  * Carga los mantenimientos compartidos recibidos.
  * Filtra automáticamente los que han expirado (>48h).
  */
-async function loadSharedReceived() {
-    if (IS_MOCK_MODE) {
-        let received = getLocalMockSharedReceived();
-        // Filtrar los que han expirado (48h)
-        const now = Date.now();
-        received = received.filter(item => {
-            const sharedTime = item.sharedAt || 0;
-            const hoursPassed = (now - sharedTime) / (1000 * 60 * 60);
-            return hoursPassed < 48;
-        });
-        saveLocalMockSharedReceived(received);
-        sharedReceived = received;
-        renderReceiveView();
-    } else {
-        try {
-            if (!db || !userId) return;
-            const sharedRef = db.collection('shared_maintenance')
-                .where('receiverId', '==', userId)
-                .where('expiresAt', '>', new Date());
+/**
+ * Renderiza la lista de mantenimientos recibidos.
+ */
+function renderReceivedList(items) {
+    const container = document.getElementById('download-list');
+    container.innerHTML = '';
 
-            const snapshot = await sharedRef.get();
-            sharedReceived = [];
-            snapshot.forEach(doc => {
-                sharedReceived.push({ id: doc.id, ...doc.data() });
-            });
-
-            renderReceiveView();
-        } catch (error) {
-            console.error("Error al cargar compartidos recibidos:", error);
-        }
+    if (!items || items.length === 0) {
+        container.innerHTML = `
+            <div class="p-6 text-center rounded-lg" style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);">
+                <i class="ph ph-inbox text-4xl mb-2"></i>
+                <p>No has recibido mantenimientos compartidos.</p>
+            </div>
+        `;
+        return;
     }
+
+    items.forEach(shared => {
+        const card = createReceivedCard(shared);
+        container.appendChild(card);
+    });
 }
 
 // ====================================================================
@@ -410,30 +451,6 @@ function createSendCard(repair) {
 // ====================================================================
 // RENDERIZADO - VISTA RECIBIDOS
 // ====================================================================
-
-/**
- * Renderiza la lista de mantenimientos recibidos.
- */
-function renderReceiveView() {
-    const container = document.getElementById('download-list');
-    container.innerHTML = '';
-
-    if (sharedReceived.length === 0) {
-        container.innerHTML = `
-            <div class="p-6 text-center rounded-lg" style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);">
-                <i class="ph ph-inbox text-4xl mb-2"></i>
-                <p>No has recibido mantenimientos compartidos.</p>
-            </div>
-        `;
-        return;
-    }
-
-    sharedReceived.forEach(shared => {
-        const card = createReceivedCard(shared);
-        container.appendChild(card);
-    });
-}
-
 /**
  * Crea una tarjeta de mantenimiento recibido.
  */

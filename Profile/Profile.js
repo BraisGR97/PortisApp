@@ -208,8 +208,10 @@ async function loadAndCalculateStats() {
     let sharedSent = [], sharedReceived = [];
 
     try {
-        // Fetch all collections in parallel
-        const [repairsSnap, billsSnap, notesSnap, historySnap, sentSnap, receivedSnap] = await Promise.all([
+        console.log('[PROFILE] Iniciando carga de datos para userId:', userId);
+
+        // Fetch all collections in parallel using allSettled to prevent total failure
+        const results = await Promise.allSettled([
             db.collection(`users/${userId}/repairs`).get(),
             db.collection(`users/${userId}/bills`).get(),
             db.collection(`users/${userId}/notes`).get(),
@@ -218,12 +220,25 @@ async function loadAndCalculateStats() {
             db.collection('shared_maintenance').where('receiverId', '==', userId).get()
         ]);
 
-        repairsSnap.forEach(doc => repairs.push(doc.data()));
-        billsSnap.forEach(doc => bills.push(doc.data()));
-        notesSnap.forEach(doc => notes.push(doc.data()));
-        historySnap.forEach(doc => history.push(doc.data()));
-        sentSnap.forEach(doc => sharedSent.push(doc.data()));
-        receivedSnap.forEach(doc => sharedReceived.push(doc.data()));
+        const [repairsResult, billsResult, notesResult, historyResult, sentResult, receivedResult] = results;
+
+        if (repairsResult.status === 'fulfilled') repairsResult.value.forEach(doc => repairs.push(doc.data()));
+        else console.error('[PROFILE] Error cargando repairs:', repairsResult.reason);
+
+        if (billsResult.status === 'fulfilled') billsResult.value.forEach(doc => bills.push(doc.data()));
+        else console.error('[PROFILE] Error cargando bills:', billsResult.reason);
+
+        if (notesResult.status === 'fulfilled') notesResult.value.forEach(doc => notes.push(doc.data()));
+        else console.error('[PROFILE] Error cargando notes:', notesResult.reason);
+
+        if (historyResult.status === 'fulfilled') historyResult.value.forEach(doc => history.push(doc.data()));
+        else console.error('[PROFILE] Error cargando history:', historyResult.reason);
+
+        if (sentResult.status === 'fulfilled') sentResult.value.forEach(doc => sharedSent.push(doc.data()));
+        else console.error('[PROFILE] Error cargando sharedSent:', sentResult.reason);
+
+        if (receivedResult.status === 'fulfilled') receivedResult.value.forEach(doc => sharedReceived.push(doc.data()));
+        else console.error('[PROFILE] Error cargando sharedReceived:', receivedResult.reason);
 
         console.log('[PROFILE] Datos cargados:', {
             repairs: repairs.length,
