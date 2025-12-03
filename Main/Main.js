@@ -15,9 +15,9 @@
     let db;
     let userId = null;
 
-    // Estado de la navegacion - Chat en el centro (posicion 1 del array)
-    let currentView = 'chat-view'; // Vista por defecto
-    const views = ['calendar-view', 'chat-view', 'dashboard-view', 'maintenance-view'];
+    // Estado de la navegacion - Dashboard por defecto (posicion 0 del array)
+    let currentView = 'dashboard-view';
+    const views = ['dashboard-view', 'calendar-view', 'chat-view', 'maintenance-view'];
 
     // Variables para gestos tactiles (Swipe)
     let touchStartX = 0;
@@ -92,8 +92,13 @@
      * Inicializa la vista correcta al cargar la aplicacion.
      */
     function initializeView() {
-        // Recuperar ultima vista o usar chat por defecto
-        const lastView = sessionStorage.getItem('last-view') || 'chat-view';
+        // Recuperar ultima vista o usar dashboard por defecto
+        // Si el usuario prefiere siempre dashboard al recargar, podemos forzarlo aqui
+        // Pero mantener la ultima vista suele ser mejor UX. 
+        // Dado que el usuario pidió "cargar directamente en menu principal", forzaremos dashboard si no hay historial reciente o como preferencia.
+        // Para cumplir estrictamente "comienza en calendar y luego pasa...", el problema era el orden.
+        // Ahora con el orden corregido, last-view funcionará bien.
+        const lastView = sessionStorage.getItem('last-view') || 'dashboard-view';
         switchView(lastView);
     }
 
@@ -205,22 +210,37 @@
      * Actualiza la opacidad del borde superior de las tarjetas segun el scroll.
      */
     function updateCardBorderOpacity() {
+        // Seleccionamos elementos que queremos animar
+        // .card-container (borde superior del contenedor principal)
+        // .dashboard-card, .user-chat-card, .maintenance-item (elementos internos)
         const elements = document.querySelectorAll('.card-container, .dashboard-card, .user-chat-card, .maintenance-item');
         const viewportHeight = window.innerHeight;
 
         elements.forEach(element => {
             const rect = element.getBoundingClientRect();
             const elementTop = rect.top;
-            const elementHeight = rect.height;
+
+            // Calculamos opacidad basada en la posición vertical
+            // Cuanto más arriba (cerca de 0 o negativo), más visible el borde
+            // Rango de efecto: desde 70% de la pantalla hacia arriba
 
             let opacity = 0;
 
-            if (elementTop < viewportHeight && elementTop > -elementHeight) {
-                const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
-                opacity = 1 - normalizedPosition;
-                opacity = 0.2 + (opacity * 0.8);
+            if (elementTop < viewportHeight * 0.8) {
+                // Normalizamos la posición: 1 cuando está arriba, 0 cuando está abajo
+                const normalizedPosition = 1 - (elementTop / (viewportHeight * 0.8));
+
+                // Ajustamos la curva de opacidad
+                opacity = Math.max(0, Math.min(1, normalizedPosition));
+
+                // Aplicamos un mínimo de opacidad para que se vea sutilmente siempre si se desea, 
+                // o dejamos que desaparezca completamente abajo.
+                // El usuario quiere "opacity increases as the card scrolls higher".
+                // Borde blanco.
             }
 
+            // Aplicar color blanco con opacidad calculada
+            // Usamos border-top-color directamente
             element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
         });
     }
@@ -289,12 +309,13 @@
         initializeSwipe();
 
         // Listeners para efectos de scroll
+        // Escuchar en window y en los contenedores con scroll interno
         window.addEventListener('scroll', updateCardBorderOpacity);
         window.addEventListener('resize', updateCardBorderOpacity);
 
-        // Listener de scroll en cada vista
-        document.querySelectorAll('.view-section').forEach(section => {
-            section.addEventListener('scroll', updateCardBorderOpacity);
+        // Escuchar scroll en los contenedores de contenido de tarjeta
+        document.querySelectorAll('.card-inner-content').forEach(container => {
+            container.addEventListener('scroll', updateCardBorderOpacity);
         });
 
         // Iniciar autenticacion

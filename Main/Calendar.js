@@ -1,3 +1,7 @@
+// ===================================================================================
+// Calendar.js - Lógica del Calendario
+// ===================================================================================
+
 // Se asume que Firebase (compatibilidad) está disponible globalmente desde los scripts CDN de Main.html
 // Se asume que window.firebaseReadyPromise, window.db, y window.auth serán establecidos por Main.js.
 
@@ -6,8 +10,6 @@
     // =======================================================
     // 1. VARIABLES LOCALES Y CONFIGURACIÓN (Lectura de window)
     // =======================================================
-
-    const IS_MOCK_MODE = window.IS_MOCK_MODE; // Leer la variable global de Mock Mode
 
     // 🔑 CLAVE: Leer el UID del usuario desde sessionStorage (gestionado por Main.js)
     const userId = sessionStorage.getItem('portis-user-identifier') || null;
@@ -41,36 +43,23 @@
      * Inicializa el listener de Firestore, ESPERANDO a que Main.js inicialice Firebase.
      */
     async function setupFirebaseAndListeners() {
-        // 1. Detectar Modo Mock (Prioridad máxima)
-        if (IS_MOCK_MODE) {
-            console.warn("Calendar.js: Modo MOCK activado.");
-            isFirebaseReady = true;
-            loadMockEvents(userId || 'mock-user');
-            renderCalendar();
-            updateSummary();
-            updateHolidayQuota();
-            return;
-        }
-
-        // 2. Esperar la señal de Firebase Ready (CRÍTICO)
+        // 1. Esperar la señal de Firebase Ready (CRÍTICO)
         if (typeof window.firebaseReadyPromise !== 'undefined') {
             console.log("Calendar.js: Esperando señal de Firebase Ready...");
             await window.firebaseReadyPromise;
         } else {
-            console.error("Calendar.js: Error. window.firebaseReadyPromise no encontrado. Fallback a Mock Mode.");
-            window.IS_MOCK_MODE = true; // Forzamos modo mock si la promesa no existe.
-            setupFirebaseAndListeners(); // Intentamos de nuevo en Mock Mode
+            console.error("Calendar.js: Error. window.firebaseReadyPromise no encontrado.");
             return;
         }
 
-        // 3. Verificar estado después de la espera
+        // 2. Verificar estado después de la espera
         if (!userId || typeof window.db === 'undefined' || window.db === null) {
             console.error("Calendar.js: Error. No hay ID de usuario o DB no está disponible después de la promesa.");
             showMessage('error', 'Error de sesión. Intente iniciar sesión nuevamente.');
             return;
         }
 
-        // 4. Iniciar Listener
+        // 3. Iniciar Listener
         isFirebaseReady = true;
         console.log(`Calendar.js: Conexión con Firestore (window.db) establecida. User ID: ${userId}`);
         setupEventsListener();
@@ -92,7 +81,7 @@
     }
 
     function setupEventsListener() {
-        if (!isFirebaseReady || IS_MOCK_MODE) return;
+        if (!isFirebaseReady) return;
 
         const eventsQuery = getEventsCollectionRef();
         if (!eventsQuery) return;
@@ -102,750 +91,355 @@
             const newEvents = {};
             snapshot.forEach((doc) => {
                 const data = doc.data();
-                newEvents[data.date] = { ...data, id: doc.id };
+                // La fecha del documento es el ID (YYYY-MM-DD)
+                newEvents[doc.id] = data;
             });
 
             calendarEvents = newEvents;
-
-            console.log(`Firestore: ${Object.keys(calendarEvents).length} eventos cargados.`);
-
             renderCalendar();
             updateSummary();
-            updateHolidayQuota();
-
         }, (error) => {
-            console.error("Firestore: Error al escuchar eventos:", error);
-            showMessage('error', 'Error al cargar eventos. Usando datos mock.');
-            // Fallback en caso de error de Firestore
-            loadMockEvents(userId || 'mock-user');
-            renderCalendar();
-            updateSummary();
-            updateHolidayQuota();
+            console.error("Error al escuchar eventos de calendario:", error);
+            showMessage('error', 'Error de conexión con el calendario.');
         });
     }
 
-    /**
-     * Guarda o actualiza un evento en Firestore o LocalStorage (Mock).
-     */
-    async function saveEventToFirestore(dateStr, eventType, hours = null) {
+    // =======================================================
+    // 3. LÓGICA DE CALENDARIO (Renderizado y Navegación)
+    // =======================================================
 
-        const isMock = IS_MOCK_MODE;
-
-        if (isMock) {
-            saveEventToLocalStorage(dateStr, eventType, hours, userId || 'mock-user');
-            showMessage('success', `${eventType} registrado localmente para el ${dateStr}. (Mock Mode)`);
-            return;
-        }
-
-        if (!isFirebaseReady || !window.db || !userId) {
-            showMessage('error', 'El sistema de base de datos no está listo. Inténtelo de nuevo.');
-            return;
-        }
-
-        const eventData = {
-            date: dateStr,
-            type: eventType,
-            // Aseguramos que firebase.firestore.FieldValue esté disponible
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            hours: hours ? parseFloat(hours) : null,
-        };
-
-        try {
-            await getEventsCollectionRef().add(eventData);
-            showMessage('success', `Evento de ${eventType} guardado exitosamente.`);
-        } catch (error) {
-            console.error("Firestore: Error al guardar evento:", error);
-            showMessage('error', 'Error al guardar el evento en la base de datos.');
-        }
-    }
-
-    // --- FUNCIÓN: Eliminar Evento ---
-    async function deleteEventFromFirestore(dateStr) {
-        const isMock = IS_MOCK_MODE;
-        const event = calendarEvents[dateStr];
-
-        if (!event) {
-            showMessage('error', 'No hay evento registrado para esta fecha.');
-            return;
-        }
-
-        // 🔑 Uso de closeModal global
-        if (typeof window.closeModal === 'function') window.closeModal('event-modal');
-
-        if (isMock) {
-            deleteEventFromLocalStorage(dateStr);
-            showMessage('success', `Evento del ${dateStr} eliminado localmente. (Mock Mode)`);
-            return;
-        }
-
-        if (!isFirebaseReady || !window.db || !userId) {
-            showMessage('error', 'El sistema de base de datos no está listo. Inténtelo de nuevo.');
-            return;
-        }
-
-        if (event.id) {
-            try {
-                // Eliminamos el documento por su ID dentro de la subcolección
-                await getEventsCollectionRef().doc(event.id).delete();
-                showMessage('success', `Evento del ${dateStr} eliminado exitosamente.`);
-            } catch (error) {
-                console.error("Firestore: Error al eliminar evento:", error);
-                showMessage('error', 'Error al eliminar el evento en la base de datos.');
-            }
-        }
-    }
-    // Hacemos la función global para que sea llamada desde el HTML
-    window.deleteEvent = deleteEventFromFirestore;
-
-
-    // --- MOCK MODE: Funciones de almacenamiento local (Se mantienen) ---
-    function loadMockEvents(mockUserId) {
-        let mockEvents = JSON.parse(localStorage.getItem('mockCalendarEvents') || '{}');
-        if (Object.keys(mockEvents).length === 0) {
-            const today = new Date();
-            const y = today.getFullYear();
-            const m = (today.getMonth() + 1).toString().padStart(2, '0');
-            const d = (today.getDate()).toString().padStart(2, '0');
-
-            // Eventos mock iniciales: Guardia hoy, guardia mañana, extra pasado mañana
-            const dPlus1 = (today.getDate() + 1).toString().padStart(2, '0');
-            const dPlus3 = (today.getDate() + 3).toString().padStart(2, '0');
-
-            mockEvents[`${y}-${m}-${d}`] = { date: `${y}-${m}-${d}`, type: 'Guardia', userId: mockUserId };
-            mockEvents[`${y}-${m}-${dPlus1}`] = { date: `${y}-${m}-${dPlus1}`, type: 'Guardia', userId: mockUserId };
-            mockEvents[`${y}-${m}-${dPlus3}`] = { date: `${y}-${m}-${dPlus3}`, type: 'Extra', hours: 4, userId: mockUserId };
-
-            localStorage.setItem('mockCalendarEvents', JSON.stringify(mockEvents));
-        }
-        calendarEvents = mockEvents;
-    }
-
-    function saveEventToLocalStorage(dateStr, eventType, hours, mockUserId) {
-        let mockEvents = JSON.parse(localStorage.getItem('mockCalendarEvents') || '{}');
-        // Elimina el evento si ya existe antes de guardar el nuevo (para actualización)
-        delete mockEvents[dateStr];
-
-        if (eventType !== 'Borrar') {
-            mockEvents[dateStr] = { date: dateStr, type: eventType, hours: hours || null, userId: mockUserId };
-        }
-
-        localStorage.setItem('mockCalendarEvents', JSON.stringify(mockEvents));
-        calendarEvents = mockEvents;
+    function initCalendar() {
         renderCalendar();
         updateSummary();
-        updateHolidayQuota();
+        setupFirebaseAndListeners(); // Iniciar conexión
     }
 
-    function deleteEventFromLocalStorage(dateStr) {
-        let mockEvents = JSON.parse(localStorage.getItem('mockCalendarEvents') || '{}');
-        delete mockEvents[dateStr];
-        localStorage.setItem('mockCalendarEvents', JSON.stringify(mockEvents));
-        calendarEvents = mockEvents;
-        renderCalendar();
-        updateSummary();
-        updateHolidayQuota();
-    }
-
-    // =======================================================
-    // 3. FESTIVOS NACIONALES DE ESPAÑA
-    // =======================================================
-
-    /**
-     * Calcula la fecha de Pascua usando el algoritmo de Meeus/Jones/Butcher
-     */
-    function calculateEaster(year) {
-        const a = year % 19;
-        const b = Math.floor(year / 100);
-        const c = year % 100;
-        const d = Math.floor(b / 4);
-        const e = b % 4;
-        const f = Math.floor((b + 8) / 25);
-        const g = Math.floor((b - f + 1) / 3);
-        const h = (19 * a + b - d - g + 15) % 30;
-        const i = Math.floor(c / 4);
-        const k = c % 4;
-        const l = (32 + 2 * e + 2 * i - h - k) % 7;
-        const m = Math.floor((a + 11 * h + 22 * l) / 451);
-        const month = Math.floor((h + l - 7 * m + 114) / 31);
-        const day = ((h + l - 7 * m + 114) % 31) + 1;
-
-        return new Date(year, month - 1, day);
-    }
-
-    /**
-     * Calcula todos los festivos de Semana Santa basándose en la Pascua
-     */
-    function getEasterHolidays(year) {
-        const easter = calculateEaster(year);
-        const holidays = [];
-
-        // Jueves Santo (3 días antes de Pascua)
-        const jueveSanto = new Date(easter);
-        jueveSanto.setDate(easter.getDate() - 3);
-        holidays.push({ date: jueveSanto, name: 'Jueves Santo' });
-
-        // Viernes Santo (2 días antes de Pascua)
-        const viernesSanto = new Date(easter);
-        viernesSanto.setDate(easter.getDate() - 2);
-        holidays.push({ date: viernesSanto, name: 'Viernes Santo' });
-
-        // Lunes de Pascua (1 día después de Pascua) - Solo algunas comunidades
-        const lunesPascua = new Date(easter);
-        lunesPascua.setDate(easter.getDate() + 1);
-        holidays.push({ date: lunesPascua, name: 'Lunes de Pascua', regional: ['cataluna', 'valencia', 'baleares', 'navarra', 'pais-vasco', 'rioja'] });
-
-        return holidays;
-    }
-
-    /**
-     * Festivos autonómicos por comunidad autónoma
-     */
-    const REGIONAL_HOLIDAYS = {
-        'andalucia': [
-            { month: 2, day: 28 }, // Día de Andalucía
-        ],
-        'aragon': [
-            { month: 4, day: 23 }, // San Jorge (Día de Aragón)
-        ],
-        'asturias': [
-            { month: 9, day: 8 }, // Día de Asturias
-        ],
-        'baleares': [
-            { month: 3, day: 1 }, // Día de las Islas Baleares
-        ],
-        'canarias': [
-            { month: 5, day: 30 }, // Día de Canarias
-        ],
-        'cantabria': [
-            { month: 7, day: 28 }, // Día de las Instituciones de Cantabria
-        ],
-        'castilla-leon': [
-            { month: 4, day: 23 }, // Día de Castilla y León
-        ],
-        'castilla-mancha': [
-            { month: 5, day: 31 }, // Día de Castilla-La Mancha
-        ],
-        'cataluna': [
-            { month: 6, day: 24 }, // San Juan
-            { month: 9, day: 11 }, // Diada de Catalunya
-            { month: 12, day: 26 }, // San Esteban
-        ],
-        'valencia': [
-            { month: 10, day: 9 }, // Día de la Comunidad Valenciana
-        ],
-        'extremadura': [
-            { month: 9, day: 8 }, // Día de Extremadura
-        ],
-        'galicia': [
-            { month: 5, day: 17 }, // Día de las letras Gallegas
-            { month: 7, day: 25 }, // Día de Galicia
-        ],
-        'madrid': [
-            { month: 5, day: 2 }, // Fiesta de la Comunidad de Madrid
-        ],
-        'murcia': [
-            { month: 6, day: 9 }, // Día de la Región de Murcia
-        ],
-        'navarra': [
-        ],
-        'pais-vasco': [
-        ],
-        'rioja': [
-            { month: 6, day: 9 }, // Día de La Rioja
-        ],
-        'ceuta': [
-            { month: 9, day: 2 }, // Día de Ceuta
-        ],
-        'melilla': [
-            { month: 9, day: 17 }, // Día de Melilla
-        ]
-    };
-
-    /**
-     * Determina si una fecha es un festivo autonómico según la ubicación del usuario
-     */
-    function isRegionalHoliday(date, location) {
-        if (!location || location === 'nacional') return false;
-
-        const month = date.getMonth() + 1;
-        const day = date.getDate();
-        const year = date.getFullYear();
-
-        // Verificar festivos fijos de la comunidad
-        const regionalHolidays = REGIONAL_HOLIDAYS[location] || [];
-        for (const holiday of regionalHolidays) {
-            if (month === holiday.month && day === holiday.day) {
-                return true;
-            }
-        }
-
-        // Verificar festivos de Semana Santa regionales
-        const easterHolidays = getEasterHolidays(year);
-        for (const holiday of easterHolidays) {
-            if (holiday.regional && holiday.regional.includes(location)) {
-                if (date.toDateString() === holiday.date.toDateString()) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Función principal que determina si una fecha es festivo (nacional o autonómico)
-     */
-    function isHoliday(date) {
-        const location = localStorage.getItem('portis-location') || 'nacional';
-
-        // Primero verificar festivos nacionales
-        if (isSpanishNationalHoliday(date)) {
-            return true;
-        }
-
-        // Luego verificar Semana Santa (Jueves y Viernes Santo son nacionales)
-        const year = date.getFullYear();
-        const easterHolidays = getEasterHolidays(year);
-        for (const holiday of easterHolidays) {
-            if (!holiday.regional) { // Solo festivos nacionales de Semana Santa
-                if (date.toDateString() === holiday.date.toDateString()) {
-                    return true;
-                }
-            }
-        }
-
-        // Finalmente verificar festivos autonómicos
-        if (isRegionalHoliday(date, location)) {
-            return true;
-        }
-
-        return false;
-    }
-    function isSpanishNationalHoliday(date) {
-        const month = date.getMonth() + 1;
-        const day = date.getDate();
-        const year = date.getFullYear();
-
-        const fixedHolidays = [
-            { month: 1, day: 1 },   // Año Nuevo
-            { month: 1, day: 6 },   // Reyes Magos
-            { month: 5, day: 1 },   // Día del Trabajador
-            { month: 8, day: 15 },  // Asunción de la Virgen
-            { month: 10, day: 12 }, // Fiesta Nacional de España
-            { month: 11, day: 1 },  // Todos los Santos
-            { month: 12, day: 6 },  // Día de la Constitución
-            { month: 12, day: 8 },  // Inmaculada Concepción
-            { month: 12, day: 25 }, // Navidad
-        ];
-
-        for (const holiday of fixedHolidays) {
-            if (month === holiday.month && day === holiday.day) {
-                return true;
-            }
-        }
-
-        const easterDate = calculateEaster(year);
-        const goodFriday = new Date(easterDate);
-        goodFriday.setDate(easterDate.getDate() - 2);
-
-        if (date.toDateString() === goodFriday.toDateString()) {
-            return true;
-        }
-
-        return false;
-    }
-    // =======================================================
-    // 3. LÓGICA DEL CALENDARIO (RENDERIZADO)
-    // =======================================================
+    // Exponer initCalendar globalmente
+    window.initCalendar = initCalendar;
 
     function renderCalendar() {
+        const grid = document.getElementById('calendar-grid');
+        const monthDisplay = document.getElementById('current-month-display');
+
+        if (!grid || !monthDisplay) return;
+
+        grid.innerHTML = '';
+        monthDisplay.textContent = `${months[currentCalendarDate.getMonth()]} ${currentCalendarDate.getFullYear()}`;
+
         const year = currentCalendarDate.getFullYear();
         const month = currentCalendarDate.getMonth();
 
-        const monthDisplay = document.getElementById('current-month-display');
-        const yearSummary = document.getElementById('summary-year');
-
-        if (monthDisplay) monthDisplay.textContent = `${months[month]} ${year}`;
-        if (yearSummary) yearSummary.textContent = year;
-
-        const calendarGrid = document.getElementById('calendar-grid');
-        if (!calendarGrid) return;
-        calendarGrid.innerHTML = '';
-
-        const weekDaysContainer = document.getElementById('calendar-week-days');
-        if (weekDaysContainer) {
-            const days = weekDaysContainer.children;
-            for (let i = 0; i < days.length; i++) {
-                days[i].classList.remove('text-accent-magenta');
-                if (i === 5 || i === 6) {
-                    days[i].classList.add('text-accent-magenta');
-                }
-            }
-        }
-
-        const firstDayOfMonth = new Date(year, month, 1).getDay();
+        const firstDayOfMonth = new Date(year, month, 1);
         const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-        const startDay = (firstDayOfMonth === 0) ? 6 : firstDayOfMonth - 1;
+        // Ajustar día de la semana (0 = Domingo, 1 = Lunes, ..., 6 = Sábado)
+        // Queremos que la semana empiece en Lunes (0 = Lunes, ..., 6 = Domingo)
+        let startDay = firstDayOfMonth.getDay() - 1;
+        if (startDay === -1) startDay = 6;
 
+        const today = new Date();
+
+        // Días vacíos previos
         for (let i = 0; i < startDay; i++) {
-            calendarGrid.innerHTML += `<div class="p-2 text-xs opacity-30"></div>`;
+            const emptyDay = document.createElement('div');
+            emptyDay.className = 'calendar-day empty';
+            grid.appendChild(emptyDay);
         }
 
+        // Días del mes
         for (let day = 1; day <= daysInMonth; day++) {
-            const monthString = (month + 1).toString().padStart(2, '0');
-            const dayString = day.toString().padStart(2, '0');
-            const fullDate = `${year}-${monthString}-${dayString}`;
+            const date = new Date(year, month, day);
+            const dateString = formatDate(date);
+            const dayEl = document.createElement('div');
 
-            const todayDate = new Date();
-            const currentDate = new Date(year, month, day);
-            const isToday = todayDate.toDateString() === currentDate.toDateString();
-            const todayClass = isToday ? 'border-2 border-dashed border-red-500' : '';
+            // Clase base
+            dayEl.className = 'calendar-day';
 
-            const dayOfWeek = currentDate.getDay();
+            // Verificar si es hoy
+            if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                dayEl.classList.add('today');
+            }
+
+            // Verificar fin de semana
+            const dayOfWeek = date.getDay();
             const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+            if (isWeekend) {
+                dayEl.classList.add('weekend');
+            }
+
+            // Verificar eventos
+            const eventData = calendarEvents[dateString];
+            let eventIndicator = '';
             let weekendTextColor = isWeekend ? 'text-accent-magenta' : '';
 
-            // === LÓGICA DE EVENTOS ===
-            let eventData = calendarEvents[fullDate];
-            // 🆕 Verificar si es festivo nacional (si no hay evento ya registrado)
-            if (!eventData && isHoliday(currentDate)) {
-                eventData = { type: 'Festivo', date: fullDate, isNational: true };
-            }
-            let eventDisplayClass = '';
-            let eventTypeTag = ''; // Será el contenido de la etiqueta del día
-
             if (eventData) {
-                // Si la fecha está en el calendario, el texto es blanco
-                weekendTextColor = 'text-white';
+                // Si la fecha esta en el calendario pero NO es fin de semana, el texto es blanco
+                // Si ES fin de semana, mantenemos el color magenta (ya aplicado por la clase .weekend)
+                if (!isWeekend) {
+                    weekendTextColor = 'text-white';
+                }
 
-                if (eventData.type === 'Extra') {
-                    eventDisplayClass = 'bg-orange-600/50 hover:bg-orange-700/70 border-l-4 border-orange-600';
-                    // 🔑 MODIFICACIÓN 1: Mostrar SOLO las horas
-                    eventTypeTag = `<span class="text-xs font-medium text-orange-200 block leading-tight">${eventData.hours}h</span>`;
-                } else if (eventData.type === 'Guardia') {
-                    eventDisplayClass = 'bg-blue-600/50 hover:bg-blue-700/70 border-l-4 border-blue-600';
-                    // 🔑 MODIFICACIÓN 2: Etiqueta vacía
-                    eventTypeTag = `<span class="text-xs font-medium text-blue-200 block leading-tight"></span>`;
-                } else if (eventData.type === 'Vacaciones') {
-                    eventDisplayClass = 'bg-purple-600/50 hover:bg-purple-700/70 border-l-4 border-purple-600';
-                    // 🔑 MODIFICACIÓN 3: Etiqueta vacía
-                    eventTypeTag = `<span class="text-xs font-medium text-purple-200 block leading-tight"></span>`;
-                } else if (eventData.type === 'Festivo') {
-                    eventDisplayClass = 'bg-green-600/50 hover:bg-green-700/70 border-l-4 border-green-600';
-                    // 🔑 MODIFICACIÓN 4: Etiqueta vacía
-                    eventTypeTag = `<span class="text-xs font-medium text-green-200 block leading-tight"></span>`;
+                if (eventData.type === 'overtime') {
+                    dayEl.classList.add('bg-orange-100', 'dark:bg-orange-900/30', 'border-orange-500');
+                    eventIndicator = `<div class="event-dot overtime"></div>`;
+                } else if (eventData.type === 'shift') {
+                    dayEl.classList.add('bg-blue-100', 'dark:bg-blue-900/30', 'border-blue-500');
+                    eventIndicator = `<div class="event-dot shift"></div>`;
+                } else if (eventData.type === 'holiday') {
+                    dayEl.classList.add('bg-green-100', 'dark:bg-green-900/30', 'border-green-500');
+                    eventIndicator = `<div class="event-dot holiday"></div>`;
+                } else if (eventData.type === 'vacation') {
+                    dayEl.classList.add('bg-purple-100', 'dark:bg-purple-900/30', 'border-purple-500');
+                    eventIndicator = `<div class="event-dot vacation"></div>`;
                 }
             }
-            // =========================
 
-            calendarGrid.innerHTML += `
-                <div class="calendar-day p-2 rounded-lg text-center cursor-pointer transition h-14 flex flex-col items-center justify-start 
-                    ${todayClass} ${eventDisplayClass || 'hover:bg-white/10 dark:hover:bg-black/10'}" 
-                    data-date="${fullDate}" 
-                    onclick="window.openEventModal('${fullDate}')">
-                    <span class="text-sm font-semibold block ${weekendTextColor}">${day}</span> 
-                    ${eventTypeTag}
-                </div>
+            dayEl.innerHTML = `
+                <span class="${weekendTextColor}">${day}</span>
+                ${eventIndicator}
             `;
+
+            dayEl.onclick = () => openEventModal(dateString);
+            grid.appendChild(dayEl);
         }
     }
 
-
-    // =======================================================
-    // 4. LÓGICA DE MODALES Y EVENTOS Y RESUMEN (CRÍTICO)
-    // =======================================================
-
-    /**
-     * 🔑 FUNCIÓN CRÍTICA: Cuenta los bloques de guardias,
-     * donde los días consecutivos solo cuentan como 1.
-     * @param {object} allEvents - Objeto calendarEvents completo.
-     * @param {number} year - Año para el que se realiza el conteo.
-     * @returns {number} Número de bloques de guardias.
-     */
-    function countConsecutiveShifts(allEvents, year) {
-        // 1. Obtener y filtrar solo las fechas de 'Guardia' del año objetivo
-        const shiftDates = Object.keys(allEvents)
-            .filter(dateStr => {
-                const data = allEvents[dateStr];
-                // Filtra por tipo 'Guardia' y por el año actual
-                return data.type === 'Guardia' && dateStr.startsWith(year.toString());
-            })
-            .sort(); // 2. Ordenar las fechas cronológicamente (YYYY-MM-DD lo permite)
-
-        if (shiftDates.length === 0) {
-            return 0;
-        }
-
-        let shiftBlockCount = 0;
-        let previousDate = null;
-
-        // 3. Iterar y contar bloques
-        for (const currentDateStr of shiftDates) {
-
-            if (!previousDate) {
-                // Primera guardia del año o del conjunto siempre cuenta
-                shiftBlockCount++;
-            } else {
-                const currentDate = new Date(currentDateStr + 'T00:00:00');
-                const prevDateObj = new Date(previousDate + 'T00:00:00');
-
-                // Calcular la diferencia en días
-                const diffTime = Math.abs(currentDate - prevDateObj);
-                const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-
-                // Si la diferencia es mayor a 1 día, es un nuevo bloque (no consecutivo)
-                if (diffDays > 1) {
-                    shiftBlockCount++;
-                }
-            }
-            // Actualizar la fecha previa para la siguiente iteración
-            previousDate = currentDateStr;
-        };
-
-        return shiftBlockCount;
+    function formatDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     }
 
-
-    function updateSummary() {
-        const overtimeDisplay = document.getElementById('summary-overtime');
-        const shiftsDisplay = document.getElementById('summary-shifts-number');
-        const holidaysDisplay = document.getElementById('summary-holidays-number');
-
-        if (!overtimeDisplay || !shiftsDisplay || !holidaysDisplay) return;
-
-        let totalOvertimeMonthly = 0;
-        let totalFestivosAnnual = 0;
-
-        const currentYear = currentCalendarDate.getFullYear();
-        const currentMonthKey = `${currentYear}-${currentCalendarDate.getMonth()}`;
-
-        // 🔑 CALCULAR BLOQUES DE GUARDIAS: Usamos la nueva función para el conteo de bloques anuales
-        const totalShiftsAnnual = countConsecutiveShifts(calendarEvents, currentYear);
-
-        for (const dateStr in calendarEvents) {
-            const data = calendarEvents[dateStr];
-            const eventDate = new Date(dateStr + 'T00:00:00');
-            if (isNaN(eventDate.getTime())) continue;
-
-            const eventYear = eventDate.getFullYear();
-            const eventMonthKey = `${eventYear}-${eventDate.getMonth()}`;
-
-            // Acumular horas extra del mes actual
-            if (eventMonthKey === currentMonthKey) {
-                if (data.type === 'Extra' && data.hours) {
-                    totalOvertimeMonthly += parseFloat(data.hours);
-                }
-            }
-
-            // Acumular festivos del año actual
-            if (eventYear === currentYear) {
-                if (data.type === 'Festivo') {
-                    totalFestivosAnnual++;
-                }
-            }
-        }
-
-        overtimeDisplay.textContent = `${totalOvertimeMonthly.toFixed(1)} h`;
-        shiftsDisplay.textContent = `${totalShiftsAnnual}`;
-        holidaysDisplay.textContent = `${totalFestivosAnnual}`;
-        // Contar festivos nacionales
-        for (let dayNum = 0; dayNum < 365; dayNum++) {
-            const checkDate = new Date(currentYear, 0, 1 + dayNum);
-            if (isHoliday(checkDate)) {
-                const dateStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
-                if (!calendarEvents[dateStr] || calendarEvents[dateStr].type !== 'Festivo') {
-                    totalFestivosAnnual++;
-                }
-            }
-        }
-        holidaysDisplay.textContent = `${totalFestivosAnnual}`;
-    }
-
-    function updateHolidayQuota() {
-        const quotaDisplay = document.getElementById('summary-vacation-quota');
-        if (!quotaDisplay) return;
-
-        const currentYear = currentCalendarDate.getFullYear();
-        let vacationDaysUsed = 0;
-
-        for (const dateStr in calendarEvents) {
-            const data = calendarEvents[dateStr];
-            const eventDate = new Date(dateStr);
-            if (isNaN(eventDate.getTime())) continue;
-
-            const eventYear = eventDate.getFullYear();
-
-            if (data.type === 'Vacaciones' && eventYear === currentYear) {
-                vacationDaysUsed++;
-            }
-        }
-
-        const quotaRemaining = ANNUAL_VACATION_QUOTA - vacationDaysUsed;
-
-        quotaDisplay.textContent = `${quotaRemaining} días`;
-    }
-
-    window.openEventModal = function (dateStr) {
-        selectedDateForEvent = dateStr;
-        const dateObj = new Date(dateStr + 'T00:00:00');
-
-        document.getElementById('modal-date-display').textContent = dateObj.toLocaleDateString('es-ES', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-        });
-
-        const btnStyle = "py-3 px-4 rounded-lg font-bold w-full transition border-2";
-        const optionsContainer = document.getElementById('event-options-container');
-
-        // Determinar si hay un evento existente para cambiar el botón "Borrar" a "Eliminar" y otros textos
-        const existingEvent = calendarEvents[dateStr];
-        const deleteButtonText = existingEvent ? 'Eliminar Evento' : 'Borrar (Vacío)';
-        // Se permite borrar (haciendo clic) solo si hay un evento existente
-        const deleteButtonClass = existingEvent
-            ? 'text-red-500 border-red-500 hover:bg-red-500 hover:text-white'
-            : 'text-gray-400 border-gray-400 hover:bg-gray-100 hover:text-gray-500 opacity-50';
-        const deleteButtonDisabled = existingEvent ? '' : 'disabled';
-
-
-        if (optionsContainer) {
-            optionsContainer.innerHTML = `
-                <button onclick="window.deleteEvent('${selectedDateForEvent}')" class="${btnStyle} ${deleteButtonClass}" ${deleteButtonDisabled}>
-                    ${deleteButtonText}
-                </button>
-                <button onclick="window.registerEvent('Extra')" class="${btnStyle} text-orange-600 border-orange-600 hover:bg-orange-600 hover:text-white">
-                    Horas Extra
-                </button>
-                <button onclick="window.registerEvent('Guardia')" class="${btnStyle} text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white">
-                    Guardia
-                </button>
-                <button onclick="window.registerEvent('Festivo')" class="${btnStyle} text-green-600 border-green-600 hover:bg-green-600 hover:text-white">
-                    Festivos
-                </button>
-                <button onclick="window.registerEvent('Vacaciones')" class="${btnStyle} text-purple-600 border-purple-600 hover:bg-purple-600 hover:text-white">
-                    Vacaciones
-                </button>
-            `;
-        }
-
-        // 🔑 Uso de showModal global
-        if (typeof window.showModal === 'function') {
-            window.showModal('event-modal');
-        }
-    }
-
-    window.registerEvent = function (eventType) {
-        // 🔑 Uso de closeModal global
-        if (typeof window.closeModal === 'function') {
-            window.closeModal('event-modal');
-        }
-        if (eventType === 'Extra') {
-            // 🔑 Uso de showModal global
-            if (typeof window.showModal === 'function') {
-                // Prellenar con horas existentes o un valor predeterminado
-                const existingHours = calendarEvents[selectedDateForEvent] && calendarEvents[selectedDateForEvent].type === 'Extra'
-                    ? calendarEvents[selectedDateForEvent].hours : '1';
-                document.getElementById('overtime-input').value = existingHours;
-                window.showModal('overtime-modal');
-            }
-        } else {
-            saveEventToFirestore(selectedDateForEvent, eventType);
-        }
-    }
-
-    window.saveOvertimeHours = function () {
-        const hoursInput = document.getElementById('overtime-input');
-        const hours = hoursInput.value.trim();
-
-        // 🔑 Uso de closeModal global
-        if (typeof window.closeModal === 'function') {
-            window.closeModal('overtime-modal');
-        }
-
-        const parsedHours = parseFloat(hours);
-
-        if (hours === '' || isNaN(parsedHours) || parsedHours <= 0 || parsedHours > 24) {
-            showMessage('error', 'Horas inválidas. Debe ser un número positivo.');
-            return;
-        }
-
-        saveEventToFirestore(selectedDateForEvent, 'Extra', parsedHours);
-    }
-
-    window.goBackToEventModal = function () {
-        // 🔑 Uso de closeModal global
-        if (typeof window.closeModal === 'function') {
-            window.closeModal('overtime-modal');
-        }
-        if (selectedDateForEvent) {
-            window.openEventModal(selectedDateForEvent);
-        }
-    }
-
-    // =======================================================
-    // 5. INICIALIZACIÓN Y NAVIGACIÓN
-    // =======================================================
-
-    /**
-     * Inicializa la lógica de la vista Calendario.
-     */
-    function initCalendar() {
-        // 🔑 Aplicar el tema
-        if (typeof window.applyColorMode === 'function') {
-            window.applyColorMode();
-        }
-
-        // 🚨 Llamamos a la función asíncrona que ESPERARÁ la señal de Main.js
-        setupFirebaseAndListeners();
-
-        const prevBtn = document.getElementById('prev-month-btn');
-        const nextBtn = document.getElementById('next-month-btn');
-
-        if (prevBtn) {
-            // prevBtn.onclick = () => {
-            //     currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
-            //     renderCalendar();
-            //     updateSummary();
-            //     updateHolidayQuota(); 
-            // };
-        } else { console.error("Error: prev-month-btn no encontrado."); }
-
-        if (nextBtn) {
-            // nextBtn.onclick = () => {
-            //     currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
-            //     renderCalendar();
-            //     updateSummary();
-            //     updateHolidayQuota(); 
-            // };
-        } else { console.error("Error: next-month-btn no encontrado."); }
-
-        console.log('Calendario inicializado. Flujo de inicialización asegurado.');
-    }
-
-    // Exponer acciones del calendario para Buttons.js
-    window.CalendarActions = {
-        prevMonth: () => {
-            currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
-            renderCalendar();
-            updateSummary();
-            updateHolidayQuota();
-        },
-        nextMonth: () => {
-            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
-            renderCalendar();
-            updateSummary();
-            updateHolidayQuota();
-        }
-    };
-
-    // Hacer la función de inicialización global (para ser llamada desde Main.js)
-    window.initCalendar = initCalendar;
-    // Escuchar cambios en la configuración de ubicación
-    window.addEventListener('settingsChanged', (event) => {
-        const { location } = event.detail;
-        console.log('Location changed to:', location);
-        // Re-renderizar el calendario con los nuevos festivos
+    // Navegación de meses
+    document.getElementById('prev-month-btn').addEventListener('click', () => {
+        currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
         renderCalendar();
         updateSummary();
     });
-})(); // ⬅️ FIN: Cierra la IIFE
 
+    document.getElementById('next-month-btn').addEventListener('click', () => {
+        currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+        renderCalendar();
+        updateSummary();
+    });
+
+    // =======================================================
+    // 4. GESTIÓN DE EVENTOS (Modales y Guardado)
+    // =======================================================
+
+    function openEventModal(dateString) {
+        selectedDateForEvent = dateString;
+        const eventData = calendarEvents[dateString];
+
+        // Crear modal dinámicamente si no existe
+        let modal = document.getElementById('calendar-event-modal');
+        if (!modal) {
+            const modalHtml = `
+                <div id="calendar-event-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-70 flex justify-center items-center p-4 transition-opacity duration-300 modal-backdrop">
+                    <div class="modal-content w-full max-w-sm rounded-xl p-6 relative">
+                        <button id="close-event-modal" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                            <i class="ph ph-x text-xl"></i>
+                        </button>
+                        <h3 id="event-modal-date" class="text-xl font-bold mb-4 text-center"></h3>
+                        
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <button class="event-type-btn p-3 rounded-lg border border-gray-600 flex flex-col items-center gap-2 hover:bg-gray-700 transition-colors" data-type="overtime">
+                                <div class="w-3 h-3 rounded-full bg-orange-500"></div>
+                                <span class="text-xs font-bold">Hora Extra</span>
+                            </button>
+                            <button class="event-type-btn p-3 rounded-lg border border-gray-600 flex flex-col items-center gap-2 hover:bg-gray-700 transition-colors" data-type="shift">
+                                <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                                <span class="text-xs font-bold">Guardia</span>
+                            </button>
+                            <button class="event-type-btn p-3 rounded-lg border border-gray-600 flex flex-col items-center gap-2 hover:bg-gray-700 transition-colors" data-type="holiday">
+                                <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                                <span class="text-xs font-bold">Festivo</span>
+                            </button>
+                            <button class="event-type-btn p-3 rounded-lg border border-gray-600 flex flex-col items-center gap-2 hover:bg-gray-700 transition-colors" data-type="vacation">
+                                <div class="w-3 h-3 rounded-full bg-purple-500"></div>
+                                <span class="text-xs font-bold">Vacaciones</span>
+                            </button>
+                        </div>
+
+                        <div id="event-details-input" class="hidden space-y-3">
+                            <label class="block text-sm font-medium text-gray-400">Cantidad / Detalle</label>
+                            <input type="number" id="event-value" class="minimal-input w-full" placeholder="Ej: 2 (horas)">
+                            <button id="save-event-btn" class="primary-btn w-full py-2 rounded-lg mt-2">Guardar</button>
+                        </div>
+
+                        <button id="delete-event-btn" class="hidden w-full py-2 rounded-lg mt-2 text-red-500 border border-red-500 hover:bg-red-900/20 transition-colors">
+                            Eliminar Evento
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            modal = document.getElementById('calendar-event-modal');
+
+            // Listeners del modal
+            document.getElementById('close-event-modal').onclick = closeEventModal;
+            document.getElementById('save-event-btn').onclick = saveEvent;
+            document.getElementById('delete-event-btn').onclick = deleteEvent;
+
+            document.querySelectorAll('.event-type-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    // Resetear selección
+                    document.querySelectorAll('.event-type-btn').forEach(b => b.classList.remove('bg-gray-700', 'border-accent-magenta'));
+
+                    // Seleccionar actual
+                    const target = e.currentTarget;
+                    target.classList.add('bg-gray-700', 'border-accent-magenta');
+
+                    const type = target.dataset.type;
+                    const inputContainer = document.getElementById('event-details-input');
+                    const input = document.getElementById('event-value');
+
+                    inputContainer.classList.remove('hidden');
+                    input.value = ''; // Reset valor
+
+                    if (type === 'overtime') {
+                        input.placeholder = 'Horas (Ej: 2)';
+                        input.type = 'number';
+                    } else {
+                        input.placeholder = 'Opcional: Nota';
+                        input.type = 'text';
+                    }
+
+                    // Guardar tipo seleccionado temporalmente en el botón de guardar
+                    document.getElementById('save-event-btn').dataset.selectedType = type;
+                };
+            });
+        }
+
+        // Configurar contenido del modal
+        const dateObj = new Date(dateString);
+        document.getElementById('event-modal-date').textContent = dateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+
+        // Resetear estado visual
+        document.querySelectorAll('.event-type-btn').forEach(b => b.classList.remove('bg-gray-700', 'border-accent-magenta'));
+        document.getElementById('event-details-input').classList.add('hidden');
+        const deleteBtn = document.getElementById('delete-event-btn');
+
+        if (eventData) {
+            // Si ya hay evento, preseleccionar
+            const typeBtn = document.querySelector(`.event-type-btn[data-type="${eventData.type}"]`);
+            if (typeBtn) {
+                typeBtn.click(); // Simular click para activar lógica visual
+                document.getElementById('event-value').value = eventData.value || '';
+            }
+            deleteBtn.classList.remove('hidden');
+        } else {
+            deleteBtn.classList.add('hidden');
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeEventModal() {
+        const modal = document.getElementById('calendar-event-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+
+    async function saveEvent() {
+        const type = document.getElementById('save-event-btn').dataset.selectedType;
+        const value = document.getElementById('event-value').value;
+
+        if (!type || !selectedDateForEvent) return;
+
+        const eventData = {
+            type: type,
+            value: value,
+            date: selectedDateForEvent
+        };
+
+        try {
+            if (!isFirebaseReady) throw new Error("Firebase no está listo");
+
+            const eventsRef = getEventsCollectionRef();
+            // Usar la fecha como ID del documento para evitar duplicados y facilitar lectura
+            await eventsRef.doc(selectedDateForEvent).set(eventData);
+
+            showMessage('success', 'Evento guardado.');
+            closeEventModal();
+
+        } catch (error) {
+            console.error("Error al guardar evento:", error);
+            showMessage('error', 'Error al guardar.');
+        }
+    }
+
+    async function deleteEvent() {
+        if (!selectedDateForEvent) return;
+
+        try {
+            if (!isFirebaseReady) throw new Error("Firebase no está listo");
+
+            const eventsRef = getEventsCollectionRef();
+            await eventsRef.doc(selectedDateForEvent).delete();
+
+            showMessage('success', 'Evento eliminado.');
+            closeEventModal();
+
+        } catch (error) {
+            console.error("Error al eliminar evento:", error);
+            showMessage('error', 'Error al eliminar.');
+        }
+    }
+
+    // =======================================================
+    // 5. RESUMEN Y ESTADÍSTICAS
+    // =======================================================
+
+    function updateSummary() {
+        let overtime = 0;
+        let shifts = 0;
+        let holidays = 0;
+        let vacationUsed = 0;
+
+        const currentMonth = currentCalendarDate.getMonth();
+        const currentYear = currentCalendarDate.getFullYear();
+
+        // Iterar sobre todos los eventos cargados
+        Object.values(calendarEvents).forEach(event => {
+            const eventDate = new Date(event.date);
+
+            // Filtrar por mes y año actual para el resumen mensual
+            if (eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear) {
+                if (event.type === 'overtime') {
+                    overtime += parseFloat(event.value || 0);
+                } else if (event.type === 'shift') {
+                    shifts++;
+                } else if (event.type === 'holiday') {
+                    holidays++;
+                }
+            }
+
+            // Vacaciones se cuentan anualmente
+            if (event.type === 'vacation' && eventDate.getFullYear() === currentYear) {
+                vacationUsed++;
+            }
+        });
+
+        // Actualizar UI
+        document.getElementById('summary-overtime').textContent = `${overtime} h`;
+        document.getElementById('summary-shifts-number').textContent = shifts;
+        document.getElementById('summary-holidays-number').textContent = holidays;
+
+        // Actualizar cupo de vacaciones
+        const remainingVacation = ANNUAL_VACATION_QUOTA - vacationUsed;
+        const vacationEl = document.getElementById('summary-vacation-quota');
+        vacationEl.textContent = `${remainingVacation} días`;
+
+        if (remainingVacation < 0) {
+            vacationEl.classList.add('text-red-500');
+        } else {
+            vacationEl.classList.remove('text-red-500');
+        }
+    }
+
+})();

@@ -18,15 +18,6 @@
     let currentViewDate = new Date();
     let currentMaintenanceData = []; // Almacenar datos actuales para filtrado
 
-    // 🔑 CLAVE COMPARTIDA con Repairs.js para leer los mismos datos
-    const MOCK_REPAIRS_KEY = 'portis-repairs-mock';
-
-    // Función para cargar datos desde localStorage (compartidos con Repairs.js)
-    function loadMaintenanceFromStorage() {
-        const stored = localStorage.getItem(MOCK_REPAIRS_KEY);
-        return stored ? JSON.parse(stored) : [];
-    }
-
     function showMessage(type, message) {
         if (typeof window.showAppMessage === 'function') {
             window.showAppMessage(type, message);
@@ -39,23 +30,16 @@
     // 🚨 FUNCIÓN MEJORADA: Inicialización más robusta
     // ----------------------------------------------------------------------------------
     async function setupFirebase() {
-        // 1. Verificar si estamos en Mock Mode global
-        if (window.IS_MOCK_MODE) {
-            console.log("Maintenance.js: MODO MOCK ACTIVADO (Global).");
-            return;
-        }
-
-        // 2. Esperar la señal de Firebase Ready (CRÍTICO)
+        // 1. Esperar la señal de Firebase Ready (CRÍTICO)
         if (typeof window.firebaseReadyPromise !== 'undefined') {
             console.log("Maintenance.js: Esperando señal de Firebase Ready...");
             await window.firebaseReadyPromise;
         } else {
-            console.error("Maintenance.js: Error. window.firebaseReadyPromise no encontrado. Fallback a Mock Mode.");
-            window.IS_MOCK_MODE = true;
+            console.error("Maintenance.js: Error. window.firebaseReadyPromise no encontrado.");
             return;
         }
 
-        // 3. Verificar estado después de la espera
+        // 2. Verificar estado después de la espera
         if (typeof window.db !== 'undefined' && window.db !== null && sessionStorage.getItem('portis-user-identifier')) {
             db = window.db;
             userId = sessionStorage.getItem('portis-user-identifier');
@@ -132,20 +116,11 @@
 
         let maintenanceItems = [];
 
-        if (window.IS_MOCK_MODE || !isFirebaseReady) {
-            // MODO MOCK
-            const allRepairs = loadMaintenanceFromStorage();
-            const targetMonth = currentViewDate.getMonth() + 1;
-            const targetYear = currentViewDate.getFullYear();
-
-            maintenanceItems = allRepairs.filter(item => {
-                return item.status === 'Pendiente' &&
-                    parseInt(item.maintenance_month) === targetMonth &&
-                    parseInt(item.maintenance_year) === targetYear;
-            });
-        } else {
+        if (isFirebaseReady) {
             // MODO FIREBASE
             maintenanceItems = await fetchMaintenanceFromFirestore(currentViewDate);
+        } else {
+            console.warn("Maintenance: Firebase no listo, no se pueden cargar datos.");
         }
 
         currentMaintenanceData = maintenanceItems; // Guardar para búsqueda
@@ -321,10 +296,7 @@
             try {
                 // 1. Obtener el mantenimiento actual
                 let repair = null;
-                if (window.IS_MOCK_MODE || !isFirebaseReady) {
-                    const allRepairs = loadMaintenanceFromStorage();
-                    repair = allRepairs.find(r => r.id === id);
-                } else {
+                if (isFirebaseReady) {
                     const doc = await getRepairsCollectionRef().doc(id).get();
                     if (doc.exists) repair = { id: doc.id, ...doc.data() };
                 }
@@ -358,31 +330,14 @@
                 const historyRecord = {
                     ...repair,
                     completedDate: new Date().toISOString(),
-                    completedBy: userId || 'mock-user',
+                    completedBy: userId || 'unknown',
                     original_month: repair.maintenance_month,
                     original_year: repair.maintenance_year
                 };
                 delete historyRecord.id; // No guardar el ID original en el historial
 
                 // 4. Actualizar DB
-                if (window.IS_MOCK_MODE || !isFirebaseReady) {
-                    // MOCK
-                    let allRepairs = loadMaintenanceFromStorage();
-                    const index = allRepairs.findIndex(r => r.id === id);
-                    if (index !== -1) {
-                        // Actualizar fecha
-                        allRepairs[index].maintenance_month = nextMonth;
-                        allRepairs[index].maintenance_year = nextYear;
-                        allRepairs[index].description = ''; // Limpiar observaciones
-                        localStorage.setItem(MOCK_REPAIRS_KEY, JSON.stringify(allRepairs));
-
-                        // Guardar historial mock
-                        const historyKey = 'portis-history-mock';
-                        const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
-                        history.push(historyRecord);
-                        localStorage.setItem(historyKey, JSON.stringify(history));
-                    }
-                } else {
+                if (isFirebaseReady) {
                     // FIREBASE
                     const batch = db.batch();
                     const repairRef = getRepairsCollectionRef().doc(id);
@@ -693,18 +648,7 @@
         }
 
         try {
-            if (window.IS_MOCK_MODE || !isFirebaseReady) {
-                // MODO MOCK
-                let allRepairs = loadMaintenanceFromStorage();
-                const index = allRepairs.findIndex(r => r.id === id);
-                if (index !== -1) {
-                    allRepairs[index] = { ...allRepairs[index], ...newValues };
-                    localStorage.setItem(MOCK_REPAIRS_KEY, JSON.stringify(allRepairs));
-                    showMessage('success', 'Mantenimiento actualizado correctamente.');
-                    hideMaintenanceModal();
-                    window.fetchMaintenanceData();
-                }
-            } else {
+            if (isFirebaseReady) {
                 // MODO FIREBASE
                 const repairsRef = getRepairsCollectionRef();
                 if (!repairsRef) {

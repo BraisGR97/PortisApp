@@ -1,3 +1,7 @@
+// ===================================================================================
+// Chat.js - Lógica del Chat
+// ===================================================================================
+
 // Se asume que Firebase (compatibilidad) está disponible globalmente desde Main.js.
 // Se asume que Main.js ha establecido window.db y window.auth tras el login.
 
@@ -11,11 +15,8 @@
     // 🔑 CLAVE CRÍTICA: Almacenar la función de cancelación del listener de Firestore.
     let unsubscribeFromChat = null;
 
-    // 🔑 CLAVE: Leemos la configuración de la ventana y la convertimos en una constante LOCAL
-    const IS_MOCK_MODE = window.IS_MOCK_MODE;
-
-    // 🔑 CLAVE: Obtener el userId de la sesión. Si no existe, usamos un mock temporal
-    const userId = sessionStorage.getItem('portis-user-identifier') || 'mock_user_123';
+    // 🔑 CLAVE: Obtener el userId de la sesión.
+    const userId = sessionStorage.getItem('portis-user-identifier');
     const MESSAGE_LIMIT = 50;
     const profileImagePath = '../assets/logo.png';
 
@@ -30,17 +31,6 @@
         if (typeof window.showAppMessage === 'function') {
             window.showAppMessage(message, type);
         } else {
-            // Fallback: Lógica de muestra de mensajes local
-            const appMessage = document.getElementById('app-message');
-            if (appMessage) {
-                appMessage.className = `message-box message-${type} fixed top-20 left-1/2 -translate-x-1/2 z-[1000] w-[90%] md:w-auto message-box-show`;
-                appMessage.textContent = message;
-                appMessage.style.display = 'block';
-                setTimeout(() => {
-                    appMessage.classList.remove('message-box-show');
-                    setTimeout(() => appMessage.style.display = 'none', 300);
-                }, 3000);
-            }
             console.log(`[${type.toUpperCase()}] Notificación: ${message}`);
         }
     }
@@ -55,12 +45,6 @@
     // 🛑 FUNCIÓN CORREGIDA: Setup de Firebase (Compatibilidad) usando instancias globales
     // ----------------------------------------------------------------------------------
     async function setupFirebase() {
-        if (IS_MOCK_MODE) {
-            console.warn("Chat: MODO MOCK activado. Chat no persistente.");
-            isFirebaseReady = true;
-            return;
-        }
-
         // 🚨 CRÍTICO: Usar las instancias globales proporcionadas por Main.js
         if (typeof window.firebaseReadyPromise !== 'undefined') {
             console.log("Chat: Esperando señal de Firebase Ready...");
@@ -75,10 +59,8 @@
         }
 
         // Si window.db no existe o no hay promesa, algo salió mal.
-        console.error("Chat: window.db no está disponible. Fallback a Mock Mode.");
-        showMessage('error', 'Error de base de datos. Usando modo simulado.');
-        window.IS_MOCK_MODE = true;
-        isFirebaseReady = true;
+        console.error("Chat: window.db no está disponible.");
+        showMessage('error', 'Error de base de datos. Intente recargar.');
     }
 
 
@@ -87,8 +69,8 @@
     // ===============================================
 
     async function saveMessageAndApplyCapping(recipientId, text, timestamp) {
-        if (!db || !isFirebaseReady || IS_MOCK_MODE) {
-            console.warn("Firestore no está listo o está en Mock Mode. Mensaje no guardado.");
+        if (!db || !isFirebaseReady) {
+            console.warn("Firestore no está listo. Mensaje no guardado.");
             return;
         }
 
@@ -133,7 +115,7 @@
     // 🚨 FUNCIÓN CRÍTICA: Listener en Tiempo Real
     // ----------------------------------------------------------------------------------
     function listenForChatMessages() {
-        if (!db || !currentRecipientId || !isFirebaseReady || IS_MOCK_MODE) return;
+        if (!db || !currentRecipientId || !isFirebaseReady) return;
 
         // 🛑 CRÍTICO: Si ya hay un listener activo, lo cerramos antes de abrir uno nuevo.
         if (unsubscribeFromChat) {
@@ -302,14 +284,9 @@
             window.showModal('message-modal');
         }
 
-        if (!IS_MOCK_MODE && isFirebaseReady) {
+        if (isFirebaseReady) {
             // 🚨 CRÍTICO: Iniciamos el listener
             listenForChatMessages();
-        } else {
-            // Lógica de Mock Mode
-            renderMessage('System', '⚠️ MOCK MODE. Mensajes no persistentes.', false, new Date(Date.now() - 60000));
-            renderMessage(recipientId, 'Hola, ' + recipientName + ', ¿cómo estás?', false, new Date(Date.now() - 30000));
-            renderMessage(userId, '¡Todo bien! Probando el chat simulado.', true);
         }
     }
 
@@ -347,19 +324,11 @@
 
         const timestamp = new Date();
 
-        // En modo Real-Time, solo renderizamos en Mock Mode.
-        if (IS_MOCK_MODE) {
-            renderMessage(userId, text, true, timestamp);
-        }
-
         input.value = '';
 
-        if (!IS_MOCK_MODE && isFirebaseReady) {
+        if (isFirebaseReady) {
             // El onSnapshot se encargará de renderizar este mensaje después de guardarse
             saveMessageAndApplyCapping(currentRecipientId, text, timestamp);
-        } else if (IS_MOCK_MODE) {
-            console.log(`Mensaje enviado a ${currentRecipientId} (Mock Mode): ${text}`);
-            // En mock mode, la función renderMessage ya se encargó de mostrarlo.
         }
     }
 
@@ -373,38 +342,33 @@
 
         let users = [];
 
-        if (IS_MOCK_MODE || !isFirebaseReady) {
-            console.log("Cargando usuarios en MODO MOCK.");
-            users = [
-                { id: 'Alfonso_Perez_UID', name: 'Alfonso Pérez' },
-                { id: 'Beatriz_Lopez_UID', name: 'Beatriz López' },
-                { id: 'Carlos_Martin_UID', name: 'Carlos Martín' }
-            ];
-            // Aseguramos que el usuario actual no esté en la lista, incluso en mock
-            users = users.filter(user => user.id !== userId);
-        } else {
-            console.log("Cargando usuarios REALES de Firestore.");
-            try {
-                // 🔑 CLAVE: Usar la API de compatibilidad para colecciones
-                const usersCollectionRef = db.collection('users');
-                const snapshot = await usersCollectionRef.get();
-
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    if (doc.id !== userId) {
-                        users.push({
-                            id: doc.id,
-                            name: data.username || data.displayName || `Usuario ${doc.id.substring(0, 6)}`,
-                            photoURL: data.photoURL // << ADD THIS LINE
-                        });
-                    }
-                });
-            } catch (error) {
-                console.error("Error al cargar usuarios reales: ", error);
-                showMessage('error', 'Error al cargar la lista de contactos. (Verifique permisos)');
-                return;
-            }
+        if (!isFirebaseReady) {
+            console.warn("Carga de usuarios abortada: Firebase no listo.");
+            return;
         }
+
+        console.log("Cargando usuarios REALES de Firestore.");
+        try {
+            // 🔑 CLAVE: Usar la API de compatibilidad para colecciones
+            const usersCollectionRef = db.collection('users');
+            const snapshot = await usersCollectionRef.get();
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (doc.id !== userId) {
+                    users.push({
+                        id: doc.id,
+                        name: data.username || data.displayName || `Usuario ${doc.id.substring(0, 6)}`,
+                        photoURL: data.photoURL // << ADD THIS LINE
+                    });
+                }
+            });
+        } catch (error) {
+            console.error("Error al cargar usuarios reales: ", error);
+            showMessage('error', 'Error al cargar la lista de contactos. (Verifique permisos)');
+            return;
+        }
+
 
         userListContainer.innerHTML = users.map(user => `
             <div class="user-chat-card flex items-center p-3 rounded-xl cursor-pointer transition" 
@@ -471,9 +435,7 @@
                 if (imageUrl && currentRecipientId) {
                     const timestamp = new Date();
 
-                    if (IS_MOCK_MODE) {
-                        renderMessage(userId, imageUrl, true, timestamp);
-                    } else if (isFirebaseReady) {
+                    if (isFirebaseReady) {
                         saveMessageAndApplyCapping(currentRecipientId, imageUrl, timestamp);
                     }
 
@@ -494,5 +456,61 @@
 
     // Hacer la función de inicialización global
     window.initChat = initChat;
+
+    // ----------------------------------------------------------------------------------
+    // MODAL DE CHAT (Inyectado dinámicamente si no existe)
+    // ----------------------------------------------------------------------------------
+    // Verificamos si el modal ya existe en el DOM, si no, lo creamos.
+    // Esto asegura que el modal esté disponible incluso si Main.html no lo tiene explícitamente.
+    if (!document.getElementById('message-modal')) {
+        const modalHtml = `
+        <div id="message-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-70 flex justify-center items-end sm:items-center transition-opacity duration-300 modal-backdrop">
+            <div class="modal-content w-full h-[90vh] sm:h-[80vh] sm:max-w-md bg-white dark:bg-[#1f1f33] rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+                
+                <!-- Header -->
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-[#2a2a3e]">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold shadow-sm">
+                            <i class="ph-fill ph-user text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 id="chat-recipient-name" class="font-bold text-lg leading-tight">Usuario</h3>
+                            <span class="text-xs text-green-500 flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-green-500"></span> En línea
+                            </span>
+                        </div>
+                    </div>
+                    <button onclick="window.closeChatModal()" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-500 dark:text-gray-400">
+                        <i class="ph ph-x text-xl"></i>
+                    </button>
+                </div>
+
+                <!-- Messages Area -->
+                <div id="chat-messages-container" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-100 dark:bg-[#12121e]">
+                    <!-- Mensajes se insertan aquí -->
+                </div>
+
+                <!-- Input Area -->
+                <div class="p-3 bg-white dark:bg-[#1f1f33] border-t border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-2 bg-gray-100 dark:bg-[#12121e] p-1.5 rounded-full border border-gray-200 dark:border-gray-700 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
+                        
+                        <button id="chat-image-btn" class="p-2 rounded-full text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                            <i class="ph ph-image text-xl"></i>
+                        </button>
+                        <input type="file" id="chat-image-input" accept="image/*" class="hidden">
+
+                        <input type="text" id="chat-input" placeholder="Escribe un mensaje..." 
+                            class="flex-1 bg-transparent border-none focus:ring-0 text-sm px-2 py-2 text-gray-700 dark:text-gray-200 placeholder-gray-400">
+                        
+                        <button onclick="window.ChatActions.sendMessage(event)" class="p-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-transform active:scale-95 flex items-center justify-center">
+                            <i class="ph-bold ph-paper-plane-right text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
 
 })(); // ⬅️ FIN: Cierra la IIFE
