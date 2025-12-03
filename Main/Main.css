@@ -213,7 +213,7 @@ html.light-mode #geometric-wrapper {
     display: flex;
     flex-direction: column;
     height: 100%;
-    border-bottom: 1px solid transparent;
+    border-bottom: 2px solid transparent;
     /* Para efecto de scroll */
 }
 
@@ -401,7 +401,7 @@ html.light-mode #bottom-navbar {
     padding: 1rem;
     transition: all 0.2s;
     cursor: pointer;
-    border-bottom: 1px solid transparent;
+    border-bottom: 2px solid transparent;
     /* Para efecto de scroll */
 }
 
@@ -454,7 +454,7 @@ html.light-mode #bottom-navbar {
     padding: 1rem;
     transition: all 0.2s;
     cursor: pointer;
-    border-bottom: 1px solid transparent;
+    border-bottom: 2px solid transparent;
     /* Para efecto de scroll */
 }
 
@@ -539,7 +539,7 @@ html.light-mode #bottom-navbar {
 /* Dias del calendario */
 .calendar-day {
     font-size: 0.75rem !important;
-    min-height: 2.6rem !important;
-    max-height: 3.6rem !important;
-    padding: 0.17rem !important;
+    min-height: 2.5rem !important;
+    max-height: 3.5rem !important;
+    padding: 0.19rem !important;
 }
