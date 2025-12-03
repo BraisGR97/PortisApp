@@ -158,7 +158,7 @@ html.light-mode #geometric-wrapper {
     height: 100%;
     flex-shrink: 0;
     overflow: hidden;
-    /* Sin scroll aquÃ­, el scroll estarÃ¡ dentro de card-container */
+    /* Sin scroll aquí, el scroll estará dentro de card-container */
     padding: 1rem;
     box-sizing: border-box;
 }
@@ -179,7 +179,8 @@ html.light-mode #geometric-wrapper {
     display: flex;
     flex-direction: column;
     transition: border-bottom-color 0.3s ease;
-    border-bottom: 3px solid transparent; /* Para efecto de scroll */
+    border-bottom: 3px solid transparent;
+    /* Para efecto de scroll */
 }
 
 .card-inner-content {
@@ -210,7 +211,8 @@ html.light-mode #geometric-wrapper {
     display: flex;
     flex-direction: column;
     height: 100%;
-    border-bottom: 3px solid transparent; /* Para efecto de scroll */
+    border-bottom: 3px solid transparent;
+    /* Para efecto de scroll */
 }
 
 .dashboard-card:hover {
@@ -287,20 +289,48 @@ html.light-mode #geometric-wrapper {
    ================================================================ */
 
 /* Navbar Superior */
-#top-navbar {`r`n    background-color: var(--color-bg-glass);`r`n    border-bottom: 1px solid var(--color-border-light);`r`n    box-shadow: 0 0 25px var(--color-shadow-light);`r`n}
+#top-navbar {
+    background-color: var(--color-bg-glass);
+    border-bottom: 1px solid var(--color-border-light);
+    box-shadow: 0 0 25px var(--color-shadow-light);
+}
 
-html.light-mode #top-navbar {`r`n    background-color: var(--color-bg-glass);`r`n}
+html.light-mode #top-navbar {
+    background-color: var(--color-bg-glass);
+}
 
 /* Navbar Inferior */
-#bottom-navbar {`r`n    background-color: var(--color-bg-glass);`r`n    box-shadow: 0 -5px 20px var(--color-shadow);`r`n    border-top: 1px solid var(--color-border-light);`r`n    transition: background-color 0.3s, box-shadow 0.3s, border-top 0.3s;`r`n}
+#bottom-navbar {
+    background-color: var(--color-bg-glass);
+    box-shadow: 0 -5px 20px var(--color-shadow);
+    border-top: 1px solid var(--color-border-light);
+    transition: background-color 0.3s, box-shadow 0.3s, border-top 0.3s;
+}
 
-html.light-mode #bottom-navbar {`r`n    background-color: var(--color-bg-glass);`r`n}
+html.light-mode #bottom-navbar {
+    background-color: var(--color-bg-glass);
+}
 
-.nav-button {`r`n    background: none;`r`n    border: none;`r`n    color: var(--color-text-secondary);`r`n    padding: 0.75rem;`r`n    border-radius: 9999px;`r`n    transition: color 0.3s, background-color 0.3s, box-shadow 0.3s;`r`n    cursor: pointer;`r`n    position: relative;`r`n}
+.nav-button {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    padding: 0.75rem;
+    border-radius: 9999px;
+    transition: color 0.3s, background-color 0.3s, box-shadow 0.3s;
+    cursor: pointer;
+    position: relative;
+}
 
-.nav-button:hover {`r`n    color: var(--color-text-primary);`r`n    background-color: var(--color-bg-tertiary);`r`n}
+.nav-button:hover {
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-tertiary);
+}
 
-.nav-button.active {`r`n    color: var(--color-accent-magenta);`r`n    background-color: var(--color-bg-tertiary);`r`n}
+.nav-button.active {
+    color: var(--color-accent-magenta);
+    background-color: var(--color-bg-tertiary);
+}
 
 .nav-button.active::after {
     content: '';
@@ -368,7 +398,8 @@ html.light-mode #bottom-navbar {`r`n    background-color: var(--color-bg-glass);
     padding: 1rem;
     transition: all 0.2s;
     cursor: pointer;
-    border-bottom: 3px solid transparent; /* Para efecto de scroll */
+    border-bottom: 3px solid transparent;
+    /* Para efecto de scroll */
 }
 
 .user-chat-card:hover {
@@ -419,7 +450,8 @@ html.light-mode #bottom-navbar {`r`n    background-color: var(--color-bg-glass);
     padding: 1rem;
     transition: all 0.2s;
     cursor: pointer;
-    border-bottom: 3px solid transparent; /* Para efecto de scroll */
+    border-bottom: 3px solid transparent;
+    /* Para efecto de scroll */
 }
 
 .maintenance-item:hover {
@@ -507,10 +539,3 @@ html.light-mode #bottom-navbar {`r`n    background-color: var(--color-bg-glass);
     max-height: 2.8rem !important;
     padding: 0.2rem !important;
 }
-
-
-
-
-
-
-
