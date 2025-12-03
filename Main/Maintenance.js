@@ -22,7 +22,7 @@
         if (typeof window.showAppMessage === 'function') {
             window.showAppMessage(type, message);
         } else {
-            alert(`${type.toUpperCase()}: ${message}`);
+            // alert(`${type.toUpperCase()}: ${message}`);
         }
     }
 
@@ -30,23 +30,19 @@
     // 🚨 FUNCIÓN MEJORADA: Inicialización más robusta
     // ----------------------------------------------------------------------------------
     async function setupFirebase() {
-        // 1. Esperar la señal de Firebase Ready (CRÍTICO)
+        // 2. Esperar la señal de Firebase Ready (CRÍTICO)
         if (typeof window.firebaseReadyPromise !== 'undefined') {
-            console.log("Maintenance.js: Esperando señal de Firebase Ready...");
             await window.firebaseReadyPromise;
         } else {
-            console.error("Maintenance.js: Error. window.firebaseReadyPromise no encontrado.");
             return;
         }
 
-        // 2. Verificar estado después de la espera
+        // 3. Verificar estado después de la espera
         if (typeof window.db !== 'undefined' && window.db !== null && sessionStorage.getItem('portis-user-identifier')) {
             db = window.db;
             userId = sessionStorage.getItem('portis-user-identifier');
             isFirebaseReady = true;
-            console.log(`Maintenance.js: Conexión con Firestore establecida. User ID: ${userId}`);
         } else {
-            console.error("Maintenance.js: Error. No hay ID de usuario o DB no está disponible.");
             showMessage('error', 'Error de sesión. Intente iniciar sesión nuevamente.');
         }
     }
@@ -92,7 +88,6 @@
             return maintenanceList;
 
         } catch (error) {
-            console.error("Error al obtener mantenimientos de Firestore:", error);
             showMessage('error', 'Error al cargar mantenimientos.');
             return [];
         }
@@ -116,11 +111,11 @@
 
         let maintenanceItems = [];
 
-        if (isFirebaseReady) {
+        if (!isFirebaseReady) {
+            // Wait or handle not ready
+        } else {
             // MODO FIREBASE
             maintenanceItems = await fetchMaintenanceFromFirestore(currentViewDate);
-        } else {
-            console.warn("Maintenance: Firebase no listo, no se pueden cargar datos.");
         }
 
         currentMaintenanceData = maintenanceItems; // Guardar para búsqueda
@@ -201,19 +196,13 @@
 
         div.classList.add(priorityColorClass.split(' ')[0], priorityColorClass.split(' ')[1]);
 
-        // Mostrar observaciones solo si existen
-        const descriptionHtml = item.description ?
-            `<div class="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-                <p class="text-xs text-gray-500 italic line-clamp-2">${item.description}</p>
-             </div>` : '';
-
         div.innerHTML = `
             <div class="flex justify-between items-start mb-2">
                 <h3 class="font-bold text-lg leading-tight pr-8">${item.location}</h3>
                 <span class="text-xs font-bold px-2 py-1 rounded-full ${priorityBadgeClass}">${item.priority}</span>
             </div>
             
-            <div class="grid grid-cols-2 gap-2 text-sm text-gray-500 dark:text-gray-400 mb-2">
+            <div class="grid grid-cols-2 gap-2 text-sm text-gray-500 dark:text-gray-400 mb-3">
                 <div class="flex items-center gap-1">
                     <i class="ph ph-file-text"></i>
                     <span>${item.contract}</span>
@@ -224,15 +213,13 @@
                 </div>
             </div>
 
-            <div class="flex justify-between items-center mt-1">
+            <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
                 <span class="text-xs text-gray-400">ID: ${item.key_id || '---'}</span>
                 <button class="text-accent-magenta hover:text-white hover:bg-accent-magenta p-1.5 rounded-full transition-colors" 
                         onclick="event.stopPropagation(); window.openMaintenanceMap('${item.location}')" title="Ver Mapa">
                     <i class="ph ph-map-pin text-lg"></i>
                 </button>
             </div>
-
-            ${descriptionHtml}
         `;
 
         // Evento de clic para abrir detalles
@@ -296,7 +283,9 @@
             try {
                 // 1. Obtener el mantenimiento actual
                 let repair = null;
-                if (isFirebaseReady) {
+                if (!isFirebaseReady) {
+                    // Handle not ready
+                } else {
                     const doc = await getRepairsCollectionRef().doc(id).get();
                     if (doc.exists) repair = { id: doc.id, ...doc.data() };
                 }
@@ -330,14 +319,16 @@
                 const historyRecord = {
                     ...repair,
                     completedDate: new Date().toISOString(),
-                    completedBy: userId || 'unknown',
+                    completedBy: userId,
                     original_month: repair.maintenance_month,
                     original_year: repair.maintenance_year
                 };
                 delete historyRecord.id; // No guardar el ID original en el historial
 
                 // 4. Actualizar DB
-                if (isFirebaseReady) {
+                if (!isFirebaseReady) {
+                    // Handle not ready
+                } else {
                     // FIREBASE
                     const batch = db.batch();
                     const repairRef = getRepairsCollectionRef().doc(id);
@@ -358,7 +349,6 @@
                 window.fetchMaintenanceData(); // Recargar lista
 
             } catch (error) {
-                console.error("Error al completar mantenimiento:", error);
                 showMessage('error', 'Error al completar la tarea.');
             }
         };
@@ -432,7 +422,6 @@
         const modal = document.getElementById('maintenance-detail-modal');
         if (modal) {
             modal.classList.add('hidden');
-            modal.classList.remove('flex');
         }
     }
 
@@ -495,27 +484,13 @@
             `;
         };
 
-        // HEADER: Botones de Cerrar y Editar arriba
-        const headerContent = `
-            <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-xl font-bold text-accent-magenta">${isEditMode ? 'Editar Mantenimiento' : item.location}</h3>
-                <div class="flex gap-2">
-                    <button id="edit-toggle-btn" class="secondary-icon-btn p-2 rounded-lg" title="${isEditMode ? 'Cancelar Edición' : 'Editar'}">
-                        <i class="ph ${isEditMode ? 'ph-x' : 'ph-pencil-simple'} text-xl"></i>
-                    </button>
-                    <button id="close-maintenance-modal-btn" class="secondary-icon-btn p-2 rounded-lg" title="Cerrar">
-                        <i class="ph ph-x text-xl"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-
         let bodyContent = '';
         if (!isEditMode) {
             // MODO VISTA
             bodyContent = `
-            <div class="space-y-4">
-                <div class="flex justify-between items-center">
+            <div class="p-6 space-y-4">
+                <div class="flex justify-between items-start">
+                    <h3 class="text-xl font-bold text-accent-magenta">${item.location}</h3>
                     <span class="px-2 py-1 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300">${status}</span>
                 </div>
                 
@@ -544,7 +519,9 @@
         } else {
             // MODO EDICION
             bodyContent = `
-            <div class="space-y-4">
+            <div class="p-6 space-y-4">
+                <h3 class="text-xl font-bold mb-4">Editar Mantenimiento</h3>
+                
                 ${baseInput('edit-location', 'Ubicación', item.location, false)}
                 
                 <div class="grid grid-cols-2 gap-4">
@@ -567,20 +544,28 @@
             `;
         }
 
-        // Footer con botones (Solo Completar o Guardar)
+        // Footer con botones
         const footerContent = `
-            <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800/50 rounded-b-xl">
                 ${!isEditMode ? `
-                    <button onclick="window.confirmCompleteMaintenance('${item.id}')" class="primary-btn px-4 py-2 rounded-lg flex items-center gap-2 w-full justify-center">
-                        <i class="ph ph-check-circle text-lg"></i> Completar Tarea
+                    <button id="close-maintenance-modal-btn" class="secondary-btn rounded-lg">Cerrar</button>
+                    <button onclick="window.openMaintenanceMap('${item.location}')" class="secondary-icon-btn p-2 rounded-lg" title="Ver Mapa">
+                        <i class="ph ph-map-pin text-xl"></i>
+                    </button>
+                    <button id="edit-toggle-btn" class="secondary-icon-btn p-2 rounded-lg" title="Editar">
+                        <i class="ph ph-pencil-simple text-xl"></i>
+                    </button>
+                    <button onclick="window.confirmCompleteMaintenance('${item.id}')" class="primary-btn px-4 py-2 rounded-lg flex items-center gap-2">
+                        <i class="ph ph-check-circle text-lg"></i> Completar
                     </button>
                 ` : `
-                    <button id="save-edit-btn" class="primary-btn px-6 py-2 rounded-lg w-full justify-center">Guardar Cambios</button>
+                    <button id="edit-toggle-btn" class="secondary-btn rounded-lg">Cancelar</button>
+                    <button id="save-edit-btn" class="primary-btn px-6 py-2 rounded-lg">Guardar</button>
                 `}
             </div>
         `;
 
-        return `<div class="p-6">${headerContent}${bodyContent}${footerContent}</div>`;
+        return bodyContent + footerContent;
     }
 
     function showMaintenanceDetailsModal(item, isEditMode = false) {
@@ -648,7 +633,9 @@
         }
 
         try {
-            if (isFirebaseReady) {
+            if (!isFirebaseReady) {
+                // Handle not ready
+            } else {
                 // MODO FIREBASE
                 const repairsRef = getRepairsCollectionRef();
                 if (!repairsRef) {
@@ -661,7 +648,6 @@
                 window.fetchMaintenanceData();
             }
         } catch (error) {
-            console.error("Error al actualizar mantenimiento:", error);
             showMessage('error', 'Error al guardar los cambios.');
         }
     }
