@@ -204,23 +204,41 @@
     /**
      * Actualiza la opacidad del borde superior de las tarjetas segun el scroll.
      */
+    /**
+     * Actualiza la opacidad del borde de las tarjetas segun el scroll.
+     */
     function updateCardBorderOpacity() {
-        const elements = document.querySelectorAll('.card-container, .dashboard-card, .user-chat-card, .maintenance-item');
         const viewportHeight = window.innerHeight;
 
-        elements.forEach(element => {
+        // 1. Manejar Card Containers (Border TOP)
+        const containers = document.querySelectorAll('.card-container');
+        containers.forEach(element => {
             const rect = element.getBoundingClientRect();
             const elementTop = rect.top;
             const elementHeight = rect.height;
 
             let opacity = 0;
-
             if (elementTop < viewportHeight && elementTop > -elementHeight) {
                 const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
                 opacity = 1 - normalizedPosition;
                 opacity = 0.2 + (opacity * 0.8);
             }
+            element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
+        });
 
+        // 2. Manejar Items Internos (Border BOTTOM)
+        const items = document.querySelectorAll('.dashboard-card, .user-chat-card, .maintenance-item');
+        items.forEach(element => {
+            const rect = element.getBoundingClientRect();
+            const elementTop = rect.top;
+            const elementHeight = rect.height;
+
+            let opacity = 0;
+            if (elementTop < viewportHeight && elementTop > -elementHeight) {
+                const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
+                opacity = 1 - normalizedPosition;
+                opacity = 0.2 + (opacity * 0.8);
+            }
             element.style.borderBottomColor = `rgba(255, 255, 255, ${opacity})`;
         });
     }
@@ -292,8 +310,8 @@
         window.addEventListener('scroll', updateCardBorderOpacity);
         window.addEventListener('resize', updateCardBorderOpacity);
 
-        // Listener de scroll en cada vista
-        document.querySelectorAll('.view-section').forEach(section => {
+        // Listener de scroll en cada contenedor interno (donde ocurre el scroll real)
+        document.querySelectorAll('.card-inner-content').forEach(section => {
             section.addEventListener('scroll', updateCardBorderOpacity);
         });
 
