@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ====================================================================
  * Main.js - Logica Central de la Aplicacion Portis
  * ====================================================================
@@ -221,7 +221,7 @@
                 opacity = 0.2 + (opacity * 0.8);
             }
 
-            element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
+            element.style.borderBottomColor = `rgba(255, 255, 255, ${opacity})`;
         });
     }
 
