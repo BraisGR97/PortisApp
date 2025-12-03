@@ -729,6 +729,6 @@
     }
 
     // Exponer la función de inicialización globalmente
-    window.initCalendarView = initCalendar;
+    window.initCalendar = initCalendar;
 
 })();
