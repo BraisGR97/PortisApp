@@ -407,8 +407,7 @@
         }
 
         userListContainer.innerHTML = users.map(user => `
-            <div class="flex items-center p-3 rounded-xl cursor-pointer hover:bg-white/10 transition" 
-                 style="background-color: var(--color-bg-secondary);" 
+            <div class="user-chat-card flex items-center p-3 rounded-xl cursor-pointer transition" 
                  onclick="openChatModal('${user.id}', '${user.name}')">
                 
                 <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold mr-4 overflow-hidden border border-gray-300 dark:border-gray-600">

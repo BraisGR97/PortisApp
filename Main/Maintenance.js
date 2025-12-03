@@ -1,18 +1,20 @@
+// ===================================================================================
+// Maintenance.js - Lógica de la Vista de Mantenimientos (Pendientes)
+// ===================================================================================
+
 // Se asume que Firebase (compatibilidad) está disponible globalmente desde Main.js.
 // Se asume que Main.js ha establecido window.db y window.auth tras el login.
 
 (function () { // ⬅️ INICIO: IIFE para aislar el ámbito
 
-    // =======================================================
-    // 1. VARIABLES LOCALES Y CONFIGURACIÓN FIREBASE (Lectura de window)
-    // =======================================================
+    // ====================================
+    // 1. CONFIGURACIÓN Y VARIABLES
+    // ====================================
 
-    // Utilizamos la bandera de window para la inicialización (si existe)
-    const IS_MOCK_MODE = window.IS_MOCK_MODE;
-    const userId = sessionStorage.getItem('portis-user-identifier') || 'mock-user';
-
-    let db = null;
+    let db = null; // Instancia de Firestore
+    let userId = null; // ID del usuario autenticado
     let isFirebaseReady = false;
+
     let currentViewDate = new Date();
     let currentMaintenanceData = []; // Almacenar datos actuales para filtrado
 
@@ -21,32 +23,15 @@
 
     // Función para cargar datos desde localStorage (compartidos con Repairs.js)
     function loadMaintenanceFromStorage() {
-        try {
-            const repairsJson = localStorage.getItem(MOCK_REPAIRS_KEY);
-            return repairsJson ? JSON.parse(repairsJson) : [];
-        } catch (e) {
-            console.error("Error al cargar mantenimientos desde localStorage:", e);
-            return [];
-        }
+        const stored = localStorage.getItem(MOCK_REPAIRS_KEY);
+        return stored ? JSON.parse(stored) : [];
     }
 
     function showMessage(type, message) {
-        // Usamos la función global showAppMessage de config.js si está disponible
         if (typeof window.showAppMessage === 'function') {
-            window.showAppMessage(message, type);
+            window.showAppMessage(type, message);
         } else {
-            console.log(`[${type.toUpperCase()}] Notificación: ${message}`);
-            const messageBox = document.getElementById('app-message');
-            if (!messageBox) return;
-
-            messageBox.textContent = message;
-            messageBox.className = `message-box message-${type} fixed top-20 left-1/2 -translate-x-1/2 z-[1000] w-[90%] md:w-auto message-box-show`;
-            messageBox.style.display = 'block';
-
-            setTimeout(() => {
-                messageBox.classList.remove('message-box-show');
-                setTimeout(() => messageBox.style.display = 'none', 300);
-            }, 4000);
+            alert(`${type.toUpperCase()}: ${message}`);
         }
     }
 
@@ -54,179 +39,126 @@
     // 🚨 FUNCIÓN MEJORADA: Inicialización más robusta
     // ----------------------------------------------------------------------------------
     async function setupFirebase() {
-        if (IS_MOCK_MODE) {
-            console.warn("Maintenance: MODO MOCK activado.");
-            isFirebaseReady = true;
-            return true;
+        // 1. Verificar si estamos en Mock Mode global
+        if (window.IS_MOCK_MODE) {
+            console.log("Maintenance.js: MODO MOCK ACTIVADO (Global).");
+            return;
         }
 
-        // 🔑 CRÍTICO: Esperamos a que la promesa de inicialización de Main.js se resuelva
+        // 2. Esperar la señal de Firebase Ready (CRÍTICO)
         if (typeof window.firebaseReadyPromise !== 'undefined') {
-            console.log("Maintenance: Esperando señal de Firebase Ready...");
+            console.log("Maintenance.js: Esperando señal de Firebase Ready...");
             await window.firebaseReadyPromise;
+        } else {
+            console.error("Maintenance.js: Error. window.firebaseReadyPromise no encontrado. Fallback a Mock Mode.");
+            window.IS_MOCK_MODE = true;
+            return;
         }
 
-        // 🔑 CRÍTICO: Comprobamos si las instancias globales están listas.
-        if (typeof window.db !== 'undefined' && window.db !== null) {
-            db = window.db; // Asignamos la instancia global a la local
+        // 3. Verificar estado después de la espera
+        if (typeof window.db !== 'undefined' && window.db !== null && sessionStorage.getItem('portis-user-identifier')) {
+            db = window.db;
+            userId = sessionStorage.getItem('portis-user-identifier');
             isFirebaseReady = true;
-            console.log(`Maintenance: Firestore conectado a través de window.db.`);
-            return true;
+            console.log(`Maintenance.js: Conexión con Firestore establecida. User ID: ${userId}`);
+        } else {
+            console.error("Maintenance.js: Error. No hay ID de usuario o DB no está disponible.");
+            showMessage('error', 'Error de sesión. Intente iniciar sesión nuevamente.');
         }
-
-        // Fallback si la DB no está lista
-        console.error("Maintenance: window.db no está disponible. Verifique Main.js. Fallback a Mock Mode.");
-        showMessage('error', 'Error de base de datos. Usando modo simulado.');
-        window.IS_MOCK_MODE = true; // Forzamos Mock Mode globalmente
-        isFirebaseReady = false;
-        return false;
     }
 
-    /**
-     * Obtiene la referencia a la colección 'repairs' con la ruta users/{userId}/repairs
-     */
+    // Obtiene la referencia a la colección 'repairs' con la ruta users/{userId}/repairs
     function getRepairsCollectionRef() {
-        // 🔑 CRÍTICO: Leer el userId ACTUAL de sessionStorage, no el que había al cargar el script
-        const currentUserId = sessionStorage.getItem('portis-user-identifier');
-
-        // Aseguramos que DB esté inicializada y que haya un ID de usuario válido (no mock)
-        if (!db || !currentUserId || currentUserId === 'mock-user' || !isFirebaseReady) return null;
-
-        // Ruta correcta: users/{userId}/repairs
-        const path = `users/${currentUserId}/repairs`;
-
-        // Retorna la subcolección para el usuario actual
-        return db.collection(path);
+        if (!isFirebaseReady || !userId) return null;
+        return db.collection(`users/${userId}/repairs`);
     }
 
     // ====================================
     // 2. LÓGICA DE CARGA DE DATOS
     // ====================================
 
-    /**
-     * Obtiene los mantenimientos para el mes y año actual desde Firestore.
-     */
+    // Obtiene los mantenimientos para el mes y año actual desde Firestore.
     async function fetchMaintenanceFromFirestore(date) {
-        const currentMonth = date.getMonth() + 1; // 1-12
-        const currentYear = date.getFullYear();
+        if (!isFirebaseReady) return [];
 
-        const repairsRef = getRepairsCollectionRef();
-        if (!repairsRef) {
-            showMessage('error', 'Error de sesión: ID de usuario no válido o DB no lista.');
-            return [];
-        }
+        const targetMonth = date.getMonth() + 1;
+        const targetYear = date.getFullYear();
 
         try {
-            // NOTA: Para soportar la lógica de "Anual solo por año" y "Mensual por mes y año" en Firestore
-            // sin índices complejos excesivos, traemos todo el año y filtramos en cliente.
-            // Esto es aceptable dado que el volumen de mantenimientos por usuario no suele ser masivo.
+            const repairsRef = getRepairsCollectionRef();
+            if (!repairsRef) return [];
 
+            // Consultar mantenimientos que coincidan con el mes y año, O que sean periódicos y toque este mes
+            // Simplificación: Traemos todos los pendientes y filtramos en cliente por ahora para manejar la lógica de periodicidad compleja
+            // En producción, esto debería ser una query compuesta optimizada.
             const snapshot = await repairsRef
-                .where('maintenance_year', '==', currentYear)
+                .where('status', '==', 'Pendiente')
                 .get();
 
-            const data = [];
+            const maintenanceList = [];
             snapshot.forEach(doc => {
-                const item = { ...doc.data(), id: doc.id };
-
-                // Lógica de filtrado CLIENT-SIDE para Firestore
-                const isAnnual = item.contract && item.contract.toLowerCase().includes('anual');
-
-                if (isAnnual) {
-                    // Si es anual, basta con que coincida el año (ya filtrado por query)
-                    data.push(item);
-                } else {
-                    // Si NO es anual (mensual, etc), debe coincidir también el mes
-                    if (item.maintenance_month === currentMonth) {
-                        data.push(item);
-                    }
+                const data = doc.data();
+                // Filtrar localmente por mes/año si es necesario, o incluir lógica de periodicidad
+                // Por ahora, asumimos que 'maintenance_month' y 'maintenance_year' indican la PRÓXIMA fecha
+                if (data.maintenance_month === targetMonth && data.maintenance_year === targetYear) {
+                    maintenanceList.push({ id: doc.id, ...data });
                 }
             });
-            return data;
+
+            return maintenanceList;
 
         } catch (error) {
-            console.error("Error al cargar mantenimientos desde Firestore:", error);
-            showMessage('error', 'Error al consultar mantenimientos.');
+            console.error("Error al obtener mantenimientos de Firestore:", error);
+            showMessage('error', 'Error al cargar mantenimientos.');
             return [];
         }
     }
 
-    /**
-     * Función principal para obtener y renderizar mantenimientos.
-     */
+    // Función principal para obtener y renderizar mantenimientos.
     window.fetchMaintenanceData = async function () {
-        let data = [];
+        const listContainer = document.getElementById('monthly-maintenance-list');
+        const loadingSpinner = listContainer ? listContainer.querySelector('.loading-spinner') : null;
+        const noDataMessage = document.getElementById('no-maintenance-message');
+        const countDisplay = document.getElementById('monthly-count');
+        const monthYearDisplay = document.getElementById('current-maintenance-month-year');
 
-        // 🔑 CRÍTICO: Aseguramos que DB se asigne antes de intentar usarla en el fetch.
-        if (db === null) {
-            await setupFirebase();
+        if (monthYearDisplay) {
+            const monthName = currentViewDate.toLocaleString('es-ES', { month: 'long' });
+            monthYearDisplay.textContent = `${monthName} ${currentViewDate.getFullYear()}`;
         }
 
-        const date = currentViewDate;
-        const currentMonth = date.getMonth() + 1;
-        const currentYear = date.getFullYear();
+        if (loadingSpinner) loadingSpinner.style.display = 'block';
+        if (noDataMessage) noDataMessage.classList.add('hidden');
 
-        // 🚨 Verificamos la bandera global, que setupFirebase puede haber cambiado a true
+        let maintenanceItems = [];
+
         if (window.IS_MOCK_MODE || !isFirebaseReady) {
-            console.log('MOCK MODE: Cargando datos de mantenimiento de prueba.');
-
+            // MODO MOCK
             const allRepairs = loadMaintenanceFromStorage();
+            const targetMonth = currentViewDate.getMonth() + 1;
+            const targetYear = currentViewDate.getFullYear();
 
-            // Lógica de Filtrado mejorada:
-            // - Mensual: cada 1 mes
-            // - Bimensual: cada 2 meses
-            // - Trimestral: cada 3 meses
-            // - Cuatrimestral: cada 4 meses
-            // - Semestral: cada 6 meses
-            // - Anual: cada 12 meses
-            data = allRepairs.filter(item => {
-                if (!item.contract) return false;
-
-                const contractLower = item.contract.toLowerCase();
-                const itemMonth = item.maintenance_month;
-                const itemYear = item.maintenance_year;
-
-                // Determinar la periodicidad en meses
-                let periodMonths = 1; // Por defecto mensual
-
-                if (contractLower.includes('anual')) {
-                    periodMonths = 12;
-                } else if (contractLower.includes('semestral')) {
-                    periodMonths = 6;
-                } else if (contractLower.includes('cuatrimestral')) {
-                    periodMonths = 4;
-                } else if (contractLower.includes('trimestral')) {
-                    periodMonths = 3;
-                } else if (contractLower.includes('bimensual')) {
-                    periodMonths = 2;
-                } else if (contractLower.includes('mensual')) {
-                    periodMonths = 1;
-                }
-
-                // Si el año es diferente, no mostrar
-                if (itemYear !== currentYear) return false;
-
-                // Calcular si el mes actual está dentro del periodo
-                const monthDiff = currentMonth - itemMonth;
-
-                // El mantenimiento se muestra si el mes actual es igual o posterior al mes del mantenimiento
-                // (es decir, si ya llegó la fecha o si está vencido)
-                return monthDiff >= 0;
+            maintenanceItems = allRepairs.filter(item => {
+                return item.status === 'Pendiente' &&
+                    parseInt(item.maintenance_month) === targetMonth &&
+                    parseInt(item.maintenance_year) === targetYear;
             });
-
-            currentMaintenanceData = data; // Guardamos los datos para el buscador
-            renderMaintenanceList(data, date);
         } else {
-            // MODO NORMAL: Cargar desde Firestore
-            console.log('NORMAL MODE: Cargando datos desde Firestore.');
-            try {
-                data = await fetchMaintenanceFromFirestore(date);
-                currentMaintenanceData = data;
-                renderMaintenanceList(data, date);
-            } catch (error) {
-                console.error('Error al cargar mantenimientos desde Firestore:', error);
-                showMessage('error', 'Error al cargar mantenimientos desde la base de datos.');
-            }
+            // MODO FIREBASE
+            maintenanceItems = await fetchMaintenanceFromFirestore(currentViewDate);
+        }
+
+        currentMaintenanceData = maintenanceItems; // Guardar para búsqueda
+
+        if (loadingSpinner) loadingSpinner.style.display = 'none';
+
+        if (maintenanceItems.length === 0) {
+            if (listContainer) listContainer.innerHTML = '';
+            if (noDataMessage) noDataMessage.classList.remove('hidden');
+            if (countDisplay) countDisplay.textContent = '0';
+        } else {
+            renderMaintenanceList(maintenanceItems, currentViewDate);
+            if (countDisplay) countDisplay.textContent = maintenanceItems.length;
         }
     }
 
@@ -234,152 +166,96 @@
     // 3. LÓGICA DE RENDERIZADO Y NAVEGACIÓN
     // ====================================
 
-    /**
-     * Renderiza la lista de mantenimientos en la vista.
-     */
+    // Renderiza la lista de mantenimientos en la vista.
     function renderMaintenanceList(data, currentDate) {
         const listContainer = document.getElementById('monthly-maintenance-list');
-        const noMaintenanceMessage = document.getElementById('no-maintenance-message');
-        const monthYearDisplay = document.getElementById('current-maintenance-month-year');
-        const monthlyCountDisplay = document.getElementById('monthly-count');
-
-        if (!listContainer || !monthYearDisplay) return;
-
-        const month = currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-
-        monthYearDisplay.textContent = month.charAt(0).toUpperCase() + month.slice(1);
+        if (!listContainer) return;
 
         listContainer.innerHTML = '';
 
-        // 1. Actualizar el resumen
-        monthlyCountDisplay.textContent = data.length;
+        // Ordenar: Prioridad Alta primero, luego por ubicación
+        data.sort((a, b) => {
+            const priorityOrder = { 'Alta': 1, 'Media': 2, 'Baja': 3 };
+            const pA = priorityOrder[a.priority] || 99;
+            const pB = priorityOrder[b.priority] || 99;
+            if (pA !== pB) return pA - pB;
+            return a.location.localeCompare(b.location);
+        });
 
-        // 2. Renderizar items o mensaje de vacío
-        if (data.length === 0) {
-            if (noMaintenanceMessage) noMaintenanceMessage.style.display = 'block';
-        } else {
-            if (noMaintenanceMessage) noMaintenanceMessage.style.display = 'none';
-
-            // Lógica de Ordenamiento:
-            // 1. Prioridad: Alta > Media > Baja
-            // 2. Contrato: Mensual > Anual (Mensual arriba, Anual abajo)
-
-            const priorityValue = (p) => {
-                if (!p) return 3;
-                const lower = p.toLowerCase();
-                if (lower === 'alta' || lower === 'high') return 1;
-                if (lower === 'media' || lower === 'medium') return 2;
-                return 3; // Baja
-            };
-
-            const contractValue = (c) => {
-                if (!c) return 2;
-                const lower = c.toLowerCase();
-                if (lower.includes('mensual')) return 1; // Mensual primero
-                return 2; // Anual (y otros) después
-            };
-
-            data.sort((a, b) => {
-                const pA = priorityValue(a.priority);
-                const pB = priorityValue(b.priority);
-
-                if (pA !== pB) {
-                    return pA - pB; // Menor valor (1=Alta) primero
-                }
-
-                // Si misma prioridad, ordenar por contrato
-                const cA = contractValue(a.contract);
-                const cB = contractValue(b.contract);
-                return cA - cB;
-            });
-
-            data.forEach(item => {
-                const itemElement = createMaintenanceCard(item);
-                listContainer.appendChild(itemElement);
-            });
-        }
+        data.forEach(item => {
+            const card = createMaintenanceCard(item);
+            listContainer.appendChild(card);
+        });
     }
 
-    /**
-     * Crea la tarjeta HTML para un mantenimiento individual (DISEÑO ACTUALIZADO).
-     */
+    // Helpers para valores de prioridad y contrato (para ordenamiento si fuera necesario)
+    renderMaintenanceList.priorityValue = function (p) {
+        if (p === 'Alta') return 3;
+        if (p === 'Media') return 2;
+        return 1;
+    };
+
+    renderMaintenanceList.contractValue = function (c) {
+        if (c === 'Mensual') return 1;
+        if (c === 'Trimestral') return 3;
+        if (c === 'Semestral') return 6;
+        if (c === 'Anual') return 12;
+        return 0;
+    };
+
+    // Crea la tarjeta HTML para un mantenimiento individual (DISEÑO ACTUALIZADO).
     function createMaintenanceCard(item) {
-        const card = document.createElement('div');
-        card.className = 'repair-card p-4 rounded-xl shadow-sm border relative group cursor-pointer transition-all duration-200 hover:shadow-md';
-        card.style.backgroundColor = 'var(--color-card-bg)';
-        card.style.borderColor = 'var(--color-border)';
+        const div = document.createElement('div');
+        // Usamos la clase maintenance-item definida en Main.css
+        div.className = 'maintenance-item group relative overflow-hidden';
 
-        // LÓGICA DE ESTADO FORZADO:
-        // "En estado debe poner (En progreso) dado que si estan en esta lista es porque tiene misma fecha que la actual."
-        const displayStatus = "En Progreso";
-        const statusClass = 'text-blue-500 bg-blue-100 dark:bg-blue-900/30'; // Estilo para En Progreso
+        // Determinar color de borde según prioridad
+        let priorityColorClass = 'border-l-4 border-l-gray-400';
+        let priorityBadgeClass = 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300';
 
-        const priorityColors = {
-            'alta': 'text-red-500',
-            'high': 'text-red-500',
-            'media': 'text-yellow-500',
-            'medium': 'text-yellow-500',
-            'baja': 'text-green-500',
-            'low': 'text-green-500'
-        };
-        const priorityKey = item.priority ? item.priority.toLowerCase() : 'low';
-        const priorityColor = priorityColors[priorityKey] || 'text-gray-500';
+        if (item.priority === 'Alta') {
+            priorityColorClass = 'border-l-4 border-l-red-500';
+            priorityBadgeClass = 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
+        } else if (item.priority === 'Media') {
+            priorityColorClass = 'border-l-4 border-l-orange-500';
+            priorityBadgeClass = 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400';
+        } else {
+            priorityColorClass = 'border-l-4 border-l-green-500';
+            priorityBadgeClass = 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400';
+        }
 
-        const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-        const monthIndex = (item.maintenance_month >= 1 && item.maintenance_month <= 12) ? item.maintenance_month - 1 : 0;
-        const maintenanceDate = `${monthNames[monthIndex]} de ${item.maintenance_year}`;
+        div.classList.add(priorityColorClass.split(' ')[0], priorityColorClass.split(' ')[1]);
 
-        const priorityTranslations = {
-            'high': 'Alta',
-            'medium': 'Media',
-            'low': 'Baja'
-        };
-        const priorityLower = (item.priority || 'baja').toLowerCase();
-        const displayPriority = priorityTranslations[priorityLower] || (item.priority ? item.priority.charAt(0).toUpperCase() + item.priority.slice(1) : 'Baja');
-
-        card.innerHTML = `
+        div.innerHTML = `
             <div class="flex justify-between items-start mb-2">
-                <h3 class="font-bold text-lg truncate pr-8" style="color: var(--color-text-primary);">${item.location || 'Sin Ubicación'}</h3>
-                <span class="text-xs font-medium px-2 py-1 rounded-full ${statusClass}">
-                    ${displayStatus}
-                </span>
+                <h3 class="font-bold text-lg leading-tight pr-8">${item.location}</h3>
+                <span class="text-xs font-bold px-2 py-1 rounded-full ${priorityBadgeClass}">${item.priority}</span>
             </div>
             
-            <div class="text-sm mb-3 space-y-1" style="color: var(--color-text-secondary);">
-                <p class="flex items-center gap-2">
-                    <i class="ph ph-calendar-blank"></i>
-                    ${maintenanceDate}
-                </p>
-                <p class="flex items-center gap-2">
+            <div class="grid grid-cols-2 gap-2 text-sm text-gray-500 dark:text-gray-400 mb-3">
+                <div class="flex items-center gap-1">
                     <i class="ph ph-file-text"></i>
-                    ${item.contract || 'N/A'}
-                </p>
+                    <span>${item.contract}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <i class="ph ph-wrench"></i>
+                    <span>${item.model || 'N/A'}</span>
+                </div>
             </div>
 
-            <div class="flex justify-between items-center mt-3 pt-3 border-t" style="border-color: var(--color-border);">
-                <span class="text-sm font-semibold ${priorityColor}">
-                    <i class="ph ph-warning-circle mr-1"></i> ${displayPriority}
-                </span>
-                
-                <div class="flex gap-2">
-                    <button class="action-btn map-btn p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-blue-500" 
-                            title="Ver ubicación" onclick="event.stopPropagation(); window.openMaintenanceMap('${item.location}')">
-                        <i class="ph ph-map-pin text-lg"></i>
-                    </button>
-                    <button class="action-btn complete-btn p-2 rounded-full hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-green-500" 
-                            title="Completar Mantenimiento" onclick="event.stopPropagation(); window.confirmCompleteMaintenance('${item.id}')">
-                        <i class="ph ph-check-circle text-lg"></i>
-                    </button>
-                </div>
+            <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                <span class="text-xs text-gray-400">ID: ${item.key_id || '---'}</span>
+                <button class="text-accent-magenta hover:text-white hover:bg-accent-magenta p-1.5 rounded-full transition-colors" 
+                        onclick="event.stopPropagation(); window.openMaintenanceMap('${item.location}')" title="Ver Mapa">
+                    <i class="ph ph-map-pin text-lg"></i>
+                </button>
             </div>
         `;
 
-        // Evento de clic en la tarjeta para abrir el modal
-        card.addEventListener('click', () => {
-            showMaintenanceDetailsModal(item);
-        });
+        // Evento de clic para abrir detalles
+        div.onclick = () => showMaintenanceDetailsModal(item);
 
-        return card;
+        return div;
     }
 
     // ====================================
@@ -387,232 +263,196 @@
     // ====================================
 
     window.openMaintenanceMap = function (location) {
-        if (location) {
-            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`, '_blank');
-        }
-    };
+        const query = encodeURIComponent(location);
+        window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+    }
 
-    window.confirmCompleteMaintenance = async function (id) {
-        if (!id) return;
-
-        // Crear modal de confirmación si no existe
-        let modal = document.getElementById('complete-maintenance-modal');
-        if (!modal) {
+    window.confirmCompleteMaintenance = function (id) {
+        // Crear modal de confirmación dinámicamente si no existe
+        let confirmModal = document.getElementById('confirm-complete-modal');
+        if (!confirmModal) {
             const modalHtml = `
-                <div id="complete-maintenance-modal" class="fixed inset-0 z-[200] hidden bg-black bg-opacity-70 flex justify-center items-center p-4 transition-opacity duration-300">
-                    <div class="modal-content w-full max-w-sm rounded-xl shadow-2xl p-6 text-center"
-                        style="background-color: var(--color-bg-secondary); color: var(--color-text-primary);">
-                        <div class="mb-4">
-                            <i class="ph ph-check-circle text-6xl text-green-500"></i>
+                <div id="confirm-complete-modal" class="fixed inset-0 z-[60] hidden items-center justify-center p-4 modal-backdrop">
+                    <div class="modal-content w-full max-w-sm rounded-xl p-6 text-center bg-white dark:bg-[#1f1f33]">
+                        <div class="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-green-600 dark:text-green-400">
+                            <i class="ph ph-check text-3xl"></i>
                         </div>
-                        <h3 class="text-xl font-bold mb-3">Completar Mantenimiento</h3>
-                        <p class="text-sm mb-6" style="color: var(--color-text-secondary);">¿Estás seguro de que deseas marcar este mantenimiento como completado?</p>
-                        <div class="flex gap-3 justify-center">
-                            <button id="cancel-complete-btn" class="px-4 py-2 rounded-lg font-semibold" style="background-color: var(--color-border);">
-                                Cancelar
-                            </button>
-                            <button id="confirm-complete-btn" class="primary-btn px-4 py-2 rounded-lg font-semibold bg-green-600 hover:bg-green-700">
-                                Sí, Completar
-                            </button>
+                        <h3 class="text-xl font-bold mb-2">¿Completar Tarea?</h3>
+                        <p class="mb-6 text-sm text-gray-500">Se registrará en el historial y se programará el próximo mantenimiento.</p>
+                        <div class="flex justify-center space-x-3">
+                            <button id="cancel-complete-btn" class="secondary-btn w-1/2 rounded-lg">Cancelar</button>
+                            <button id="confirm-complete-action-btn" class="primary-btn w-1/2 bg-green-600 hover:bg-green-700 border-none rounded-lg">Confirmar</button>
                         </div>
                     </div>
                 </div>
             `;
             document.body.insertAdjacentHTML('beforeend', modalHtml);
-            modal = document.getElementById('complete-maintenance-modal');
+            confirmModal = document.getElementById('confirm-complete-modal');
         }
 
         // Mostrar modal
-        modal.classList.remove('hidden');
+        confirmModal.classList.remove('hidden');
+        confirmModal.classList.add('flex');
+
+        // Configurar botones
+        const cancelBtn = document.getElementById('cancel-complete-btn');
+        const confirmBtn = document.getElementById('confirm-complete-action-btn');
 
         // Función para cerrar modal
         const closeModal = () => {
-            modal.classList.add('hidden');
+            confirmModal.classList.add('hidden');
+            confirmModal.classList.remove('flex');
         };
 
-        // Event listeners
-        document.getElementById('cancel-complete-btn').onclick = closeModal;
-        document.getElementById('confirm-complete-btn').onclick = async () => {
+        cancelBtn.onclick = closeModal;
+
+        confirmBtn.onclick = async () => {
             closeModal();
 
-            // Lógica de actualización de fecha según el tipo de contrato:
-            // - Mensual: +1 Mes
-            // - Bimensual: +2 Meses
-            // - Trimestral: +3 Meses
-            // - Cuatrimestral: +4 Meses
-            // - Semestral: +6 Meses
-            // - Anual: +1 Año
+            // Lógica de completado
+            try {
+                // 1. Obtener el mantenimiento actual
+                let repair = null;
+                if (window.IS_MOCK_MODE || !isFirebaseReady) {
+                    const allRepairs = loadMaintenanceFromStorage();
+                    repair = allRepairs.find(r => r.id === id);
+                } else {
+                    const doc = await getRepairsCollectionRef().doc(id).get();
+                    if (doc.exists) repair = { id: doc.id, ...doc.data() };
+                }
 
-            const updateLogic = (repair) => {
+                if (!repair) {
+                    showMessage('error', 'No se encontró el mantenimiento.');
+                    return;
+                }
+
+                // 2. Calcular próxima fecha según contrato
                 let nextMonth = repair.maintenance_month;
                 let nextYear = repair.maintenance_year;
-                const contractLower = repair.contract ? repair.contract.toLowerCase() : '';
+                let increment = 1; // Default Mensual
 
-                // Determinar incremento de meses según el tipo de contrato
-                let monthsToAdd = 1; // Por defecto mensual
-
-                if (contractLower.includes('anual')) {
-                    monthsToAdd = 12;
-                } else if (contractLower.includes('semestral')) {
-                    monthsToAdd = 6;
-                } else if (contractLower.includes('cuatrimestral')) {
-                    monthsToAdd = 4;
-                } else if (contractLower.includes('trimestral')) {
-                    monthsToAdd = 3;
-                } else if (contractLower.includes('bimensual')) {
-                    monthsToAdd = 2;
-                } else if (contractLower.includes('mensual')) {
-                    monthsToAdd = 1;
+                switch (repair.contract) {
+                    case 'Mensual': increment = 1; break;
+                    case 'Bimensual': increment = 2; break;
+                    case 'Trimestral': increment = 3; break;
+                    case 'Cuatrimestral': increment = 4; break;
+                    case 'Semestral': increment = 6; break;
+                    case 'Anual': increment = 12; break;
                 }
 
-                // Calcular nuevo mes y año
-                nextMonth += monthsToAdd;
+                nextMonth += increment;
                 while (nextMonth > 12) {
                     nextMonth -= 12;
-                    nextYear += 1;
+                    nextYear++;
                 }
 
-                return {
-                    maintenance_month: nextMonth,
-                    maintenance_year: nextYear,
-                    status: 'Pendiente',
-                    description: '' // 🔑 Borrar observaciones para el próximo ciclo
+                // 3. Crear registro de historial
+                const historyRecord = {
+                    ...repair,
+                    completedDate: new Date().toISOString(),
+                    completedBy: userId || 'mock-user',
+                    original_month: repair.maintenance_month,
+                    original_year: repair.maintenance_year
                 };
-            };
+                delete historyRecord.id; // No guardar el ID original en el historial
 
-            try {
+                // 4. Actualizar DB
                 if (window.IS_MOCK_MODE || !isFirebaseReady) {
+                    // MOCK
                     let allRepairs = loadMaintenanceFromStorage();
                     const index = allRepairs.findIndex(r => r.id === id);
                     if (index !== -1) {
-                        const currentRepair = allRepairs[index];
-                        const updates = updateLogic(currentRepair);
-
-                        // Guardar registro en History ANTES de actualizar
-                        const historyRecord = {
-                            id: `history_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                            ...currentRepair,
-                            status: 'Completado',
-                            completedAt: new Date().toISOString(),
-                            username: sessionStorage.getItem('portis-user-display-name') || 'Usuario'
-                        };
-
-                        // Guardar en localStorage para History
-                        const MOCK_HISTORY_KEY = 'mock_history_data';
-                        let historyData = [];
-                        try {
-                            const stored = localStorage.getItem(MOCK_HISTORY_KEY);
-                            historyData = stored ? JSON.parse(stored) : [];
-                        } catch (e) {
-                            console.error('Error al leer history:', e);
-                        }
-                        historyData.push(historyRecord);
-                        localStorage.setItem(MOCK_HISTORY_KEY, JSON.stringify(historyData));
-
-                        // Actualizar la fecha del mantenimiento para el próximo ciclo
-                        allRepairs[index] = { ...allRepairs[index], ...updates };
+                        // Actualizar fecha
+                        allRepairs[index].maintenance_month = nextMonth;
+                        allRepairs[index].maintenance_year = nextYear;
+                        allRepairs[index].description = ''; // Limpiar observaciones
                         localStorage.setItem(MOCK_REPAIRS_KEY, JSON.stringify(allRepairs));
 
-                        showMessage('success', 'Mantenimiento completado y reprogramado.');
-                        window.fetchMaintenanceData();
+                        // Guardar historial mock
+                        const historyKey = 'portis-history-mock';
+                        const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+                        history.push(historyRecord);
+                        localStorage.setItem(historyKey, JSON.stringify(history));
                     }
                 } else {
-                    const repairsRef = getRepairsCollectionRef();
-                    if (repairsRef) {
-                        // Primero necesitamos obtener el documento para saber su contrato actual
-                        const doc = await repairsRef.doc(id).get();
-                        if (doc.exists) {
-                            const currentRepair = { id: doc.id, ...doc.data() };
-                            const updates = updateLogic(currentRepair);
+                    // FIREBASE
+                    const batch = db.batch();
+                    const repairRef = getRepairsCollectionRef().doc(id);
+                    const historyRef = db.collection(`users/${userId}/history`).doc();
 
-                            // Obtener userId actual de la sesión para asegurar consistencia
-                            const currentUserId = sessionStorage.getItem('portis-user-identifier');
+                    batch.update(repairRef, {
+                        maintenance_month: nextMonth,
+                        maintenance_year: nextYear,
+                        description: '' // Limpiar observaciones
+                    });
+                    batch.set(historyRef, historyRecord);
 
-                            // Guardar registro en History (colección raíz) ANTES de actualizar
-                            const historyRecord = {
-                                ...currentRepair,
-                                userId: currentUserId, // Usar ID actual
-                                status: 'Completado',
-                                completedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                                username: sessionStorage.getItem('portis-user-display-name') || 'Usuario'
-                            };
-
-                            // Guardar en la colección raíz 'history'
-                            await db.collection('history').add(historyRecord);
-
-                            // Actualizar la fecha del mantenimiento para el próximo ciclo
-                            await repairsRef.doc(id).update(updates);
-
-                            showMessage('success', 'Mantenimiento completado y reprogramado.');
-                            window.fetchMaintenanceData();
-                        }
-                    }
+                    await batch.commit();
                 }
-            } catch (e) {
-                console.error("Error updating maintenance:", e);
-                showMessage('error', 'Error al actualizar en base de datos.');
+
+                showMessage('success', 'Mantenimiento completado y reprogramado.');
+                hideMaintenanceModal(); // Cerrar modal de detalles si está abierto
+                window.fetchMaintenanceData(); // Recargar lista
+
+            } catch (error) {
+                console.error("Error al completar mantenimiento:", error);
+                showMessage('error', 'Error al completar la tarea.');
             }
         };
-    };
+    }
 
     window.toggleMaintenanceSearch = function () {
-        const searchContainer = document.getElementById('maintenance-search-container');
-        const searchInput = document.getElementById('maintenance-search-input');
+        const container = document.getElementById('maintenance-search-container');
+        const input = document.getElementById('maintenance-search-input');
 
-        if (searchContainer && searchInput) {
-            const isHidden = searchContainer.classList.contains('hidden');
-            if (isHidden) {
-                searchContainer.classList.remove('hidden');
-                searchInput.focus();
-            } else {
-                searchContainer.classList.add('hidden');
-                searchInput.value = '';
-                // Trigger search update
-                searchInput.dispatchEvent(new Event('input'));
-            }
+        if (container.classList.contains('hidden')) {
+            container.classList.remove('hidden');
+            input.focus();
+        } else {
+            container.classList.add('hidden');
+            input.value = '';
+            // Restaurar lista completa
+            renderMaintenanceList(currentMaintenanceData, currentViewDate);
         }
-    };
+    }
+
+    // Listener para búsqueda en tiempo real
+    document.addEventListener('DOMContentLoaded', () => {
+        const searchInput = document.getElementById('maintenance-search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                const filtered = currentMaintenanceData.filter(item =>
+                    item.location.toLowerCase().includes(term) ||
+                    (item.description && item.description.toLowerCase().includes(term))
+                );
+                renderMaintenanceList(filtered, currentViewDate);
+            });
+        }
+    });
 
     // ====================================
     // 4. INICIALIZACIÓN
     // ====================================
 
     function initMaintenance() {
+        // Aplicar tema
         if (typeof window.applyColorMode === 'function') {
             window.applyColorMode();
         }
 
-        // 🔑 Llamamos a la función principal para cargar los datos
-        window.fetchMaintenanceData();
-
-        // Listener de búsqueda
-        const searchInput = document.getElementById('maintenance-search-input');
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                const term = e.target.value.toLowerCase().trim();
-                if (!currentMaintenanceData) return;
-
-                const filtered = currentMaintenanceData.filter(item =>
-                    (item.location && item.location.toLowerCase().includes(term)) ||
-                    (item.model && item.model.toLowerCase().includes(term)) ||
-                    (item.contract && item.contract.toLowerCase().includes(term))
-                );
-                renderMaintenanceList(filtered, currentViewDate);
-            });
-        }
-
-        console.log('Maintenance View inicializada.');
+        setupFirebase().then(() => {
+            window.fetchMaintenanceData();
+        });
     }
 
     // Exponer acciones de mantenimiento para Buttons.js
     window.MaintenanceActions = {
         prevMonth: () => {
-            currentViewDate.setMonth(currentViewDate.getMonth() - 1);
-            window.fetchMaintenanceData();
+            // Implementar si se añade navegación por meses en el futuro
         },
         nextMonth: () => {
-            currentViewDate.setMonth(currentViewDate.getMonth() + 1);
-            window.fetchMaintenanceData();
+            // Implementar si se añade navegación por meses en el futuro
         }
     };
 
@@ -627,42 +467,36 @@
 
     function hideMaintenanceModal() {
         const modal = document.getElementById('maintenance-detail-modal');
-        if (modal) modal.classList.add('hidden');
-        currentEditMaintenanceId = null;
+        if (modal) {
+            modal.classList.add('hidden');
+        }
     }
 
     function getFormattedDate(month, year) {
-        const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-        const monthIndex = (month >= 1 && month <= 12) ? month - 1 : 0;
-        return `${monthNames[monthIndex]} de ${year}`;
+        const date = new Date(year, month - 1);
+        return date.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
     }
 
     function generateMaintenanceModalContent(item, isEditMode) {
         const priority = item.priority || 'Media';
-        // Forzamos visualización "En Progreso" en el modal también si estamos en modo vista y coincide con la lista actual
-        // Pero para ser consistentes con la tarjeta, lo mostraremos como "En Progreso" si no estamos editando.
-        // Sin embargo, el usuario pidió "En estado debe poner (En progreso)..." refiriéndose a la lista.
-        // En el modal, si mostramos los detalles reales, quizás deberíamos mostrar lo que hay en DB?
-        // Asumiremos que en el modal también queremos ver "En Progreso" si venimos de la lista.
         const status = isEditMode ? (item.status || 'Pendiente') : 'En Progreso';
-
         const maintenanceDate = getFormattedDate(item.maintenance_month, item.maintenance_year);
         const contact = item.contact || {};
 
         // Helper para inputs
-        const baseInput = (id, label, value, readOnly = true, type = 'text', customClass = 'detail-input') => `
+        const baseInput = (id, label, value, readOnly = true, type = 'text', customClass = 'minimal-input') => `
             <div class="space-y-1">
-                <label for="${id}" class="detail-label">${label}</label>
+                <label for="${id}" class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">${label}</label>
                 <input id="${id}" type="${type}" value="${value || ''}" ${readOnly ? 'readonly' : ''} 
-                        class="${customClass} w-full ${!readOnly && isEditMode ? 'editing' : ''}">
+                        class="${customClass} w-full ${!readOnly && isEditMode ? 'border-accent-magenta' : ''}">
             </div>
         `;
 
-        const baseTextarea = (id, label, value, readOnly = true, rows = 2, customClass = 'detail-input') => `
+        const baseTextarea = (id, label, value, readOnly = true, rows = 2, customClass = 'minimal-input') => `
             <div class="space-y-1">
-                <label for="${id}" class="detail-label">${label}</label>
+                <label for="${id}" class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">${label}</label>
                 <textarea id="${id}" rows="${rows}" ${readOnly ? 'readonly' : ''} 
-                        class="${customClass} w-full resize-none ${!readOnly && isEditMode ? 'editing' : ''}">${value || ''}</textarea>
+                        class="${customClass} w-full resize-none ${!readOnly && isEditMode ? 'border-accent-magenta' : ''}">${value || ''}</textarea>
             </div>
         `;
 
@@ -673,8 +507,8 @@
             ).join('');
             return `
             <div class="space-y-1">
-                <label for="edit-priority" class="detail-label">Prioridad</label>
-                <select id="edit-priority" ${readOnly ? 'disabled' : ''} class="detail-input w-full ${!readOnly ? 'editing' : ''}">
+                <label for="edit-priority" class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Prioridad</label>
+                <select id="edit-priority" ${readOnly ? 'disabled' : ''} class="minimal-input w-full ${!readOnly ? 'border-accent-magenta' : ''}">
                     ${optionHtml}
                 </select>
             </div>
@@ -684,13 +518,13 @@
         const contractSelect = (contractValue, readOnly = true) => {
             const options = ['Mensual', 'Bimensual', 'Trimestral', 'Cuatrimestral', 'Semestral', 'Anual'];
             const optionHtml = options.map(opt =>
-                `<option value="${opt}" ${contractValue === opt ? 'selected' : ''}\u003e${opt}</option>`
+                `<option value="${opt}" ${contractValue === opt ? 'selected' : ''}>${opt}</option>`
             ).join('');
 
             return `
                 <div class="space-y-1">
-                    <label for="edit-contract" class="detail-label">Contrato</label>
-                    <select id="edit-contract" ${readOnly ? 'disabled' : ''} class="detail-input w-full ${!readOnly ? 'editing' : ''}\">
+                    <label for="edit-contract" class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Contrato</label>
+                    <select id="edit-contract" ${readOnly ? 'disabled' : ''} class="minimal-input w-full ${!readOnly ? 'border-accent-magenta' : ''}">
                         ${optionHtml}
                     </select>
                 </div>
@@ -701,103 +535,84 @@
         if (!isEditMode) {
             // MODO VISTA
             bodyContent = `
-            <div class="modal-body p-4">
-                <h3 class="text-lg font-bold mb-3" style="color: var(--color-accent-blue);">${item.location}</h3>
-                <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
-                    <div class="space-y-1">
-                        <label class="detail-label">Fecha Prevista</label>
-                        <p class="detail-value-compact">${maintenanceDate}</p>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="detail-label">Modelo</label>
-                        <p class="detail-value-compact">${item.model || 'N/A'}</p>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="detail-label">Contrato</label>
-                        <p class="detail-value-compact">${item.contract}</p>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="detail-label">ID Clave/TAG</label>
-                        <p class="detail-value-compact">${item.key_id || 'N/A'}</p>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="detail-label">Prioridad</label>
-                        <p class="detail-value-compact">${priority}</p>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="detail-label">Estado</label>
-                        <p class="detail-value-compact" style="color: var(--color-accent-blue);">${status}</p>
-                    </div>
+            <div class="p-6 space-y-4">
+                <div class="flex justify-between items-start">
+                    <h3 class="text-xl font-bold text-accent-magenta">${item.location}</h3>
+                    <span class="px-2 py-1 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300">${status}</span>
                 </div>
-                <div class="space-y-1 mb-4">
-                    <label class="detail-label">Observaciones</label>
-                    <p class="detail-value-compact text-sm italic">${item.description || 'Sin observaciones.'}</p>
+                
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    ${baseInput('view-date', 'Fecha Prevista', maintenanceDate)}
+                    ${baseInput('view-model', 'Modelo', item.model)}
+                    ${baseInput('view-contract', 'Contrato', item.contract)}
+                    ${baseInput('view-key', 'ID Clave/TAG', item.key_id)}
+                    ${baseInput('view-priority', 'Prioridad', priority)}
+                    ${baseInput('view-status', 'Estado', status)}
                 </div>
-                ${(contact.name || contact.phone || contact.notes) ? `
-                    <h3 class="text-sm font-semibold mt-2 mb-2" style="color: var(--color-accent-red);">Contacto</h3>
-                    <div class="grid grid-cols-2 gap-4 text-sm">
-                        <div class="space-y-1">
-                            <label class="detail-label">Nombre</label>
-                            <p class="detail-value-compact">${contact.name || 'N/P'}</p>
-                        </div>
-                        <div class="space-y-1">
-                            <label class="detail-label">Teléfono</label>
-                            <p class="detail-value-compact">${contact.phone || 'N/P'}</p>
+    
+                ${baseTextarea('view-desc', 'Observaciones', item.description)}
+    
+                ${(contact.name || contact.phone) ? `
+                    <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <h4 class="text-sm font-bold mb-2 text-gray-500 uppercase">Contacto</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            ${baseInput('view-contact-name', 'Nombre', contact.name)}
+                            ${baseInput('view-contact-phone', 'Teléfono', contact.phone)}
                         </div>
                     </div>
-                    <div class="space-y-1 mt-4 text-sm">
-                        <label class="detail-label">Notas de Contacto</label>
-                        <p class="detail-value-compact italic">${contact.notes || 'Sin notas.'}</p>
-                    </div>
-                ` : `<p class="text-xs text-center p-2" style="color: var(--color-text-secondary);">No se incluyeron datos de contacto.</p>`}
+                ` : ''}
             </div>
             `;
         } else {
-            // MODO EDICIÓN
+            // MODO EDICION
             bodyContent = `
-            <div class="modal-body p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="col-span-1 md:col-span-2 space-y-2">
-                    ${baseInput('edit-location', 'Ubicación', item.location, false)}
+            <div class="p-6 space-y-4">
+                <h3 class="text-xl font-bold mb-4">Editar Mantenimiento</h3>
+                
+                ${baseInput('edit-location', 'Ubicación', item.location, false)}
+                
+                <div class="grid grid-cols-2 gap-4">
+                    ${baseInput('edit-model', 'Modelo', item.model, false)}
+                    ${baseInput('edit-key', 'ID Clave/TAG', item.key_id, false)}
+                    ${prioritySelect(priority, false)}
+                    ${contractSelect(item.contract, false)}
                 </div>
-                ${contractSelect(item.contract, false)}
-                ${baseInput('edit-date', 'Fecha Prevista', '', false, 'month')}
-                ${baseInput('edit-model', 'Modelo', item.model, false)}
-                ${baseInput('edit-key_id', 'ID Clave', item.key_id, false)}
-                ${prioritySelect(priority, false)}
-                <div class="col-span-1 md:col-span-2 space-y-2">
-                    ${baseTextarea('edit-description', 'Observaciones', item.description, false, 3)}
-                </div>
-                <h3 class="col-span-1 md:col-span-2 text-lg font-semibold mt-2" style="color: var(--color-text-light);">Datos de Contacto</h3>
-                ${baseInput('edit-contact_name', 'Nombre', contact.name, false)}
-                ${baseInput('edit-contact_phone', 'Teléfono', contact.phone, false, 'tel')}
-                <div class="col-span-1 md:col-span-2 space-y-2">
-                    ${baseTextarea('edit-contact_notes', 'Notas', contact.notes, false, 2)}
+    
+                ${baseTextarea('edit-desc', 'Observaciones', item.description, false, 3)}
+    
+                <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <h4 class="text-sm font-bold mb-2 text-gray-500 uppercase">Contacto</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        ${baseInput('edit-contact-name', 'Nombre', contact.name, false)}
+                        ${baseInput('edit-contact-phone', 'Teléfono', contact.phone, false)}
+                    </div>
                 </div>
             </div>
             `;
         }
 
-        const header = `
-            <div class="modal-header">
-                <h2 id="modal-title" class="text-xl font-bold">${isEditMode ? 'Editar Mantenimiento' : 'Detalles de Mantenimiento'}</h2>
-                <div class="flex items-center gap-3">
-                    <button id="edit-toggle-btn" class="edit-toggle-btn text-xl ${isEditMode ? 'active' : ''}" title="Alternar Modo Edición">
-                        <i class="ph ph-pencil-simple-line"></i>
+        // Footer con botones
+        const footerContent = `
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800/50 rounded-b-xl">
+                ${!isEditMode ? `
+                    <button id="close-maintenance-modal-btn" class="secondary-btn rounded-lg">Cerrar</button>
+                    <button onclick="window.openMaintenanceMap('${item.location}')" class="secondary-icon-btn p-2 rounded-lg" title="Ver Mapa">
+                        <i class="ph ph-map-pin text-xl"></i>
                     </button>
-                    <button id="close-maintenance-modal-btn" class="secondary-icon-btn p-1 rounded-full"><i class="ph ph-x text-2xl"></i></button>
-                </div>
+                    <button id="edit-toggle-btn" class="secondary-icon-btn p-2 rounded-lg" title="Editar">
+                        <i class="ph ph-pencil-simple text-xl"></i>
+                    </button>
+                    <button onclick="window.confirmCompleteMaintenance('${item.id}')" class="primary-btn px-4 py-2 rounded-lg flex items-center gap-2">
+                        <i class="ph ph-check-circle text-lg"></i> Completar
+                    </button>
+                ` : `
+                    <button id="edit-toggle-btn" class="secondary-btn rounded-lg">Cancelar</button>
+                    <button id="save-edit-btn" class="primary-btn px-6 py-2 rounded-lg">Guardar</button>
+                `}
             </div>
         `;
 
-        const footer = `
-            <div class="modal-footer flex justify-center p-4 border-t" style="border-color: var(--color-border);">
-                <button id="save-edit-btn" class="primary-btn bg-green-600 ${isEditMode ? '' : 'hidden'} flex items-center gap-2">
-                    <i class="ph ph-floppy-disk"></i><span>Guardar Cambios</span>
-                </button>
-            </div>
-        `;
-
-        return header + bodyContent + (isEditMode ? footer : '');
+        return bodyContent + footerContent;
     }
 
     function showMaintenanceDetailsModal(item, isEditMode = false) {
@@ -812,7 +627,8 @@
         modal.querySelector('.modal-content').innerHTML = generateMaintenanceModalContent(item, isEditMode);
 
         // Asignar eventos
-        document.getElementById('close-maintenance-modal-btn').onclick = hideMaintenanceModal;
+        const closeBtn = document.getElementById('close-maintenance-modal-btn');
+        if (closeBtn) closeBtn.onclick = hideMaintenanceModal;
 
         const editBtn = document.getElementById('edit-toggle-btn');
         if (editBtn) {
@@ -831,38 +647,30 @@
         }
 
         modal.classList.remove('hidden');
+        modal.classList.add('flex');
     }
 
     function configureMaintenanceEditInputs(item) {
-        const monthString = String(item.maintenance_month).padStart(2, '0');
-        const dateInput = document.getElementById('edit-date');
-        if (dateInput) {
-            dateInput.value = `${item.maintenance_year}-${monthString}`;
-        }
+        // Lógica adicional para inputs complejos si fuera necesaria
     }
 
     async function saveEditedMaintenance() {
         const id = currentEditMaintenanceId;
         if (!id) return;
 
-        const dateInput = document.getElementById('edit-date').value.split('-');
-        const contactName = document.getElementById('edit-contact_name').value.trim() || null;
-        const contactPhone = document.getElementById('edit-contact_phone').value.trim() || null;
-        const contactNotes = document.getElementById('edit-contact_notes').value.trim() || null;
+        const contactName = document.getElementById('edit-contact-name').value.trim() || null;
+        const contactPhone = document.getElementById('edit-contact-phone').value.trim() || null;
 
         const newValues = {
             location: document.getElementById('edit-location').value.trim(),
             model: document.getElementById('edit-model').value.trim() || null,
             contract: document.getElementById('edit-contract').value.trim(),
-            key_id: document.getElementById('edit-key_id').value.trim() || null,
-            maintenance_year: parseInt(dateInput[0]),
-            maintenance_month: parseInt(dateInput[1]),
+            key_id: document.getElementById('edit-key').value.trim() || null,
             priority: document.getElementById('edit-priority').value,
-            description: document.getElementById('edit-description').value.trim(),
-            contact: (contactName || contactPhone || contactNotes) ? {
+            description: document.getElementById('edit-desc').value.trim(),
+            contact: (contactName || contactPhone) ? {
                 name: contactName,
-                phone: contactPhone,
-                notes: contactNotes
+                phone: contactPhone
             } : null
         };
 
@@ -905,8 +713,8 @@
         if (document.getElementById('maintenance-detail-modal')) return;
 
         const modalHtml = `
-            <div id="maintenance-detail-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-70 flex justify-center items-center p-4 transition-opacity duration-300">
-                <div class="modal-content w-full max-w-xl rounded-xl shadow-2xl relative transition-transform duration-300"
+            <div id="maintenance-detail-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-70 flex justify-center items-center p-4 transition-opacity duration-300 modal-backdrop">
+                <div class="modal-content w-full max-w-lg rounded-xl shadow-2xl relative transition-transform duration-300 overflow-hidden"
                     style="background-color: var(--color-bg-secondary); color: var(--color-text-primary); max-height: 90vh; overflow-y: auto;">
                 </div>
             </div>

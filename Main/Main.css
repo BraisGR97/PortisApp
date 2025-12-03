@@ -525,3 +525,10 @@ html.light-mode #geometric-wrapper {
 .event-dot.vacation {
     background-color: #a855f7;
 }
+/* Dias del calendario */
+.calendar-day {
+    font-size: 0.75rem !important;
+    min-height: 2.2rem !important;
+    max-height: 2.8rem !important;
+    padding: 0.2rem !important;
+}

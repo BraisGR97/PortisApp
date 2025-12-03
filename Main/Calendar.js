@@ -476,9 +476,9 @@
         if (weekDaysContainer) {
             const days = weekDaysContainer.children;
             for (let i = 0; i < days.length; i++) {
-                days[i].classList.remove('text-[var(--color-accent-main)]');
+                days[i].classList.remove('text-accent-magenta');
                 if (i === 5 || i === 6) {
-                    days[i].classList.add('text-[var(--color-accent-main)]');
+                    days[i].classList.add('text-accent-magenta');
                 }
             }
         }
@@ -504,7 +504,7 @@
 
             const dayOfWeek = currentDate.getDay();
             const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
-            let weekendTextColor = isWeekend ? 'text-[var(--color-accent-main)]' : '';
+            let weekendTextColor = isWeekend ? 'text-accent-magenta' : '';
 
             // === LÓGICA DE EVENTOS ===
             let eventData = calendarEvents[fullDate];
@@ -848,3 +848,4 @@
         updateSummary();
     });
 })(); // ⬅️ FIN: Cierra la IIFE
+
