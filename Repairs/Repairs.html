@@ -4,86 +4,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PortisApp | Mantenimientos</title>
+    <title>PortisApp | Gestión de Mantenimientos</title>
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
+    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
 
+    <!-- Estilos personalizados -->
     <link rel="stylesheet" href="./Repairs.css">
 
+    <!-- Script inline para evitar parpadeo (FOUC) al cambiar de tema -->
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem('portis-theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+
+            if (theme === 'light') {
+                document.documentElement.classList.add('light-mode');
+            } else {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
-
-    <script>
-        window.firebaseConfig = {
-            apiKey: "AIzaSyD_tC3KaK3UVyNOPiSsnI0s5k8Cd_qFJpg",
-            authDomain: "portisapp.firebaseapp.com",
-            projectId: "portisapp",
-            storageBucket: "portisapp.firebasestorage.app",
-            messagingSenderId: "38313359657",
-            appId: "1:38313359657:web:ae73a0f8f7556bed92df38",
-            measurementId: "G-HQ29Y8Z2DY"
-        };
-        // Estas variables se usarán en Repairs.js y config.js
-        const __app_id = window.firebaseConfig.projectId;
-        const __firebase_config = JSON.stringify(window.firebaseConfig);
-        const __initial_auth_token = sessionStorage.getItem('portis-auth-token'); 
-    </script>
-
 </head>
 
 <body class="antialiased">
     <div id="geometric-wrapper"></div>
 
     <div class="app-layout">
+        <!-- Navbar -->
         <header id="top-navbar"
             class="sticky top-0 z-40 p-4 flex justify-between items-center bg-opacity-95 backdrop-blur-sm">
             <button onclick="window.location.href='../Main/Main.html'"
                 class="text-xl p-2 rounded-full secondary-icon-btn">
                 <i class="ph ph-arrow-left"></i>
             </button>
-            <h1 class="text-xl font-bold text-center">Gestión de Mantenimientos</h1>
+            <h1 class="text-xl font-bold text-center navbar-title">Mantenimientos</h1>
             <div id="current-user-display" class="user-id-display">Cargando...</div>
         </header>
 
+        <!-- Contenido Principal -->
         <main id="app-content" class="overflow-y-auto w-full max-w-4xl mx-auto">
 
+            <!-- Formulario de Nuevo Mantenimiento -->
             <div id="new-repair-card" class="card-container default-split mb-8 hidden">
                 <div class="card-inner-content">
-                    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2" style="color: var(--color-text-light);">
-                        <i class="ph ph-wrench-fill" style="color: var(--color-accent-red);"></i>
-                        Reportar Nuevo Mantenimiento
+                    <h2 id="form-title" class="text-2xl font-bold mb-4 flex items-center gap-2 card-title">
+                        <i class="ph ph-wrench card-icon"></i>
+                        Nuevo Mantenimiento
                     </h2>
                     <form id="new-repair-form" class="space-y-4 form-content">
+                        <input type="hidden" id="repair-id">
 
                         <div>
-                            <label for="location" class="block text-sm font-medium mb-1"
-                                style="color: var(--color-text-secondary);">Ubicación <span
-                                    class="text-red-500">*</span></label>
+                            <label for="location" class="block text-sm font-medium mb-1 form-label">
+                                Ubicación <span class="form-label-required">*</span>
+                            </label>
                             <input type="text" id="location" name="location"
                                 placeholder="Ejem: Puerta principal, Almacén X" required class="minimal-input w-full">
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label for="model" class="block text-sm font-medium mb-1"
-                                    style="color: var(--color-text-secondary);">Modelo</label>
+                                <label for="model" class="block text-sm font-medium mb-1 form-label">Modelo</label>
                                 <input type="text" id="model" name="model" placeholder="Ejem: KABA, SALTO XS4"
                                     class="minimal-input w-full">
                             </div>
                             <div>
-                                <label for="key_id" class="block text-sm font-medium mb-1"
-                                    style="color: var(--color-text-secondary);">Llave/TAG</label>
+                                <label for="key_id" class="block text-sm font-medium mb-1 form-label">Llave/TAG</label>
                                 <input type="text" id="key_id" name="key_id" placeholder="ID de la llave o TAG"
                                     class="minimal-input w-full">
                             </div>
                         </div>
 
                         <div>
-                            <label for="contract" class="block text-sm font-medium mb-1"
-                                style="color: var(--color-text-secondary);">Contrato <span
-                                    class="text-red-500">*</span></label>
+                            <label for="contract" class="block text-sm font-medium mb-1 form-label">
+                                Contrato <span class="form-label-required">*</span>
+                            </label>
                             <select id="contract" name="contract" required class="minimal-input w-full">
                                 <option value="" disabled selected>Selecciona un tipo de contrato</option>
                                 <option value="Mensual">Mensual</option>
@@ -97,24 +105,23 @@
 
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label for="month" class="block text-sm font-medium mb-1"
-                                    style="color: var(--color-text-secondary);">Mes <span
-                                        class="text-red-500">*</span></label>
+                                <label for="month" class="block text-sm font-medium mb-1 form-label">
+                                    Mes <span class="form-label-required">*</span>
+                                </label>
                                 <input type="number" id="month" name="month" min="1" max="12" placeholder="Mes (1-12)"
                                     required class="minimal-input w-full">
                             </div>
                             <div>
-                                <label for="year" class="block text-sm font-medium mb-1"
-                                    style="color: var(--color-text-secondary);">Año <span
-                                        class="text-red-500">*</span></label>
+                                <label for="year" class="block text-sm font-medium mb-1 form-label">
+                                    Año <span class="form-label-required">*</span>
+                                </label>
                                 <input type="number" id="year" name="year" min="2000" placeholder="Año" required
                                     class="minimal-input w-full">
                             </div>
                         </div>
 
                         <div>
-                            <label for="priority" class="block text-sm font-medium mb-1"
-                                style="color: var(--color-text-secondary);">Prioridad</label>
+                            <label for="priority" class="block text-sm font-medium mb-1 form-label">Prioridad</label>
                             <select id="priority" name="priority" class="minimal-input w-full">
                                 <option value="Media" selected>Media</option>
                                 <option value="Alta">Alta</option>
@@ -125,49 +132,55 @@
                         <div class="flex items-center gap-2">
                             <input type="checkbox" id="contact_checkbox" name="contact_checkbox"
                                 class="w-4 h-4 rounded">
-                            <label for="contact_checkbox" class="text-sm font-medium"
-                                style="color: var(--color-text-light);">Incluir Datos de Contacto</label>
+                            <label for="contact_checkbox" class="text-sm font-medium form-label">Incluir Datos de
+                                Contacto</label>
                         </div>
 
                         <div id="contact-fields" class="hidden card-container default-split p-4 space-y-3">
-                            <p class="text-sm font-semibold" style="color: var(--color-accent-blue);">Información de
-                                la
-                                persona a contactar:</p>
+                            <p class="text-sm font-semibold card-title">Información de la persona a contactar:</p>
                             <div>
-                                <label for="contact_name" class="block text-xs font-medium mb-1"
-                                    style="color: var(--color-text-secondary);">Nombre</label>
+                                <label for="contact_name"
+                                    class="block text-xs font-medium mb-1 form-label">Nombre</label>
                                 <input type="text" id="contact_name" name="contact_name"
                                     placeholder="Nombre de contacto" class="minimal-input w-full">
                             </div>
                             <div>
-                                <label for="contact_phone" class="block text-xs font-medium mb-1"
-                                    style="color: var(--color-text-secondary);">Teléfono</label>
+                                <label for="contact_phone"
+                                    class="block text-xs font-medium mb-1 form-label">Teléfono</label>
                                 <input type="tel" id="contact_phone" name="contact_phone"
                                     placeholder="Teléfono de contacto" class="minimal-input w-full">
                             </div>
                             <div>
-                                <label for="contact_notes" class="block text-xs font-medium mb-1"
-                                    style="color: var(--color-text-secondary);">Notas/Comentarios</label>
+                                <label for="contact_notes"
+                                    class="block text-xs font-medium mb-1 form-label">Notas/Comentarios</label>
                                 <textarea id="contact_notes" name="contact_notes"
                                     placeholder="Cualquier nota adicional para el técnico..."
                                     class="minimal-input w-full resize-none h-16"></textarea>
                             </div>
                         </div>
 
-                        <button type="submit" class="primary-btn w-full py-3 mt-4 rounded-lg text-lg">
-                            <i class="ph ph-floppy-disk mr-2"></i>
-                            Guardar Mantenimiento
-                        </button>
+                        <div class="flex gap-2">
+                            <button type="button" id="cancel-edit-btn" onclick="cancelEdit()"
+                                class="secondary-btn w-1/3 py-3 mt-4 rounded-lg text-lg hidden">
+                                Cancelar
+                            </button>
+                            <button type="submit" id="save-repair-btn"
+                                class="primary-btn w-full py-3 mt-4 rounded-lg text-lg">
+                                <i class="ph ph-floppy-disk mr-2"></i>
+                                Guardar Mantenimiento
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>
 
+            <!-- Lista de Mantenimientos -->
             <div class="card-container inverted-split">
                 <div class="card-inner-content">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-2xl font-bold flex items-center gap-2" style="color: var(--color-text-light);">
-                            <i class="ph ph-list-checks" style="color: var(--color-accent-red);"></i>
-                            Mantenimientos Reportados
+                        <h2 class="text-2xl font-bold flex items-center gap-2 card-title">
+                            <i class="ph ph-list-checks card-icon"></i>
+                            Mis Mantenimientos
                         </h2>
                         <button onclick="window.toggleSearch()" class="secondary-icon-btn p-2 rounded-full"
                             title="Buscar">
@@ -175,6 +188,7 @@
                         </button>
                     </div>
 
+                    <!-- Barra de Búsqueda -->
                     <div id="search-container" class="hidden mb-4 transition-all duration-300">
                         <div class="relative">
                             <i
@@ -185,7 +199,8 @@
                         </div>
                     </div>
 
-                    <div id="repairs-list" class="space-y-3">
+                    <!-- Contenedor de Mantenimientos -->
+                    <div id="repairs-list" class="space-y-3 grid grid-cols-1 gap-4">
                         <div class="loading-spinner"></div>
                     </div>
                 </div>
@@ -194,10 +209,13 @@
         </main>
     </div>
 
+    <!-- Botón Flotante (FAB) -->
     <button id="show-repair-form-fab" type="button" onclick="toggleNewRepairForm()"
         class="fixed bottom-8 right-4 z-50 p-4 rounded-full primary-btn transition-transform duration-300 hover:scale-110 shadow-xl shadow-red-900/50">
         <i class="ph ph-plus text-2xl"></i>
     </button>
+
+    <!-- Scripts (Config.js contiene la configuración de Firebase) -->
     <script src="../Config/Config.js"></script>
     <script src="Repairs.js"></script>
 </body>

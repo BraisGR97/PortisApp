@@ -1,820 +1,500 @@
 /**
  * ====================================================================
- * Repairs.js - Lógica de Mantenimientos (CRUD y UI)
+ * Repairs.js - Lógica para la Gestión de Mantenimientos
  * ====================================================================
+ * 
+ * Este módulo gestiona la creación, edición, eliminación y visualización
+ * de mantenimientos reportados por el usuario.
  */
 
-// Se asume que window.firebaseConfig, window.IS_MOCK_MODE, window.db, window.auth, 
-// y window.firebaseReadyPromise están definidos en Config.js y Main.js.
+// ====================================================================
+// CONFIGURACIÓN Y VARIABLES GLOBALES
+// ====================================================================
 
-let userId = sessionStorage.getItem('portis-user-identifier') || null;
-let currentEditRepairId = null;
-let isModuleSetupComplete = false;
-let IS_MOCK_MODE = window.IS_MOCK_MODE;
+const firebaseConfig = window.firebaseConfig;
 
-if (IS_MOCK_MODE) {
-    console.warn("Modo MOCK: Las operaciones de Firestore serán simuladas.");
-}
+let app;
+let db;
+let auth;
+let userId = null;
+let isAuthReady = false;
 
-// Variables de UI - Inicialización diferida
-let DOM = {};
+// Cache de datos para búsqueda
+window.currentRepairsData = [];
 
-function initializeDOM() {
-    DOM = {
-        form: document.getElementById('new-repair-form'),
-        card: document.getElementById('new-repair-card'),
-        listContainer: document.getElementById('repairs-list'),
-        fabButton: document.getElementById('show-repair-form-fab'),
-        monthInput: document.getElementById('month'),
-        yearInput: document.getElementById('year'),
-    };
-    console.log('🎯 DOM initialized:', DOM);
-}
-
-
-// ===================================================================================
-// 1. LÓGICA ESPECÍFICA PARA EL MODO MOCK (ALMACENAMIENTO LOCAL)
-// ===================================================================================
-
-const MOCK_STORAGE_KEY = 'portis-repairs-mock'; // 🔑 CLAVE UNIFORME para el CRUD
-
-function loadMockRepairs() {
-    try {
-        const repairsJson = localStorage.getItem(MOCK_STORAGE_KEY);
-        let repairs = repairsJson ? JSON.parse(repairsJson) : [];
-
-        if (repairs.length === 0) {
-            console.log("Creando datos mock iniciales de Mantenimiento.");
-            repairs = [
-                {
-                    id: 'MOCK-R1',
-                    location: 'Oficina Central - Piso 3',
-                    model: 'HVAC-2000',
-                    key_id: null,
-                    contract: 'Anual',
-                    maintenance_month: 11,
-                    maintenance_year: 2025,
-                    description: 'Revisión y cambio de filtros anual.',
-                    priority: 'Alta',
-                    status: 'Pendiente',
-                    timestamp: Date.now() + 500000
-                },
-                {
-                    id: 'MOCK-R2',
-                    location: 'Almacén 5',
-                    model: 'Elevador Carga',
-                    key_id: 'TAG-1234',
-                    contract: 'Mensual',
-                    maintenance_month: 10,
-                    maintenance_year: 2025,
-                    description: 'Lubricación preventiva.',
-                    priority: 'Media',
-                    status: 'Completado',
-                    timestamp: Date.now() - 50000
-                },
-            ];
-            saveMockRepairs(repairs);
-        }
-        return repairs;
-    } catch (e) {
-        console.error("Error al cargar mantenimientos mock:", e);
-        return [];
-    }
-}
-
-function saveMockRepairs(repairs) {
-    try {
-        localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(repairs));
-    } catch (e) {
-        console.error("Error al guardar mantenimientos mock:", e);
-    }
-}
-
-function addMockRepairAndRefresh(newRepair) {
-    const repairs = loadMockRepairs();
-    // 🔑 Generar un ID único para el mock
-    newRepair.id = `MOCK-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    repairs.unshift(newRepair);
-    saveMockRepairs(repairs);
-    renderRepairs(repairs);
-    console.log("Mantenimiento mock guardado y lista actualizada.");
-}
-
-function editMockRepairAndRefresh(id, newValues) {
-    let repairs = loadMockRepairs();
-    const index = repairs.findIndex(repair => repair.id === id);
-    if (index !== -1) {
-        // Preservar el timestamp original (si es relevante) y el ID.
-        repairs[index] = { ...repairs[index], ...newValues };
-        saveMockRepairs(repairs);
-        renderRepairs(repairs);
-        console.log(`Mantenimiento mock ID: ${id} editado.`);
-    } else {
-        console.error("No se encontró el mantenimiento mock para editar:", id);
-    }
-}
-
-function deleteMockRepairAndRefresh(id) {
-    let repairs = loadMockRepairs();
-    repairs = repairs.filter(repair => repair.id !== id);
-    saveMockRepairs(repairs);
-    renderRepairs(repairs);
-    console.log(`Mantenimiento mock ID: ${id} eliminado.`);
-}
-
-// ===================================================================================
-// 2. FUNCIONES DE UI Y MODAL
-// ===================================================================================
-
+// Nombres de meses para formateo de fechas
 const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
-function getFormattedDate(month, year) {
-    const monthIndex = (month >= 1 && month <= 12) ? month - 1 : 0;
-    return `${monthNames[monthIndex]} de ${year}`;
-}
+// ====================================================================
+// AUTENTICACIÓN Y SETUP
+// ====================================================================
 
 /**
- * Muestra u oculta el formulario de creación/edición (tarjeta superior)
+ * Valida la sesión del usuario y prepara la interfaz.
  */
-window.toggleNewRepairForm = function () {
-    if (!DOM.card || !DOM.fabButton || !DOM.form) return;
-
-    const isFormHidden = DOM.card.classList.contains('hidden');
-
-    DOM.card.classList.toggle('hidden', !isFormHidden);
-    DOM.fabButton.classList.toggle('rotate-45', isFormHidden);
-
-    const icon = DOM.fabButton.querySelector('i');
-    icon.className = isFormHidden ? 'ph ph-x text-2xl' : 'ph ph-plus text-2xl';
-
-    if (isFormHidden) {
-        // Abriendo el formulario de creación
-        DOM.form.reset();
-        window.toggleContactFields(false);
-        const today = new Date();
-        DOM.monthInput.value = today.getMonth() + 1;
-        DOM.yearInput.value = today.getFullYear();
-        DOM.card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-        // Cerrando, volver a cargar la lista para reflejar cualquier cambio
-        if (IS_MOCK_MODE) {
-            renderRepairs(loadMockRepairs());
-        } else if (window.db) {
-            // Firestore Listener ya se encarga de recargar si hubo cambios
-        }
-    }
-}
-
-window.toggleContactFields = function (isInit = true) {
-    const contactFields = document.getElementById('contact-fields');
-    const contactCheckbox = document.getElementById('contact_checkbox');
-    if (contactFields && contactCheckbox) {
-        // Si isInit es false, se está reseteando el formulario, ocultar por defecto
-        if (typeof isInit === 'boolean' && !isInit) {
-            contactFields.classList.add('hidden');
-        } else {
-            contactFields.classList.toggle('hidden', !contactCheckbox.checked);
-        }
-    }
-}
-
-// Nota: Las funciones showRepairDetailsModal, hideModal, saveEditedRepair, toggleModalEditMode y generateModalContent
-// requieren el elemento MODAL. Asumiremos que el HTML lo tiene o lo creamos dinámicamente.
-
-function hideModal() {
-    const modal = document.getElementById('repair-detail-modal');
-    if (modal) modal.classList.add('hidden');
-    currentEditRepairId = null;
-}
-
-function showRepairDetailsModal(repair, isEditMode = false) {
-    currentEditRepairId = repair.id;
-    const modal = document.getElementById('repair-detail-modal');
-    if (!modal) {
-        console.error("Modal element not found.");
-        return;
-    }
-
-    // 🔑 USAMOS LA FUNCIÓN EXISTENTE PARA GENERAR EL CONTENIDO
-    modal.querySelector('.modal-content').innerHTML = generateModalContent(repair, isEditMode);
-
-    document.getElementById('close-modal-btn').onclick = hideModal;
-    document.getElementById('edit-toggle-btn').onclick = () => toggleModalEditMode(repair);
-
-    const saveButton = document.getElementById('save-edit-btn');
-    if (saveButton) {
-        saveButton.onclick = saveEditedRepair;
-    }
-
-    if (isEditMode) {
-        configureEditInputs(repair);
-    }
-
-    modal.classList.remove('hidden');
-}
-
-function toggleModalEditMode(repair) {
-    const actualRepair = window.repairsDataMap ? window.repairsDataMap.get(repair.id) || repair : repair;
-    const isCurrentlyEditing = document.getElementById('save-edit-btn')?.classList.contains('hidden') === false;
-    showRepairDetailsModal(actualRepair, !isCurrentlyEditing);
-}
-
-function configureEditInputs(repair) {
-    // 🔑 Asegura que la fecha se cargue correctamente en el input type="month"
-    const originalRepair = window.repairsDataMap ? window.repairsDataMap.get(currentEditRepairId) || repair : repair;
-
-    const monthString = String(originalRepair.maintenance_month).padStart(2, '0');
-
-    const dateInput = document.getElementById('edit-date');
-    if (dateInput) {
-        dateInput.value = `${originalRepair.maintenance_year}-${monthString}`;
-    }
-}
-
-// ===================================================================================
-// 3. FUNCIÓN DE INICIALIZACIÓN Y CONFIGURACIÓN
-// ===================================================================================
-
-async function startRepairsModule() {
-    console.log("Repairs.js: Iniciando módulo...");
-    if (isModuleSetupComplete) return;
-
-    // 🔑 Inicializar referencias DOM
-    initializeDOM();
-
-    // 1. Inicialización de Firebase (Standalone o Shared)
-    if (!window.IS_MOCK_MODE) {
-        console.log("Repairs.js: Modo Normal detectado.");
-
-        // Si existe la promesa global (Main.js), esperamos
-        if (typeof window.firebaseReadyPromise !== 'undefined') {
-            console.log("Repairs.js: Esperando firebaseReadyPromise de Main.js...");
-            await window.firebaseReadyPromise;
-        }
-        // Si NO existe la promesa y Firebase no está inicializado (Standalone Page)
-        else {
-            console.log("Repairs.js: Ejecutando en modo Standalone (sin Main.js).");
-
-            if (typeof firebase === 'undefined' && typeof window.firebase === 'undefined') {
-                console.error("Repairs.js: FATAL - La librería de Firebase no está cargada.");
-                return;
-            }
-
-            const fb = window.firebase || firebase;
-
-            if (!window.db) {
-                console.log("Repairs.js: window.db no definido. Inicializando...");
-
-                if (fb.apps.length === 0) {
-                    console.log("Repairs.js: Inicializando Firebase App...");
-                    if (window.firebaseConfig) {
-                        fb.initializeApp(window.firebaseConfig);
-                    } else {
-                        console.error("Repairs.js: Falta window.firebaseConfig.");
-                    }
-                }
-
-                window.db = fb.firestore();
-                window.auth = fb.auth();
-                console.log("Repairs.js: Firebase Firestore y Auth inicializados.");
-            }
-
-            // Esperar a que auth determine el usuario
-            if (window.auth) {
-                console.log("Repairs.js: Verificando estado de autenticación...");
-                await new Promise(resolve => {
-                    const unsubscribe = window.auth.onAuthStateChanged(user => {
-                        if (user) {
-                            console.log("Repairs.js: Usuario detectado:", user.uid);
-                            sessionStorage.setItem('portis-user-identifier', user.uid);
-                            sessionStorage.setItem('portis-user-display-name', user.displayName || user.email);
-                        } else {
-                            console.warn("Repairs.js: No hay usuario logueado en Firebase.");
-                        }
-                        unsubscribe();
-                        resolve();
-                    });
-                });
-            }
-        }
-    }
-
-    // 🔑 Releer la variable global después de la espera
-    IS_MOCK_MODE = window.IS_MOCK_MODE;
-
-    console.log(`Repairs.js: Modo de Operación Final: ${IS_MOCK_MODE ? 'MOCK' : 'NORMAL (Firebase)'}`);
-
+function checkAuthenticationAndSetup() {
     userId = sessionStorage.getItem('portis-user-identifier');
-
-    // 🔑 FIX: Si estamos en MOCK y no hay userId, inicializarlo
-    if (IS_MOCK_MODE && !userId) {
-        userId = window.MOCK_USER_ID || 'mock-admin-id';
-        sessionStorage.setItem('portis-user-identifier', userId);
-        sessionStorage.setItem('portis-user-display-name', window.MOCK_USER_DISPLAY_NAME || 'Admin');
-        console.log("Repairs.js: Mock User ID inicializado en sessionStorage.");
-    }
-
-    // 2. Configurar el display name (Aplica la regla de Admin para MOCK)
     const userDisplayName = sessionStorage.getItem('portis-user-display-name');
     const displayElement = document.getElementById('current-user-display');
 
-    if (displayElement) {
-        if (IS_MOCK_MODE) {
-            // **FUERZA LA VISUALIZACIÓN DE ADMIN EN MOCK MODE** (Según tu regla)
-            displayElement.textContent = "Admin";
-        } else {
-            displayElement.textContent = userDisplayName || (userId ? userId.substring(0, 10) + '...' : 'Usuario');
-        }
-    }
-
-
-    // 3. Configurar UI/Listeners
-    const today = new Date();
-    if (DOM.monthInput) DOM.monthInput.value = today.getMonth() + 1;
-    if (DOM.yearInput) DOM.yearInput.value = today.getFullYear();
-    if (DOM.form) DOM.form.addEventListener('submit', addRepair);
-
-    const contactCheckbox = document.getElementById('contact_checkbox');
-    if (contactCheckbox) contactCheckbox.addEventListener('change', window.toggleContactFields);
-
-    createModalElement();
-
-    // 4. Cargar datos (Mock o Firebase)
-    if (!IS_MOCK_MODE) {
-        // Verificación final de seguridad
-        if (!userId) {
-            console.error("Repairs.js: No hay usuario autenticado en sessionStorage. No se puede cargar Firestore.");
-            // Opcional: Mostrar mensaje en UI
-            const listContainer = document.getElementById('repairs-list');
-            if (listContainer) listContainer.innerHTML = '<div class="p-4 text-red-500">Error: Usuario no autenticado.</div>';
-            return;
-        }
-
-        if (!window.db) {
-            console.error("Repairs.js: window.db sigue siendo null tras inicialización.");
-            return;
-        }
-
-        console.log("Repairs.js: Configurando listener de Firestore para usuario:", userId);
-        setupRepairsListener();
-    } else {
-        // **FLUJO MOCK (Local Storage)**
-        console.warn("Repairs.js: Modo MOCK activado. Cargando datos.");
-        const repairs = loadMockRepairs();
-        console.log(`✅ Mock repairs loaded: ${repairs.length} items`, repairs);
-        renderRepairs(repairs);
-    }
-
-    isModuleSetupComplete = true;
-}
-
-function createModalElement() {
-    if (document.getElementById('repair-detail-modal')) return;
-
-    const modalHtml = `
-        <div id="repair-detail-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-70 flex justify-center items-center p-4 transition-opacity duration-300">
-            <div class="modal-content w-full max-w-xl rounded-xl shadow-2xl relative transition-transform duration-300" 
-                 style="background-color: var(--color-bg-secondary); color: var(--color-text-primary); max-height: 90vh; overflow-y: auto;">
-            </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-}
-
-// 🔑 Punto de enganche global
-window.startRepairsModule = startRepairsModule;
-
-
-// ===================================================================================
-// 4. FUNCIONES DE FIREBASE (CRUD)
-// ===================================================================================
-
-function getRepairsCollectionRef() {
-    // 🔑 CRÍTICO: Leer el userId ACTUAL de sessionStorage, no el que había al cargar el script
-    const currentUserId = sessionStorage.getItem('portis-user-identifier');
-
-    if (!currentUserId || !window.db || !window.db.collection) {
-        // Si estamos en modo MOCK, esto no debería importar
-        if (!window.IS_MOCK_MODE) {
-            console.error("Intentando acceder a Firestore sin un userId válido o db no inicializada.");
-        }
-        return null;
-    }
-    return window.db.collection(`users/${currentUserId}/repairs`);
-}
-
-function setupRepairsListener() {
-    const repairsRef = getRepairsCollectionRef();
-    if (!repairsRef) return;
-
-    repairsRef.orderBy('maintenance_year', 'asc').orderBy('maintenance_month', 'asc')
-        .onSnapshot(snapshot => {
-            const repairs = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-            console.log(`Repairs.js: ${repairs.length} mantenimientos recibidos de Firestore.`);
-            renderRepairs(repairs);
-        }, error => {
-            console.error("Error en el listener de Firestore:", error);
-        });
-}
-
-/**
- * Maneja la creación de un nuevo mantenimiento (Mock o Firebase).
- */
-async function addRepair(e) {
-    e.preventDefault();
-
-    // 🔑 Sincronizar estado global por seguridad
-    if (window.IS_MOCK_MODE) IS_MOCK_MODE = true;
-
-    // 🔑 Fallback: Si no hay DB, forzar modo Mock
-    if (!IS_MOCK_MODE && (!window.db || !window.db.collection)) {
-        console.warn("Firestore no detectado. Forzando modo MOCK para esta operación.");
-        IS_MOCK_MODE = true;
-    }
-
-    const currentUserId = sessionStorage.getItem('portis-user-identifier');
-
-    if (!currentUserId && !IS_MOCK_MODE) return console.warn("Falta ID de usuario para Firestore.");
-
-    // 🔑 Recolección de datos
-    const form = document.getElementById('new-repair-form');
-    const location = form.location.value.trim();
-    const model = form.model.value.trim();
-    const key_id = form.key_id.value.trim();
-    const contract = form.contract.value;
-    const monthInput = form.month.value;
-    const yearInput = form.year.value;
-
-    const description = '';
-    const priority = form.priority.value || 'Media';
-
-    const contactChecked = form.contact_checkbox.checked;
-    let contactData = {};
-    if (contactChecked) {
-        contactData.name = form.contact_name.value.trim() || null;
-        contactData.phone = form.contact_phone.value.trim() || null;
-        contactData.notes = form.contact_notes.value.trim() || null;
-        contactData = Object.fromEntries(
-            Object.entries(contactData).filter(([_, v]) => v !== null && v !== '')
-        );
-    }
-
-    const month = parseInt(monthInput);
-    const year = parseInt(yearInput);
-
-    if (!location || !contract || isNaN(month) || isNaN(year) || month < 1 || month > 12 || year < 2000) {
-        console.error('Validación fallida: Rellena los campos obligatorios.');
+    if (!userId || !userDisplayName) {
+        window.location.href = '../index.html';
         return;
     }
 
-    // Calcular estado dinámico inicial
-    const today = new Date();
-    const currentMonth = today.getMonth() + 1;
-    const currentYear = today.getFullYear();
-
-    let initialStatus = 'Pendiente';
-
-    if (contract === 'Anual') {
-        if (year === currentYear) initialStatus = 'En Progreso';
-    } else {
-        if (year === currentYear && month === currentMonth) initialStatus = 'En Progreso';
+    if (displayElement) {
+        displayElement.textContent = userDisplayName;
     }
+
+    initializeAppAndAuth();
+    document.getElementById('new-repair-form').addEventListener('submit', saveRepair);
+
+    // Listener para checkbox de contacto
+    const contactCheckbox = document.getElementById('contact_checkbox');
+    if (contactCheckbox) {
+        contactCheckbox.addEventListener('change', toggleContactFields);
+    }
+}
+
+/**
+ * Inicializa Firebase y establece el listener de autenticación.
+ */
+async function initializeAppAndAuth() {
+    try {
+        if (!firebaseConfig || !firebaseConfig.apiKey) {
+            throw new Error("La configuración de Firebase está incompleta.");
+        }
+
+        app = firebase.initializeApp(firebaseConfig);
+        auth = firebase.auth();
+        db = firebase.firestore();
+
+        auth.onAuthStateChanged((user) => {
+            if (user && user.uid === userId) {
+                isAuthReady = true;
+                setupRepairsListener();
+            } else {
+                window.location.href = '../index.html';
+            }
+        });
+
+    } catch (error) {
+        document.getElementById('repairs-list').innerHTML = `
+            <div class="message-error p-3 mt-4 text-red-400 bg-red-900/40 border border-red-900 rounded-lg">
+                Error de conexión. No se pudo cargar el módulo de datos.
+            </div>
+        `;
+    }
+}
+
+// ====================================================================
+// FUNCIONES DE FIREBASE
+// ====================================================================
+
+/**
+ * Obtiene la referencia a la colección de mantenimientos del usuario.
+ * @returns {Object|null} Referencia a la colección o null
+ */
+function getRepairsCollectionRef() {
+    if (!db || !userId) return null;
+    return db.collection(`users/${userId}/repairs`);
+}
+
+/**
+ * Configura el listener en tiempo real para los mantenimientos (Firebase).
+ */
+function setupRepairsListener() {
+    if (!db || !isAuthReady || !userId) return;
+
+    const repairsQuery = getRepairsCollectionRef().orderBy('timestamp', 'desc');
+
+    repairsQuery.onSnapshot((snapshot) => {
+        const repairs = [];
+        snapshot.forEach((doc) => {
+            repairs.push({ id: doc.id, ...doc.data() });
+        });
+        renderRepairs(repairs);
+    }, (error) => {
+        // Error en la conexión
+    });
+}
+
+// ====================================================================
+// CRUD - CREAR Y ACTUALIZAR MANTENIMIENTOS
+// ====================================================================
+
+/**
+ * Guarda un mantenimiento nuevo o actualiza uno existente.
+ * @param {Event} e - Evento del formulario
+ */
+async function saveRepair(e) {
+    e.preventDefault();
+    if (!isAuthReady || !userId) return;
+
+    const form = document.getElementById('new-repair-form');
+    const submitButton = document.getElementById('save-repair-btn');
+    const idInput = document.getElementById('repair-id');
+    const editId = idInput.value;
+
+    const location = document.getElementById('location').value.trim();
+    const model = document.getElementById('model').value.trim();
+    const key_id = document.getElementById('key_id').value.trim();
+    const contract = document.getElementById('contract').value;
+    const month = parseInt(document.getElementById('month').value);
+    const year = parseInt(document.getElementById('year').value);
+    const priority = document.getElementById('priority').value;
+
+    if (!location || !contract || !month || !year) return;
+
+    // Datos de contacto (si están marcados)
+    const contactCheckbox = document.getElementById('contact_checkbox');
+    const contactData = contactCheckbox.checked ? {
+        contact_name: document.getElementById('contact_name').value.trim(),
+        contact_phone: document.getElementById('contact_phone').value.trim(),
+        contact_notes: document.getElementById('contact_notes').value.trim()
+    } : {};
+
+    submitButton.innerHTML = '<i class="ph ph-circle-notch animate-spin mr-2"></i> Guardando...';
+    submitButton.disabled = true;
 
     const repairData = {
         location,
-        model: model || null,
-        key_id: key_id || null,
+        model,
+        key_id,
         contract,
         maintenance_month: month,
         maintenance_year: year,
-        description: description,
-        priority: priority,
-        status: initialStatus,
-        userId: currentUserId || 'mock-user-id',
-        timestamp: Date.now(),
-        contact: contactData,
+        priority,
+        status: 'Pendiente',
+        ...contactData,
+        userId: userId,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
-
-    if (IS_MOCK_MODE) {
-        addMockRepairAndRefresh(repairData);
-        form.reset();
-        window.toggleNewRepairForm();
-        return;
-    }
 
     try {
         const repairsRef = getRepairsCollectionRef();
         if (!repairsRef) return;
 
-        await repairsRef.add(repairData);
-        form.reset();
+        if (editId) {
+            await repairsRef.doc(editId).update({
+                location,
+                model,
+                key_id,
+                contract,
+                maintenance_month: month,
+                maintenance_year: year,
+                priority,
+                ...contactData,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } else {
+            await repairsRef.add(repairData);
+        }
 
-        const resetToday = new Date();
-        if (DOM.monthInput) DOM.monthInput.value = resetToday.getMonth() + 1;
-        if (DOM.yearInput) DOM.yearInput.value = resetToday.getFullYear();
-
+        resetForm();
         window.toggleNewRepairForm();
-        console.log("Mantenimiento guardado con éxito en Firebase.");
+
     } catch (error) {
-        console.error("Error al guardar el mantenimiento:", error);
+        alert("Error al guardar el mantenimiento. Inténtalo de nuevo.");
     }
+
+    submitButton.innerHTML = '<i class="ph ph-floppy-disk mr-2"></i> Guardar Mantenimiento';
+    submitButton.disabled = false;
 }
 
-/**
- * Maneja el guardado de un mantenimiento editado (Mock o Firebase).
- */
-async function saveEditedRepair() {
-    const id = currentEditRepairId;
-    if (!id) return;
-
-    // 🔑 Recolección de datos del Modal de Edición
-    const dateInput = document.getElementById('edit-date').value.split('-');
-
-    const contactName = document.getElementById('edit-contact_name').value.trim() || null;
-    const contactPhone = document.getElementById('edit-contact_phone').value.trim() || null;
-    const contactNotes = document.getElementById('edit-contact_notes').value.trim() || null;
-
-    let contactData = { name: contactName, phone: contactPhone, notes: contactNotes };
-
-    const hasContactData = Object.values(contactData).some(v => v !== null && v !== '');
-    if (!hasContactData) {
-        contactData = {};
-    }
-
-    // Verificar si existe el input de estado (puede haber sido eliminado en modo edición)
-    const statusInput = document.getElementById('edit-status');
-    const statusValue = statusInput ? statusInput.value : undefined;
-
-    const newValues = {
-        location: document.getElementById('edit-location').value.trim(),
-        contract: document.getElementById('edit-contract').value.trim(),
-        maintenance_year: parseInt(dateInput[0]),
-        maintenance_month: parseInt(dateInput[1]),
-        model: document.getElementById('edit-model').value.trim() || null,
-        key_id: document.getElementById('edit-key_id').value.trim() || null,
-        priority: document.getElementById('edit-priority').value,
-        description: '',
-        contact: contactData,
-    };
-
-    // Solo añadir status si se pudo leer (aunque en este caso, si no está en el DOM, queremos preservar el anterior)
-    // Al no incluirlo en newValues, el spread operator { ...old, ...new } mantendrá el old.status
-    if (statusValue !== undefined) {
-        newValues.status = statusValue;
-    }
-
-    if (!newValues.location || !newValues.contract || isNaN(newValues.maintenance_month) || isNaN(newValues.maintenance_year)) {
-        console.error("Validación de edición fallida.");
-        return;
-    }
-
-    if (IS_MOCK_MODE) {
-        editMockRepairAndRefresh(id, newValues);
-        hideModal();
-        return;
-    }
-
-    try {
-        const repairsRef = getRepairsCollectionRef();
-        if (!repairsRef) return;
-
-        await repairsRef.doc(id).update(newValues);
-        console.log(`Mantenimiento ${id} actualizado con éxito.`);
-        hideModal();
-    } catch (error) {
-        console.error("Error al actualizar el mantenimiento:", error);
-    }
-}
+// ====================================================================
+// CRUD - ELIMINAR MANTENIMIENTOS
+// ====================================================================
 
 /**
- * Maneja la eliminación de un mantenimiento (Mock o Firebase).
+ * Elimina un mantenimiento después de confirmación del usuario.
+ * @param {string} id - ID del mantenimiento a eliminar
  */
 window.deleteRepair = async function (id) {
-    const currentUserId = sessionStorage.getItem('portis-user-identifier');
+    if (!isAuthReady || !userId) return;
 
-    const repair = window.repairsDataMap ? window.repairsDataMap.get(id) || { id: id, location: 'este registro' } : { id: id, location: 'este registro' };
-
-    if (!repair) {
-        console.error("No se encontró el registro para eliminar.");
+    if (!confirm("¿Estás seguro de que quieres eliminar este mantenimiento?")) {
         return;
     }
 
-    // 🔑 Generar la confirmación en el modal
-    const modal = document.getElementById('repair-detail-modal');
-    if (!modal) return;
-
-    const modalContent = `
-        <div class="modal-header">
-            <h2 class="text-xl font-bold text-red-500">Confirmar Eliminación</h2>
-            <button id="close-modal-btn" class="secondary-icon-btn p-1 rounded-full"><i class="ph ph-x text-2xl"></i></button>
-        </div>
-        
-        <div class="modal-body p-4 text-center">
-            <i class="ph ph-warning-circle text-6xl text-red-500 mb-3"></i>
-            <p class="text-lg mb-4" style="color: var(--color-text-light);">¿Estás seguro de que deseas eliminar permanentemente el mantenimiento en **${repair.location || id}**?</p>
-            <p class="text-sm" style="color: var(--color-text-secondary);">Esta acción no se puede deshacer.</p>
-        </div>
-
-        <div class="modal-footer flex justify-center p-4 border-t" style="border-color: var(--color-border);">
-            <button id="confirm-delete-btn" class="primary-btn bg-red-600 hover:bg-red-700 flex items-center gap-2 mr-4">
-                <i class="ph ph-trash"></i><span>Sí, Eliminar</span>
-            </button>
-            <button id="cancel-delete-btn" class="primary-btn bg-gray-500 hover:bg-gray-600">
-                <span>Cancelar</span>
-            </button>
-        </div>
-    `;
-
-    modal.querySelector('.modal-content').innerHTML = modalContent;
-    modal.classList.remove('hidden');
-
-    document.getElementById('close-modal-btn').onclick = hideModal;
-    document.getElementById('cancel-delete-btn').onclick = hideModal;
-
-    document.getElementById('confirm-delete-btn').onclick = async () => {
-        hideModal();
-
-        if (IS_MOCK_MODE) {
-            deleteMockRepairAndRefresh(id);
-            return;
-        }
-
-        try {
-            const repairRef = getRepairsCollectionRef();
-            if (!repairRef) return;
-
-            await repairRef.doc(id).delete();
-            console.log(`Mantenimiento ${id} eliminado con éxito de Firebase.`);
-        } catch (error) {
-            console.error("Error al eliminar el mantenimiento:", error);
-        }
-    };
-}
-
-function generateModalContent(repair, isEditMode) {
-    const priority = repair.priority || 'No especificada';
-    const status = repair.status || 'Pendiente';
-    const maintenanceDate = getFormattedDate(repair.maintenance_month, repair.maintenance_year);
-    const contact = repair.contact || {};
-
-    const baseInput = (id, label, value, readOnly = true, type = 'text', customClass = 'detail-input') => `
-        <div class="space-y-1">
-            <label for="${id}" class="detail-label">${label}</label>
-            <input id="${id}" type="${type}" value="${value || ''}" ${readOnly ? 'readonly' : ''} 
-                    class="${customClass} w-full ${!readOnly && isEditMode ? 'editing' : ''}">
-        </div>
-    `;
-
-    const baseTextarea = (id, label, value, readOnly = true, rows = 2, customClass = 'detail-input') => `
-        <div class="space-y-1">
-            <label for="${id}" class="detail-label">${label}</label>
-            <textarea id="${id}" rows="${rows}" ${readOnly ? 'readonly' : ''} 
-                    class="${customClass} w-full resize-none ${!readOnly && isEditMode ? 'editing' : ''}">${value || ''}</textarea>
-        </div>
-    `;
-
-    const prioritySelect = (priorityValue, readOnly = true) => {
-        const options = ['Alta', 'Media', 'Baja'];
-        const optionHtml = options.map(opt =>
-            `<option value="${opt}" ${priorityValue === opt ? 'selected' : ''}>${opt}</option>`
-        ).join('');
-        return `
-            <div class="space-y-1">
-                <label for="edit-priority" class="detail-label">Prioridad</label>
-                <select id="edit-priority" ${readOnly ? 'disabled' : ''} class="detail-input w-full ${!readOnly ? 'editing' : ''}">
-                    ${optionHtml}
-                </select>
-            </div>
-        `;
+    const repairElement = document.querySelector(`.repair-card[data-id="${id}"]`);
+    if (repairElement) {
+        repairElement.classList.add('opacity-0', 'transform', '-translate-x-full');
+        await new Promise(resolve => setTimeout(resolve, 300));
     }
 
-    const contractSelect = (contractValue, readOnly = true) => {
-        const options = ['Mensual', 'Bimensual', 'Trimestral', 'Cuatrimestral', 'Semestral', 'Anual'];
-        const optionHtml = options.map(opt =>
-            `<option value="${opt}" ${contractValue === opt ? 'selected' : ''}\u003e${opt}</option>`
-        ).join('');
+    try {
+        const repairsRef = getRepairsCollectionRef();
+        if (repairsRef) {
+            await repairsRef.doc(id).delete();
+        }
+    } catch (error) {
+        if (repairElement) {
+            repairElement.classList.remove('opacity-0', 'transform', '-translate-x-full');
+        }
+    }
+}
 
-        return `
-            <div class="space-y-1">
-                <label for="edit-contract" class="detail-label">Contrato</label>
-                <select id="edit-contract" ${readOnly ? 'disabled' : ''} class="detail-input w-full ${!readOnly ? 'editing' : ''}\">
-                    ${optionHtml}
-                </select>
-            </div>
-        `;
-    };
+// ====================================================================
+// CRUD - EDITAR MANTENIMIENTOS
+// ====================================================================
 
-    let bodyContent = '';
-    if (!isEditMode) {
-        bodyContent = `
-            <div class="modal-body p-4">
-                <h3 class="text-lg font-bold mb-3" style="color: var(--color-accent-blue);">${repair.location}</h3>
-                <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
-                    <div class="space-y-1">
-                        <label class="detail-label">Fecha Prevista</label>
-                        <p class="detail-value-compact">${maintenanceDate}</p>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="detail-label">Modelo</label>
-                        <p class="detail-value-compact">${repair.model || 'N/A'}</p>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="detail-label">Contrato</label>
-                        <p class="detail-value-compact">${repair.contract}</p>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="detail-label">ID Clave/TAG</label>
-                        <p class="detail-value-compact">${repair.key_id || 'N/A'}</p>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="detail-label">Prioridad</label>
-                        <p class="detail-value-compact">${priority}</p>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="detail-label">Estado</label>
-                        <p class="detail-value-compact ${status.toLowerCase().replace(/ /g, '-')}" style="color: ${status === 'Completado' ? '#10b981' : status === 'En Progreso' ? 'var(--color-accent-blue)' : '#f97316'};">${status}</p>
-                    </div>
-                </div>
+/**
+ * Prepara el formulario para editar un mantenimiento existente.
+ * @param {string} id - ID del mantenimiento a editar
+ */
+window.editRepair = function (id) {
+    const repairs = window.currentRepairsData;
+    const repair = repairs.find(r => r.id === id);
 
+    if (!repair) return;
 
-                
-                ${(contact.name || contact.phone || contact.notes) ? `
-                    <h3 class="text-sm font-semibold mt-2 mb-2" style="color: var(--color-accent-red);">Contacto</h3>
-                    <div class="grid grid-cols-2 gap-4 text-sm">
-                        <div class="space-y-1">
-                            <label class="detail-label">Nombre</label>
-                            <p class="detail-value-compact">${contact.name || 'N/P'}</p>
-                        </div>
-                        <div class="space-y-1">
-                            <label class="detail-label">Teléfono</label>
-                            <p class="detail-value-compact">${contact.phone || 'N/P'}</p>
-                        </div>
-                    </div>
-                    <div class="space-y-1 mt-4 text-sm">
-                        <label class="detail-label">Notas de Contacto</label>
-                        <p class="detail-value-compact italic">${contact.notes || 'Sin notas.'}</p>
-                    </div>
-                ` : `<p class="text-xs text-center p-2" style="color: var(--color-text-secondary);">No se incluyeron datos de contacto.</p>`}
-            </div>
-        `;
+    // Rellenar formulario
+    document.getElementById('repair-id').value = repair.id;
+    document.getElementById('location').value = repair.location;
+    document.getElementById('model').value = repair.model || '';
+    document.getElementById('key_id').value = repair.key_id || '';
+    document.getElementById('contract').value = repair.contract;
+    document.getElementById('month').value = repair.maintenance_month;
+    document.getElementById('year').value = repair.maintenance_year;
+    document.getElementById('priority').value = repair.priority || 'Media';
+
+    // Rellenar datos de contacto si existen
+    const contactCheckbox = document.getElementById('contact_checkbox');
+    if (repair.contact_name || repair.contact_phone || repair.contact_notes) {
+        contactCheckbox.checked = true;
+        toggleContactFields();
+        document.getElementById('contact_name').value = repair.contact_name || '';
+        document.getElementById('contact_phone').value = repair.contact_phone || '';
+        document.getElementById('contact_notes').value = repair.contact_notes || '';
     } else {
-        bodyContent = `
-            <div class="modal-body p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="col-span-1 md:col-span-2 space-y-2">
-                    ${baseInput('edit-location', 'Ubicación', repair.location, false)}
-                </div>
-                ${contractSelect(repair.contract, false)}
-                ${baseInput('edit-date', 'Fecha Prevista', '', false, 'month')}
-                ${baseInput('edit-model', 'Modelo', repair.model, false)}
-                ${baseInput('edit-key_id', 'ID Clave', repair.key_id, false)}
-                ${prioritySelect(priority, false)}
-
-                <h3 class="col-span-1 md:col-span-2 text-lg font-semibold mt-2" style="color: var(--color-text-light);">Datos de Contacto</h3>
-                ${baseInput('edit-contact_name', 'Nombre', contact.name, false)}
-                ${baseInput('edit-contact_phone', 'Teléfono', contact.phone, false, 'tel')}
-                <div class="col-span-1 md:col-span-2 space-y-2">
-                    ${baseTextarea('edit-contact_notes', 'Notas', contact.notes, false, 2)}
-                </div>
-            </div>
-        `;
+        contactCheckbox.checked = false;
+        toggleContactFields();
     }
 
-    const header = `
-        <div class="modal-header">
-            <h2 id="modal-title" class="text-xl font-bold">${isEditMode ? 'Editar Mantenimiento' : 'Detalles de Mantenimiento'}</h2>
-            <div class="flex items-center gap-3">
-                <button id="edit-toggle-btn" class="edit-toggle-btn text-xl ${isEditMode ? 'active' : ''}" title="Alternar Modo Edición">
-                    <i class="ph ph-pencil-simple-line"></i>
-                </button>
-                <button id="close-modal-btn" class="secondary-icon-btn p-1 rounded-full"><i class="ph ph-x text-2xl"></i></button>
+    // Cambiar UI del formulario
+    document.getElementById('form-title').innerHTML = `
+        <i class="ph ph-pencil-simple card-icon"></i>
+        Editar Mantenimiento
+    `;
+    document.getElementById('save-repair-btn').innerHTML = '<i class="ph ph-floppy-disk mr-2"></i> Actualizar Mantenimiento';
+    document.getElementById('cancel-edit-btn').classList.remove('hidden');
+
+    // Mostrar formulario si está oculto
+    const card = document.getElementById('new-repair-card');
+    if (card.classList.contains('hidden')) {
+        window.toggleNewRepairForm();
+    } else {
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+/**
+ * Cancela la edición y resetea el formulario.
+ */
+window.cancelEdit = function () {
+    resetForm();
+    window.toggleNewRepairForm();
+}
+
+/**
+ * Resetea el formulario a su estado inicial.
+ */
+function resetForm() {
+    const form = document.getElementById('new-repair-form');
+    form.reset();
+    document.getElementById('repair-id').value = '';
+
+    // Ocultar campos de contacto
+    const contactCheckbox = document.getElementById('contact_checkbox');
+    contactCheckbox.checked = false;
+    toggleContactFields();
+
+    document.getElementById('form-title').innerHTML = `
+        <i class="ph ph-wrench card-icon"></i>
+        Nuevo Mantenimiento
+    `;
+    document.getElementById('save-repair-btn').innerHTML = '<i class="ph ph-floppy-disk mr-2"></i> Guardar Mantenimiento';
+    document.getElementById('cancel-edit-btn').classList.add('hidden');
+}
+
+// ====================================================================
+// GESTIÓN DE CAMPOS DE CONTACTO
+// ====================================================================
+
+/**
+ * Muestra u oculta los campos de contacto según el checkbox.
+ */
+function toggleContactFields() {
+    const contactCheckbox = document.getElementById('contact_checkbox');
+    const contactFields = document.getElementById('contact-fields');
+
+    if (contactCheckbox && contactFields) {
+        if (contactCheckbox.checked) {
+            contactFields.classList.remove('hidden');
+        } else {
+            contactFields.classList.add('hidden');
+            // Limpiar campos
+            document.getElementById('contact_name').value = '';
+            document.getElementById('contact_phone').value = '';
+            document.getElementById('contact_notes').value = '';
+        }
+    }
+}
+
+// ====================================================================
+// RENDERIZADO Y UI
+// ====================================================================
+
+/**
+ * Formatea la fecha de mantenimiento.
+ * @param {number} month - Mes (1-12)
+ * @param {number} year - Año
+ * @returns {string} Fecha formateada
+ */
+function getFormattedDate(month, year) {
+    return `${monthNames[month - 1]} ${year}`;
+}
+
+/**
+ * Renderiza los mantenimientos en la interfaz.
+ * @param {Array} repairs - Array de mantenimientos a renderizar
+ * @param {boolean} updateCache - Si se debe actualizar el cache
+ */
+function renderRepairs(repairs, updateCache = true) {
+    if (updateCache) {
+        window.currentRepairsData = repairs;
+    }
+
+    const listContainer = document.getElementById('repairs-list');
+    listContainer.innerHTML = '';
+
+    const searchInput = document.getElementById('search-input');
+    const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+    let filteredRepairs = repairs;
+    if (searchTerm) {
+        filteredRepairs = repairs.filter(r =>
+            (r.location && r.location.toLowerCase().includes(searchTerm)) ||
+            (r.model && r.model.toLowerCase().includes(searchTerm)) ||
+            (r.key_id && r.key_id.toLowerCase().includes(searchTerm))
+        );
+    }
+
+    if (filteredRepairs.length === 0) {
+        listContainer.innerHTML = `
+            <div class="p-4 text-center rounded-lg" style="background-color: var(--color-bg-secondary); color: var(--color-text-secondary);">
+                ${searchTerm ? 'No se encontraron mantenimientos.' : 'No hay mantenimientos reportados.'}
             </div>
-        </div>
-    `;
+        `;
+        return;
+    }
 
-    const footer = `
-        <div class="modal-footer flex justify-center p-4 border-t" style="border-color: var(--color-border);">
-            <button id="save-edit-btn" class="primary-btn bg-green-600 ${isEditMode ? '' : 'hidden'} flex items-center gap-2">
-                <i class="ph ph-floppy-disk"></i><span>Guardar Cambios</span>
-            </button>
-        </div>
-    `;
+    // Ordenar por timestamp (más reciente primero)
+    filteredRepairs.sort((a, b) => {
+        const timeA = a.timestamp && a.timestamp.toMillis ? a.timestamp.toMillis() : (a.timestamp || 0);
+        const timeB = b.timestamp && b.timestamp.toMillis ? b.timestamp.toMillis() : (b.timestamp || 0);
+        return timeB - timeA;
+    });
 
-    return header + bodyContent + (isEditMode ? footer : '');
+    filteredRepairs.forEach(repair => {
+        const formattedDate = getFormattedDate(repair.maintenance_month, repair.maintenance_year);
+        const priorityClass = `priority-${repair.priority.toLowerCase()}`;
+        const statusClass = `status-${repair.status.toLowerCase().replace(' ', '-')}`;
+
+        const card = document.createElement('div');
+        card.className = `repair-card ${priorityClass}`;
+        card.setAttribute('data-id', repair.id);
+
+        const repairHtml = `
+            <div class="repair-header">
+                <div class="repair-title-container">
+                    <h3 class="font-bold text-xl truncate repair-card-title" title="${repair.location}">${repair.location}</h3>
+                </div>
+                <span class="text-xs font-medium px-2 py-1 rounded-full repair-card-date bg-gray-100 dark:bg-gray-800 repair-date-badge">
+                    ${formattedDate}
+                </span>
+            </div>
+            
+            <div class="text-sm mb-2 repair-card-content">
+                ${repair.model ? `<p><strong>Modelo:</strong> ${repair.model}</p>` : ''}
+                ${repair.key_id ? `<p><strong>Llave/TAG:</strong> ${repair.key_id}</p>` : ''}
+                <p><strong>Contrato:</strong> ${repair.contract}</p>
+                <p><strong>Estado:</strong> <span class="${statusClass}">${repair.status}</span></p>
+                <p><strong>Prioridad:</strong> ${repair.priority}</p>
+            </div>
+
+            <div class="flex justify-end items-center pt-3 border-t gap-2 mt-auto" style="border-color: var(--color-border);">
+                <button data-action="edit" data-id="${repair.id}"
+                    class="action-btn edit-btn p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-blue-500" 
+                    title="Editar mantenimiento">
+                    <i class="ph ph-pencil-simple text-lg pointer-events-none"></i>
+                </button>
+                <button data-action="delete" data-id="${repair.id}"
+                    class="action-btn delete-btn p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-500" 
+                    title="Eliminar mantenimiento">
+                    <i class="ph ph-trash text-lg pointer-events-none"></i>
+                </button>
+            </div>
+        `;
+
+        card.innerHTML = repairHtml;
+        listContainer.appendChild(card);
+    });
+
+    // Actualizar efectos visuales una vez renderizado
+    setTimeout(updateCardBorderOpacity, 50);
 }
 
-// ===================================================================================
-// 5. FUNCIONES DE RENDERIZADO Y UTILIDADES GLOBALES
-// ===================================================================================
+/**
+ * Actualiza la opacidad del borde superior de las tarjetas basada en su posición.
+ */
+function updateCardBorderOpacity() {
+    const elements = document.querySelectorAll('.repair-card, .card-container');
+    const viewportHeight = window.innerHeight;
 
-window.openMap = function (location) {
-    if (!location) return;
-    const query = encodeURIComponent(location);
-    window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+    elements.forEach(element => {
+        const rect = element.getBoundingClientRect();
+        const elementTop = rect.top;
+        const elementHeight = rect.height;
+
+        let opacity = 0;
+
+        if (elementTop < viewportHeight && elementTop > -elementHeight) {
+            const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
+            opacity = 1 - normalizedPosition;
+            opacity = 0.2 + (opacity * 0.8);
+        }
+
+        element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
+    });
 }
 
+/**
+ * Maneja los clicks en los botones de acción de los mantenimientos.
+ * @param {Event} e - Evento de click
+ */
+function handleRepairActions(e) {
+    const button = e.target.closest('button[data-action][data-id]');
+    if (!button) return;
+
+    const action = button.dataset.action;
+    const id = button.dataset.id;
+
+    if (action === 'delete') {
+        window.deleteRepair(id);
+    } else if (action === 'edit') {
+        window.editRepair(id);
+    }
+}
+
+// ====================================================================
+// FUNCIONES DE BÚSQUEDA
+// ====================================================================
+
+/**
+ * Alterna la visibilidad de la barra de búsqueda.
+ */
 window.toggleSearch = function () {
     const searchContainer = document.getElementById('search-container');
     const searchInput = document.getElementById('search-input');
@@ -827,154 +507,96 @@ window.toggleSearch = function () {
         } else {
             searchContainer.classList.add('hidden');
             searchInput.value = '';
-            // Disparar evento de input para limpiar el filtro
             searchInput.dispatchEvent(new Event('input'));
         }
     }
 }
 
-// Variable global para almacenar los datos actuales y evitar lecturas innecesarias
-window.currentRepairsData = [];
-window.repairsDataMap = new Map();
+// ====================================================================
+// FUNCIONES DE FORMULARIO
+// ====================================================================
 
-function renderRepairs(repairs, updateMap = true) {
-    console.log(`🔍 renderRepairs called with ${repairs.length} repairs, updateMap: ${updateMap}`);
+/**
+ * Alterna la visibilidad del formulario de nuevo mantenimiento.
+ */
+window.toggleNewRepairForm = function () {
+    const card = document.getElementById('new-repair-card');
+    const fab = document.getElementById('show-repair-form-fab');
 
-    if (updateMap) {
-        window.currentRepairsData = repairs;
-        window.repairsDataMap = new Map(repairs.map(r => [r.id, r]));
-    }
+    if (!card || !fab) return;
 
-    const listContainer = DOM.listContainer;
-    if (!listContainer) {
-        console.error('❌ repairs-list container not found!');
-        return;
-    }
+    const isHidden = card.classList.contains('hidden');
 
-    listContainer.innerHTML = '';
+    if (isHidden) {
+        card.classList.remove('hidden');
+        fab.classList.add('rotate-45');
+        fab.querySelector('i').classList.replace('ph-plus', 'ph-x');
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        card.classList.add('hidden');
+        fab.classList.remove('rotate-45');
+        fab.querySelector('i').classList.replace('ph-x', 'ph-plus');
 
-    // 1. Filtrado
-    const searchInput = document.getElementById('search-input');
-    const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
-
-    let filteredRepairs = repairs;
-    if (searchTerm) {
-        filteredRepairs = repairs.filter(r =>
-            (r.location && r.location.toLowerCase().includes(searchTerm)) ||
-            (r.description && r.description.toLowerCase().includes(searchTerm)) ||
-            (r.model && r.model.toLowerCase().includes(searchTerm))
-        );
-    }
-
-    console.log(`📋 Filtered repairs: ${filteredRepairs.length}`);
-
-    if (filteredRepairs.length === 0) {
-        listContainer.innerHTML = `
-            <div class="text-center p-8 text-gray-500">
-                <i class="ph ph-clipboard-text text-4xl mb-2"></i>
-                <p>No hay mantenimientos para mostrar.</p>
-            </div>
-        `;
-        return;
-    }
-
-    // 2. Ordenamiento: Prioridad (Alta > Media > Baja) -> Fecha (Ascendente)
-    filteredRepairs.sort((a, b) => {
-        const priorityOrder = { 'Alta': 1, 'Media': 2, 'Baja': 3 };
-        const pA = priorityOrder[a.priority] || 4;
-        const pB = priorityOrder[b.priority] || 4;
-
-        if (pA !== pB) return pA - pB;
-
-        // Si la prioridad es igual, ordenar por fecha (año, luego mes)
-        if (a.maintenance_year !== b.maintenance_year) {
-            return a.maintenance_year - b.maintenance_year;
+        // Si cerramos el formulario y estaba en modo edición, reseteamos
+        if (document.getElementById('repair-id').value) {
+            resetForm();
         }
-        return a.maintenance_month - b.maintenance_month;
-    });
-
-    // 3. Generación de Tarjetas
-    filteredRepairs.forEach(repair => {
-        const card = document.createElement('div');
-        card.className = 'repair-card p-4 rounded-xl shadow-sm border relative group cursor-pointer transition-all duration-200 hover:shadow-md';
-        // Estilos inline para asegurar consistencia con el tema
-        card.style.backgroundColor = 'var(--color-card-bg)';
-        card.style.borderColor = 'var(--color-border)';
-
-        // Determinar clases de estado y prioridad
-        const statusColors = {
-            'Pendiente': 'text-orange-500 bg-orange-100 dark:bg-orange-900/30',
-            'En Progreso': 'text-blue-500 bg-blue-100 dark:bg-blue-900/30',
-            'Completado': 'text-green-500 bg-green-100 dark:bg-green-900/30'
-        };
-        const statusClass = statusColors[repair.status] || 'text-gray-500 bg-gray-100';
-
-        const priorityColors = {
-            'Alta': 'text-red-500',
-            'Media': 'text-yellow-500',
-            'Baja': 'text-green-500'
-        };
-        const priorityColor = priorityColors[repair.priority] || 'text-gray-500';
-
-        card.innerHTML = `
-            <div class="flex justify-between items-start mb-2">
-                <h3 class="font-bold text-lg truncate pr-8" style="color: var(--color-text-primary);">${repair.location}</h3>
-                <span class="text-xs font-medium px-2 py-1 rounded-full ${statusClass}">
-                    ${repair.status}
-                </span>
-            </div>
-            
-            <div class="text-sm mb-3 space-y-1" style="color: var(--color-text-secondary);">
-                <p class="flex items-center gap-2">
-                    <i class="ph ph-calendar-blank"></i>
-                    ${getFormattedDate(repair.maintenance_month, repair.maintenance_year)}
-                </p>
-                <p class="flex items-center gap-2">
-                    <i class="ph ph-file-text"></i>
-                    ${repair.contract}
-                </p>
-            </div>
-
-            <div class="flex justify-between items-center mt-3 pt-3 border-t" style="border-color: var(--color-border);">
-                <span class="text-sm font-semibold ${priorityColor}">
-                    <i class="ph ph-warning-circle mr-1"></i> ${repair.priority}
-                </span>
-                
-                <div class="flex gap-2">
-                    <button class="action-btn map-btn p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-blue-500" 
-                            title="Ver ubicación" onclick="event.stopPropagation(); window.openMap('${repair.location}')">
-                        <i class="ph ph-map-pin text-lg"></i>
-                    </button>
-                    <button class="action-btn delete-btn p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-500" 
-                            title="Eliminar" onclick="event.stopPropagation(); window.deleteRepair('${repair.id}')">
-                        <i class="ph ph-trash text-lg"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-
-        // Evento de clic en toda la tarjeta para abrir detalles
-        card.addEventListener('click', () => showRepairDetailsModal(repair));
-
-        listContainer.appendChild(card);
-    });
+    }
 }
 
-// Listener para el input de búsqueda
-document.addEventListener('DOMContentLoaded', () => {
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-        searchInput.addEventListener('input', () => {
-            // Re-renderizar usando los datos cacheados, sin actualizar el mapa
-            renderRepairs(window.currentRepairsData, false);
-        });
-    }
-});
+// ====================================================================
+// INICIALIZACIÓN
+// ====================================================================
 
-// --- Ejecución al cargar la página (Igual que en Bills.js) ---
 window.addEventListener('load', () => {
+    // Aplicar tema guardado
     if (typeof window.applyColorMode === 'function') {
         window.applyColorMode();
     }
-    startRepairsModule();
+
+    // Listener para cambios de tema
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'portis-theme') {
+            if (typeof window.applyColorMode === 'function') {
+                window.applyColorMode();
+            }
+        }
+    });
+
+    // Inicializar autenticación y datos
+    checkAuthenticationAndSetup();
+
+    // Event listener para acciones de mantenimientos
+    const listContainer = document.getElementById('repairs-list');
+    if (listContainer) {
+        listContainer.addEventListener('click', handleRepairActions);
+    }
+
+    // Event listener para búsqueda
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            if (window.currentRepairsData) {
+                renderRepairs(window.currentRepairsData, false);
+            }
+        });
+    }
+
+    // Ejecutar al hacer scroll en la página y en el contenedor de mantenimientos
+    window.addEventListener('scroll', updateCardBorderOpacity);
+
+    const appContent = document.getElementById('app-content');
+    if (appContent) {
+        appContent.addEventListener('scroll', updateCardBorderOpacity);
+    }
+
+    // Escuchar scroll del contenedor interno de mantenimientos
+    const scrollContainer = document.querySelector('.card-container.inverted-split .card-inner-content');
+    if (scrollContainer) {
+        scrollContainer.addEventListener('scroll', updateCardBorderOpacity);
+    }
+
+    // Ejecutar una vez al cargar y al redimensionar
+    setTimeout(updateCardBorderOpacity, 100);
+    window.addEventListener('resize', updateCardBorderOpacity);
 });
