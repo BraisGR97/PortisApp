@@ -715,6 +715,7 @@
                 currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
                 renderCalendar();
                 updateSummary();
+                updateHolidayQuota();
             };
         }
 
@@ -723,6 +724,7 @@
                 currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
                 renderCalendar();
                 updateSummary();
+                updateHolidayQuota();
             };
         }
 

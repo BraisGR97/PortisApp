@@ -267,38 +267,6 @@ html.light-mode #geometric-wrapper {
 }
 
 .secondary-icon-btn:hover {
-    color: var(--color-accent-magenta);
-    border-color: var(--color-accent-magenta);
-    background-color: var(--color-bg-secondary);
-}
-
-/* ================================================================
-   NAVBARS
-   ================================================================ */
-
-#top-navbar {
-    background-color: var(--color-bg-glass);
-    border-bottom: 1px solid var(--color-border-light);
-    box-shadow: 0 0 25px var(--color-shadow-light);
-    border-radius: 0;
-}
-
-#bottom-navbar {
-    background-color: var(--color-bg-glass);
-    border-top: 1px solid var(--color-border-light);
-    box-shadow: 0 0 25px var(--color-shadow-light);
-}
-
-.navbar-title {
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.user-id-display {
-    font-size: 0.75rem;
-    color: var(--color-text-secondary);
     background-color: var(--color-bg-secondary);
     padding: 0.25rem 0.75rem;
     border-radius: 9999px;
@@ -525,6 +493,7 @@ html.light-mode #geometric-wrapper {
 .event-dot.vacation {
     background-color: #a855f7;
 }
+
 /* Dias del calendario */
 .calendar-day {
     font-size: 0.75rem !important;
