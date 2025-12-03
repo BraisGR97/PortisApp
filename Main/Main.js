@@ -1,304 +1,264 @@
 /**
  * ====================================================================
- * Main.js - Lógica Central de la Aplicación Portis (VERSION CORREGIDA)
+ * Main.js - Lógica Central de la Aplicación Portis
  * ====================================================================
  */
 
-(function () { // ⬅️ Inicia la IIFE para aislar el ámbito
+(function () {
+    // ====================================================================
+    // CONFIGURACIÓN Y VARIABLES GLOBALES
+    // ====================================================================
 
-    // ====================================
-    // 1. CONFIGURACIÓN LOCAL
-    // ====================================
-
-    // 🔑 Se usan las variables globales de window.config.js
-    const IS_MOCK_MODE = window.IS_MOCK_MODE;
-    const MOCK_USER_ID = window.MOCK_USER_ID;
-    const MOCK_USER_DISPLAY_NAME = window.MOCK_USER_DISPLAY_NAME || 'Administrador (MOCK)'; // Usamos la variable global
     const firebaseConfig = window.firebaseConfig;
+    let app;
+    let auth;
+    let db;
+    let userId = null;
 
-    const DOM = {};
+    // Estado de la navegación
+    let currentView = 'dashboard-view';
+    const views = ['dashboard-view', 'calendar-view', 'chat-view', 'maintenance-view'];
 
-    // 🔑 CLAVE: Variable de control para asegurar que la vista inicial solo cargue una vez
-    let isFirstLoadComplete = false;
+    // Variables para gestos táctiles (Swipe)
+    let touchStartX = 0;
+    let touchEndX = 0;
 
-    // 🚨 CLAVE CRÍTICA: Promesa para indicar que Firebase/Firestore está listo y asignado
+    // Promesa para indicar que Firebase está listo
     let resolveFirebaseReady;
     window.firebaseReadyPromise = new Promise(resolve => {
         resolveFirebaseReady = resolve;
     });
 
-    // ====================================
-    // 2. LÓGICA DE INICIALIZACIÓN CRÍTICA
-    // ====================================
+    // ====================================================================
+    // AUTENTICACIÓN Y SETUP
+    // ====================================================================
 
     /**
-     * 🔑 FUNCIÓN CRÍTICA: Inicializa la vista principal después de que window.db esté listo.
-     * Esto solo se llama una vez por carga de página, dentro del onAuthStateChanged o en MOCK.
-     */
-    function initializeModuleDependencies() {
-        if (isFirstLoadComplete) return; // Evita doble ejecución
-
-        console.log("Main.js: Inicializando módulos dependientes de la base de datos.");
-
-        // 1. Determinar la vista a cargar (última vista o dashboard)
-        const initialView = sessionStorage.getItem('last-view') || 'dashboard-view';
-
-        // 2. Cargar la vista. El tercer parámetro indica que es la carga inicial.
-        // Esto activará la inicialización de los datos (e.g., startRepairsModule)
-        // y ocultará la pantalla de carga.
-        window.switchView(initialView, true);
-
-        isFirstLoadComplete = true; // Bloquea futuras ejecuciones accidentales
-    }
-
-
-    /**
-     * 🔑 FUNCIÓN CRÍTICA: Configura el listener principal de Firebase Auth.
+     * Inicializa Firebase y configura el listener de autenticación.
      */
     async function setupAuthListener() {
-        if (IS_MOCK_MODE) {
-            console.warn("Main.js: Modo MOCK activado. Forzando usuario Admin.");
-            
-            // Asignamos el ID y el nombre del admin mock (CRÍTICO: Simula el estado de sesión)
-            sessionStorage.setItem('portis-user-identifier', MOCK_USER_ID);
-            sessionStorage.setItem('portis-user-display-name', MOCK_USER_DISPLAY_NAME);
-            window.IS_MOCK_MODE = true;
-            
-            // 🚨 CORRECCIÓN CLAVE 1: Resolvemos la promesa en Mock Mode.
-            // Esto permite que Repairs.js y otros módulos se inicialicen.
-            resolveFirebaseReady();
-            
-            // 🚨 CORRECCIÓN CLAVE 2: Llamamos a la inicialización de módulos.
-            // Esto cargará la vista y la UI.
-            displayUserName(); // Llamada para actualizar el DOM inmediatamente
-            initializeModuleDependencies();
-
-            return;
-        }
-
-        // --- Lógica de Firebase (Modo Normal) ---
-
-        if (typeof firebase === 'undefined' || !firebaseConfig) {
-            console.error("Firebase no está disponible. Verifique la configuración.");
+        if (!firebaseConfig) {
+            console.error("Configuración de Firebase no encontrada.");
             window.location.href = '../index.html';
             return;
         }
 
-        // 1. Inicialización y persistencia (v8/compat)
-        let authInstance = null;
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        authInstance = firebase.auth();
-        // Aseguramos la persistencia de la sesión
-        await authInstance.setPersistence(firebase.auth.Auth.Persistence.SESSION);
-
-        // 2. Listener de Estado de Autenticación (CRÍTICO)
-        authInstance.onAuthStateChanged((user) => {
-            if (user) {
-                // 🚨 ÉXITO: Sesión confirmada. Asignamos las instancias a WINDOW.
-                window.db = firebase.firestore();
-                window.auth = authInstance;
-                window.IS_MOCK_MODE = false;
-
-                // 🚨 CRÍTICO: Resolvemos la promesa para desbloquear scripts dependientes
-                resolveFirebaseReady();
-
-                const currentUserId = sessionStorage.getItem('portis-user-identifier');
-
-                if (!currentUserId || currentUserId !== user.uid) {
-                    sessionStorage.setItem('portis-user-identifier', user.uid);
-                    // No sobreescribimos el display name aquí si ya existe, solo si es la primera vez o cambia el user.
-                }
-
-                console.log(`Main.js: Sesión de usuario confirmada: ${user.uid}. DB y Auth asignados globalmente.`);
-                displayUserName(user.email); // Usar el email si no hay display name
-
-                // 🔑 Inicializar Módulos SOLO DESPUÉS de que window.db esté listo y solo una vez.
-                initializeModuleDependencies();
-
+        try {
+            if (!firebase.apps.length) {
+                app = firebase.initializeApp(firebaseConfig);
             } else {
-                // Sesión perdida o no activa.
-                sessionStorage.removeItem('portis-user-identifier');
-                sessionStorage.removeItem('portis-user-display-name');
-                console.warn("Main.js: Sesión no activa. Redirigiendo a login.");
-
-                // Forzamos la redirección 
-                window.location.href = '../index.html';
-            }
-        });
-    }
-
-    // ====================================
-    // 3. GESTIÓN DE VISTAS (NAVEGACIÓN)
-    // ====================================
-
-    /**
-     * Cambia la vista activa de la aplicación.
-     * @param {string} targetId - El ID de la vista a mostrar.
-     * @param {boolean} [isInitialLoad=false] - Indica si es la primera carga.
-     */
-    window.switchView = function (targetId, isInitialLoad = false) {
-        // 1. Ocultar todas las vistas
-        DOM.appViews.forEach(view => {
-            view.style.display = 'none';
-            view.classList.remove('active-view');
-        });
-
-        // 2. Mostrar la vista objetivo
-        const targetView = document.getElementById(targetId);
-        if (targetView) {
-            targetView.style.display = (targetId === 'dashboard-view') ? 'grid' : 'flex';
-            targetView.classList.add('active-view');
-
-            // Guardar la última vista
-            sessionStorage.setItem('last-view', targetId);
-
-            if (DOM.scrollableContent) {
-                DOM.scrollableContent.scrollTop = 0;
+                app = firebase.app();
             }
 
-            // 3. Actualizar el estado 'active' en la barra de navegación inferior
-            const navLinks = document.querySelectorAll('.nav-link');
-            navLinks.forEach(link => link.classList.remove('active'));
+            auth = firebase.auth();
+            db = firebase.firestore();
 
-            const activeLink = document.querySelector(`.nav-link[data-target="${targetId}"]`);
-            if (activeLink) {
-                activeLink.classList.add('active');
-            }
+            // Exponer instancias globalmente para otros módulos
+            window.db = db;
+            window.auth = auth;
 
-            // 4. Ejecutar lógica específica para la vista
-            if (targetId === 'calendar-view' && typeof window.initCalendar === 'function') {
-                window.initCalendar();
-            }
+            // Persistencia de sesión
+            await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
 
-            if (targetId === 'chat-view' && typeof window.initChat === 'function') {
-                window.initChat();
-            }
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    userId = user.uid;
+                    sessionStorage.setItem('portis-user-identifier', userId);
 
-            // 🚨 CORRECCIÓN CLAVE 3: Cambiamos window.initMaintenance a window.startRepairsModule
-            // para ser consistente con el Repairs.js corregido.
-            if (targetId === 'maintenance-view' && typeof window.initMaintenanceView === 'function') {
-                window.initMaintenanceView(); // <-- Asegúrate de usar este nombre
-            }
+                    // Actualizar UI con nombre de usuario
+                    const displayName = sessionStorage.getItem('portis-user-display-name') || user.email;
+                    const displayElement = document.getElementById('current-user-display');
+                    if (displayElement) displayElement.textContent = displayName;
 
-            // Ocultar pantalla de carga si estamos cargando la primera vista después de la autenticación
-            if (isInitialLoad) {
-                const loadingScreen = document.getElementById('loading-screen');
-                if (loadingScreen) loadingScreen.style.display = 'none';
-            }
-        }
-    }
+                    // Resolver promesa para módulos dependientes
+                    resolveFirebaseReady();
 
-    // ====================================
-    // 4. GESTIÓN DE SESIÓN Y USUARIO
-    // ====================================
+                    // Inicializar vista
+                    initializeView();
 
-    function displayUserName(defaultEmail) {
-        let username;
-        // La lógica de forzar "Admin" en MOCK ya está en Repairs.js,
-        // pero aquí establecemos el valor base global.
-        if (window.IS_MOCK_MODE) {
-            username = MOCK_USER_DISPLAY_NAME; 
-        } else {
-            // Usar el nombre guardado, si no, el email de la sesión de Firebase
-            username = sessionStorage.getItem('portis-user-display-name') || defaultEmail || 'Usuario';
-        }
+                } else {
+                    // No autenticado
+                    sessionStorage.removeItem('portis-user-identifier');
+                    window.location.href = '../index.html';
+                }
+            });
 
-        if (DOM.currentUserDisplay) {
-            DOM.currentUserDisplay.textContent = username;
+        } catch (error) {
+            console.error("Error al inicializar Firebase:", error);
         }
     }
 
     /**
-     * Cierra la sesión de Firebase y limpia la persistencia.
+     * Inicializa la vista correcta al cargar la aplicación.
      */
-    async function handleLogout() {
-        console.log(`${window.IS_MOCK_MODE ? 'MOCK MODE' : 'NORMAL MODE'}: Cerrando sesión...`);
+    function initializeView() {
+        // Recuperar última vista o usar dashboard por defecto
+        const lastView = sessionStorage.getItem('last-view') || 'dashboard-view';
+        switchView(lastView);
+    }
 
-        // 1. Limpieza de SessionStorage
-        sessionStorage.removeItem('portis-user-identifier');
-        sessionStorage.removeItem('portis-user-display-name');
-        sessionStorage.removeItem('last-view'); // También limpiamos la última vista
+    // ====================================================================
+    // NAVEGACIÓN Y SLIDER
+    // ====================================================================
 
-        // 2. Limpieza de configuración opcional
-        localStorage.removeItem('portis-theme');
+    /**
+     * Cambia la vista activa usando el slider.
+     * @param {string} targetViewId - ID de la vista a mostrar
+     */
+    window.switchView = function (targetViewId) {
+        const slider = document.getElementById('views-slider');
+        const viewIndex = views.indexOf(targetViewId);
 
-        // 3. Cierre de sesión de Firebase
-        if (!window.IS_MOCK_MODE && window.auth) {
-            try {
-                // Usamos la instancia global window.auth
-                await window.auth.signOut();
-                console.log("Sesión de Firebase cerrada y persistencia eliminada.");
-            } catch (error) {
-                console.error("Error al cerrar sesión de Firebase:", error);
+        if (viewIndex === -1 || !slider) return;
+
+        // Actualizar estado
+        currentView = targetViewId;
+        sessionStorage.setItem('last-view', targetViewId);
+
+        // Mover el slider
+        const translateX = -(viewIndex * 25); // 25% por cada vista (ya que son 4 vistas en 400% de ancho)
+        slider.style.transform = `translateX(${translateX}%)`;
+
+        // Actualizar botones de navegación
+        document.querySelectorAll('.nav-button').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.target === targetViewId) {
+                btn.classList.add('active');
+            }
+        });
+
+        // Inicializar módulos específicos según la vista
+        initializeModuleForView(targetViewId);
+    }
+
+    /**
+     * Inicializa el módulo correspondiente a la vista activa.
+     * @param {string} viewId - ID de la vista
+     */
+    function initializeModuleForView(viewId) {
+        switch (viewId) {
+            case 'calendar-view':
+                if (typeof window.initCalendar === 'function') window.initCalendar();
+                break;
+            case 'chat-view':
+                if (typeof window.initChat === 'function') window.initChat();
+                break;
+            case 'maintenance-view':
+                if (typeof window.initMaintenanceView === 'function') window.initMaintenanceView();
+                break;
+        }
+    }
+
+    // ====================================================================
+    // GESTOS TÁCTILES (SWIPE)
+    // ====================================================================
+
+    /**
+     * Maneja el gesto de swipe para cambiar de vista.
+     */
+    function handleSwipeGesture() {
+        const swipeThreshold = 50; // Distancia mínima para considerar swipe
+        const diffX = touchStartX - touchEndX;
+
+        if (Math.abs(diffX) > swipeThreshold) {
+            const currentIndex = views.indexOf(currentView);
+
+            if (diffX > 0) {
+                // Swipe izquierda -> Siguiente vista
+                if (currentIndex < views.length - 1) {
+                    switchView(views[currentIndex + 1]);
+                }
+            } else {
+                // Swipe derecha -> Vista anterior
+                if (currentIndex > 0) {
+                    switchView(views[currentIndex - 1]);
+                }
             }
         }
-
-        // 4. Redirección forzada al login
-        window.location.href = '../index.html';
     }
-    // Hacemos el logout accesible globalmente por si lo necesita otro script
-    window.handleLogout = handleLogout;
 
-    // ====================================
-    // 5. GESTIÓN DE MODALES
-    // ====================================
+    /**
+     * Inicializa los listeners para gestos táctiles.
+     */
+    function initializeSwipe() {
+        const content = document.getElementById('app-content');
+        if (!content) return;
 
-    // Hacemos las funciones de modal globales (se asume que Main.js es el gestor)
+        content.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        content.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipeGesture();
+        }, { passive: true });
+    }
+
+    // ====================================================================
+    // GESTIÓN DE SESIÓN
+    // ====================================================================
+
+    /**
+     * Cierra la sesión del usuario.
+     */
+    window.handleLogout = async function () {
+        try {
+            await auth.signOut();
+            sessionStorage.clear();
+            window.location.href = '../index.html';
+        } catch (error) {
+            console.error("Error al cerrar sesión:", error);
+        }
+    }
+
+    // ====================================================================
+    // GESTIÓN DE MODALES (Global)
+    // ====================================================================
+
     window.showModal = function (modalId) {
         const modal = document.getElementById(modalId);
         if (modal) {
-            modal.style.display = 'flex';
-            // Opcional: añadir clase para animación/transición
-            // modal.classList.add('is-active'); 
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
         }
     }
 
-    /**
-     * OCULTA un modal. Se renombra a closeModal para compatibilidad HTML/Calendar.js.
-     */
     window.closeModal = function (modalId) {
         const modal = document.getElementById(modalId);
         if (modal) {
-            // Opcional: quitar clase para animación/transición
-            // modal.classList.remove('is-active');
-            modal.style.display = 'none';
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
         }
     }
 
+    // ====================================================================
+    // INICIALIZACIÓN
+    // ====================================================================
 
-    // ====================================
-    // 6. INICIALIZACIÓN DE LA APP
-    // ====================================
-
-    /**
-     * Se ejecuta cuando el DOM está completamente cargado
-     */
-    document.addEventListener('DOMContentLoaded', async () => {
-        // 1. Inicializa las referencias DOM globales
-        DOM.appViews = document.querySelectorAll('.app-view');
-        DOM.navLinks = document.querySelectorAll('.nav-link');
-        DOM.scrollableContent = document.getElementById('scrollable-content');
-        DOM.currentUserDisplay = document.getElementById('current-user-display');
-
-        console.log(`Portis App Iniciada. Modo: ${window.IS_MOCK_MODE ? 'MOCK' : 'NORMAL (Firebase)'}`);
-
-        // 🔑 CORRECCIÓN DEL TEMA: Llama a la función de modo oscuro/claro inmediatamente
+    document.addEventListener('DOMContentLoaded', () => {
+        // Aplicar tema
         if (typeof window.applyColorMode === 'function') {
             window.applyColorMode();
-            console.log("Tema aplicado al cargar DOM.");
         }
 
-        // 2. Inicializar botones centralizados
+        // Inicializar botones (Buttons.js)
         if (typeof window.initializeButtons === 'function') {
             window.initializeButtons();
-        } else {
-            console.error("Buttons.js no se ha cargado correctamente.");
         }
 
-        // 3. 🚨 Configura el listener de autenticación. Este es el punto de inicio real.
-        await setupAuthListener();
+        // Configurar navegación por botones
+        document.querySelectorAll('.nav-button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const target = e.currentTarget.dataset.target;
+                if (target) switchView(target);
+            });
+        });
+
+        // Configurar swipe
+        initializeSwipe();
+
+        // Iniciar autenticación
+        setupAuthListener();
     });
 
-})(); // ⬅️ Fin de la IIFE
+})();

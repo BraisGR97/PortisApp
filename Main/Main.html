@@ -4,408 +4,419 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portis - Calendario de Jornada</title>
+    <title>PortisApp | Menú Principal</title>
 
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <link rel="stylesheet" href="Main.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+
+    <!-- Estilos personalizados -->
+    <link rel="stylesheet" href="./Main.css">
+
+    <!-- Script inline para evitar parpadeo (FOUC) al cambiar de tema -->
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem('portis-theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+
+            if (theme === 'light') {
+                document.documentElement.classList.add('light-mode');
+            } else {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
 </head>
 
-<body class="split-base" data-theme="light">
-
+<body class="antialiased">
     <div id="geometric-wrapper"></div>
 
-    <div id="app-container" class="flex items-center justify-center h-screen w-full p-0">
-
-        <section id="app-screen" class="screen w-full h-screen flex flex-col">
-
-            <nav id="top-navbar"
-                class="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-6 py-4 transition-transform duration-300">
-
-                <div class="flex items-center">
-                    <h1 class="text-2xl font-extrabold">Portis</h1>
-                    <span class="text-sm ml-4 hidden sm:block">Menú Principal</span>
+    <div class="app-layout">
+        <!-- Navbar Superior -->
+        <header id="top-navbar"
+            class="sticky top-0 z-40 p-4 flex justify-between items-center bg-opacity-95 backdrop-blur-sm">
+            <div class="flex items-center gap-2">
+                <div
+                    class="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-pink-600 flex items-center justify-center text-white font-bold">
+                    P
                 </div>
+                <h1 class="text-xl font-bold navbar-title">Portis</h1>
+            </div>
+            <div id="current-user-display" class="user-id-display">Cargando...</div>
+        </header>
 
-                <div class="flex items-center">
-                    <div class="text-sm mr-2 py-1 px-3 rounded-full font-semibold">
-                        <span id="current-user-display">Invitado</span>
-                    </div>
-                </div>
-            </nav>
+        <!-- Contenido Principal con Slider -->
+        <main id="app-content" class="overflow-hidden w-full max-w-4xl mx-auto relative">
 
-            <div id="app-message"
-                class="message-box message-success fixed top-20 left-1/2 -translate-x-1/2 z-[1000] w-[90%] md:w-auto opacity-0 invisible"
-                style="display: none;"></div>
+            <div id="views-slider">
 
-            <div id="scrollable-content" class="flex-grow pt-16 p-6 overflow-y-auto pb-20">
+                <!-- VISTA 1: DASHBOARD (Inicio) -->
+                <section id="dashboard-view" class="view-section">
+                    <div class="card-container">
+                        <div class="card-inner-content">
+                            <h2 class="text-2xl font-bold mb-6 flex items-center gap-2 card-title">
+                                <i class="ph ph-squares-four card-icon"></i>
+                                Menú Principal
+                            </h2>
 
-                <div id="dashboard-view"
-                    class="app-view active-view grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <a href="../Repairs/Repairs.html" class="dashboard-card group">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <div
+                                            class="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform">
+                                            <i class="ph ph-wrench text-2xl"></i>
+                                        </div>
+                                        <h3 class="font-bold text-lg">Mantenimientos</h3>
+                                    </div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Gestión de averías y
+                                        reparaciones activas.</p>
+                                </a>
 
-                    <a href="../Repairs/Repairs.html" id="dashboard-maintenance-link"
-                        class="p-6 rounded-xl transition hover:shadow-2xl hover:scale-[1.02] cursor-pointer block">
-                        <div class="text-xl font-bold mb-2 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-2" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                                <path d="M9 12l2 2 4-4" />
-                            </svg>
-                            Mantenimientos
-                        </div>
-                        <p>Lista de mantenimientos en activo y averías pendientes.</p>
-                        <span class="link-button mt-4 text-sm font-semibold inline-block">Ver Averías &rarr;</span>
-                    </a>
+                                <a href="../History/History.html" class="dashboard-card group">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <div
+                                            class="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+                                            <i class="ph ph-clock-counter-clockwise text-2xl"></i>
+                                        </div>
+                                        <h3 class="font-bold text-lg">Historial</h3>
+                                    </div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Registro histórico de trabajos
+                                        completados.</p>
+                                </a>
 
-                    <a href="../History/History.html"
-                        class="p-6 rounded-xl transition hover:shadow-2xl hover:scale-[1.02] cursor-pointer block">
-                        <div class="text-xl font-bold mb-2 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-2" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                                <path d="M16 2v4M8 2v4m-3 4h18m-7 8l-2 2-4-4" />
-                            </svg>
-                            Historial
-                        </div>
-                        <p>Lista de mantenimientos completados y averías reparadas.</p>
-                        <span class="link-button mt-4 text-sm font-semibold inline-block">Ver Historial &rarr;</span>
-                    </a>
+                                <a href="../Shared/Shared.html" class="dashboard-card group">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <div
+                                            class="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform">
+                                            <i class="ph ph-share-network text-2xl"></i>
+                                        </div>
+                                        <h3 class="font-bold text-lg">Compartidos</h3>
+                                    </div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Envía y recibe mantenimientos
+                                        con compañeros.</p>
+                                </a>
 
-                    <a href="../Shared/Shared.html"
-                        class="p-6 rounded-xl transition hover:shadow-2xl hover:scale-[1.02] cursor-pointer block">
-                        <div class="text-xl font-bold mb-2 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-2" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="18" cy="5" r="3" />
-                                <circle cx="6" cy="12" r="3" />
-                                <circle cx="18" cy="19" r="3" />
-                                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-                                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-                            </svg>
-                            Compartidas
-                        </div>
-                        <p>Lista de mantenimientos enviados y recibidos.</p>
-                        <span class="link-button mt-4 text-sm font-semibold inline-block">Ver Listas &rarr;</span>
-                    </a>
+                                <a href="../Bills/Bills.html" class="dashboard-card group">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <div
+                                            class="p-2 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform">
+                                            <i class="ph ph-currency-eur text-2xl"></i>
+                                        </div>
+                                        <h3 class="font-bold text-lg">Presupuesto</h3>
+                                    </div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Control de gastos y pagos
+                                        pendientes.</p>
+                                </a>
 
-                    <a href="../Bills/Bills.html"
-                        class="p-6 rounded-xl transition hover:shadow-2xl hover:scale-[1.02] cursor-pointer block">
-                        <div class="text-xl font-bold mb-2 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-2" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="12" y1="1" x2="12" y2="23" />
-                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                            </svg>
-                            Presupuesto
-                        </div>
-                        <p>Registro de dinero gastado y pagos pendientes.</p>
-                        <span class="link-button mt-4 text-sm font-semibold inline-block">Ver Gastos &rarr;</span>
-                    </a>
+                                <a href="../Notes/Notes.html" class="dashboard-card group">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <div
+                                            class="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 group-hover:scale-110 transition-transform">
+                                            <i class="ph ph-notepad text-2xl"></i>
+                                        </div>
+                                        <h3 class="font-bold text-lg">Notas</h3>
+                                    </div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Anotaciones personales rápidas.
+                                    </p>
+                                </a>
 
-                    <a href="../Notes/Notes.html"
-                        class="p-6 rounded-xl transition hover:shadow-2xl hover:scale-[1.02] cursor-pointer block">
-                        <div class="text-xl font-bold mb-2 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-2" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                                <line x1="16" y1="13" x2="8" y2="13"></line>
-                                <line x1="16" y1="17" x2="8" y2="17"></line>
-                                <polyline points="10 9 9 9 8 9"></polyline>
-                            </svg>
-                            Notas
-                        </div>
-                        <p>Registro manual de notas.</p>
-                        <span class="link-button mt-4 text-sm font-semibold inline-block">Ver Notas &rarr;</span>
-                    </a>
+                                <a href="../Profile/Profile.html" class="dashboard-card group">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <div
+                                            class="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 group-hover:scale-110 transition-transform">
+                                            <i class="ph ph-user text-2xl"></i>
+                                        </div>
+                                        <h3 class="font-bold text-lg">Perfil</h3>
+                                    </div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Tu información y configuración
+                                        de cuenta.</p>
+                                </a>
 
-                    <a href="../Profile/Profile.html"
-                        class="p-6 rounded-xl transition hover:shadow-2xl hover:scale-[1.02] cursor-pointer block">
-                        <div class="text-xl font-bold mb-2 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-2" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                                <circle cx="12" cy="7" r="4" />
-                            </svg>
-                            Perfil
-                        </div>
-                        <p>Administra tu información personal y cuenta.</p>
-                        <span class="link-button mt-4 text-sm font-semibold inline-block">Ir al Perfil &rarr;</span>
-                    </a>
-
-                    <a href="../Settings/Settings.html"
-                        class="p-6 rounded-xl transition hover:shadow-2xl hover:scale-[1.02] cursor-pointer block">
-                        <div class="text-xl font-bold mb-2 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-2" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path
-                                    d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2.73l-.15.1a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2.73l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-                                <circle cx="12" cy="12" r="3" />
-                            </svg>
-                            Ajustes
-                        </div>
-                        <p>Modifica las opciones generales de la aplicación.</p>
-                        <span class="link-button mt-4 text-sm font-semibold inline-block">Configurar &rarr;</span>
-                    </a>
-                </div>
-
-                <div id="calendar-view" class="app-view p-0 h-full flex flex-col" style="display: none;">
-                    <header class="flex justify-between items-center mb-0 px-0">
-                        <button id="prev-month-btn"
-                            class="text-xl p-2 rounded-full hover:bg-white/10 transition">&lt;</button>
-                        <h2 id="current-month-display" class="text-2xl font-bold"></h2>
-                        <button id="next-month-btn"
-                            class="text-xl p-2 rounded-full hover:bg-white/10 transition">&gt;</button>
-                    </header>
-
-                    <div id="summary-panel" class="mb-2 p-2 rounded-xl">
-                        <h3 id="summary-title" class="font-semibold mb-2 text-lg border-b pb-1">Resumen de Jornada
-                            (<span id="summary-year"></span>)</h3>
-                        <div id="summary-metrics-container" class="flex flex-col space-y-2 pt-0">
-                            <div class="flex justify-between items-center p-2 rounded-lg shadow-md">
-                                <div class="flex items-center">
-                                    <div class="w-2 h-2 rounded mr-3 bg-orange-600"></div>
-                                    <span class="text-xl font-bold">Horas Extra (Mes)</span>
-                                </div>
-                                <span id="summary-overtime" class="summary-value text-xl font-bold">0 h</span>
+                                <a href="../Settings/Settings.html" class="dashboard-card group">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <div
+                                            class="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 group-hover:scale-110 transition-transform">
+                                            <i class="ph ph-gear text-2xl"></i>
+                                        </div>
+                                        <h3 class="font-bold text-lg">Ajustes</h3>
+                                    </div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Configuración general de la
+                                        aplicación.</p>
+                                </a>
                             </div>
-                            <div class="flex justify-between items-center p-2 rounded-lg shadow-md">
-                                <div class="flex items-center">
-                                    <div class="w-2 h-2 rounded mr-3 bg-blue-600"></div>
-                                    <span class="text-xl font-bold">Guardias</span>
-                                </div>
-                                <div class="flex items-end">
-                                    <span id="summary-shifts-number"
-                                        class="summary-value text-xl font-bold mr-1">0</span>
-                                    <span id="summary-shifts-unit"
-                                        class="summary-unit text-xl font-bold">guardias</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VISTA 2: CALENDARIO -->
+                <section id="calendar-view" class="view-section">
+                    <div class="card-container">
+                        <div class="card-inner-content h-full flex flex-col">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-2xl font-bold flex items-center gap-2 card-title">
+                                    <i class="ph ph-calendar-check card-icon"></i>
+                                    Calendario
+                                </h2>
+                                <div class="flex gap-2">
+                                    <button id="prev-month-btn" class="secondary-icon-btn p-2 rounded-full">
+                                        <i class="ph ph-caret-left text-xl"></i>
+                                    </button>
+                                    <button id="next-month-btn" class="secondary-icon-btn p-2 rounded-full">
+                                        <i class="ph ph-caret-right text-xl"></i>
+                                    </button>
                                 </div>
                             </div>
-                            <div class="flex justify-between items-center p-2 rounded-lg shadow-md">
-                                <div class="flex items-center">
-                                    <div class="w-2 h-2 rounded mr-3 bg-green-600"></div>
-                                    <span class="text-xl font-bold">Festivos</span>
-                                </div>
-                                <div class="flex items-end">
-                                    <span id="summary-holidays-number"
-                                        class="summary-value text-xl font-bold mr-1">0</span>
-                                    <span id="summary-holidays-unit" class="summary-unit text-xl font-bold">días</span>
+
+                            <div id="summary-panel"
+                                class="mb-4 p-4 rounded-xl bg-opacity-50 border border-gray-200 dark:border-gray-700">
+                                <h3 id="current-month-display" class="text-xl font-bold mb-2 text-center capitalize">
+                                </h3>
+
+                                <div id="summary-metrics-container" class="grid grid-cols-2 gap-2 text-sm">
+                                    <div
+                                        class="p-2 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-900/30">
+                                        <span class="block text-xs text-gray-500 dark:text-gray-400">Horas Extra</span>
+                                        <span id="summary-overtime"
+                                            class="text-lg font-bold text-orange-600 dark:text-orange-400">0 h</span>
+                                    </div>
+                                    <div
+                                        class="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30">
+                                        <span class="block text-xs text-gray-500 dark:text-gray-400">Guardias</span>
+                                        <span id="summary-shifts-number"
+                                            class="text-lg font-bold text-blue-600 dark:text-blue-400">0</span>
+                                    </div>
+                                    <div
+                                        class="p-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30">
+                                        <span class="block text-xs text-gray-500 dark:text-gray-400">Festivos</span>
+                                        <span id="summary-holidays-number"
+                                            class="text-lg font-bold text-green-600 dark:text-green-400">0</span>
+                                    </div>
+                                    <div
+                                        class="p-2 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-900/30">
+                                        <span class="block text-xs text-gray-500 dark:text-gray-400">Vacaciones</span>
+                                        <span id="summary-vacation-quota"
+                                            class="text-lg font-bold text-purple-600 dark:text-purple-400">28
+                                            días</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="flex justify-between items-center p-2 rounded-lg shadow-md">
-                                <div class="flex items-center">
-                                    <div class="w-2 h-2 rounded mr-3 bg-purple-600"></div>
-                                    <span class="text-xl font-bold">Vacaciones</span>
-                                </div>
-                                <span id="summary-vacation-quota" class="summary-value text-xl font-bold">28 días</span>
+
+                            <div id="calendar-week-days"
+                                class="grid grid-cols-7 gap-1 text-center mb-2 font-semibold text-xs text-gray-500 uppercase">
+                                <div>Lun</div>
+                                <div>Mar</div>
+                                <div>Mié</div>
+                                <div>Jue</div>
+                                <div>Vie</div>
+                                <div>Sáb</div>
+                                <div>Dom</div>
+                            </div>
+                            <div id="calendar-grid" class="grid grid-cols-7 gap-1 flex-grow overflow-y-auto">
+                                <!-- Días del calendario generados por JS -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VISTA 3: CHAT -->
+                <section id="chat-view" class="view-section">
+                    <div class="card-container">
+                        <div class="card-inner-content h-full flex flex-col">
+                            <h2 class="text-2xl font-bold mb-4 flex items-center gap-2 card-title">
+                                <i class="ph ph-chats-circle card-icon"></i>
+                                Mensajes
+                            </h2>
+
+                            <div id="user-list-container" class="space-y-3 overflow-y-auto flex-grow">
+                                <div class="loading-spinner"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VISTA 4: MANTENIMIENTOS (Resumen) -->
+                <section id="maintenance-view" class="view-section">
+                    <div class="card-container">
+                        <div class="card-inner-content h-full flex flex-col">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-2xl font-bold flex items-center gap-2 card-title">
+                                    <i class="ph ph-list-checks card-icon"></i>
+                                    Pendientes
+                                </h2>
+                                <button onclick="window.toggleMaintenanceSearch()"
+                                    class="secondary-icon-btn p-2 rounded-full" title="Buscar">
+                                    <i class="ph ph-magnifying-glass text-xl"></i>
+                                </button>
                             </div>
 
+                            <div id="maintenance-search-container" class="hidden mb-4 transition-all duration-300">
+                                <div class="relative">
+                                    <i
+                                        class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                    <input id="maintenance-search-input" type="text"
+                                        placeholder="Buscar por ubicación o descripción..."
+                                        class="minimal-input w-full pl-10">
+                                </div>
+                            </div>
+
+                            <div id="maintenance-summary"
+                                class="mb-4 p-4 rounded-xl bg-opacity-50 border border-gray-200 dark:border-gray-700">
+                                <h3 class="font-semibold mb-1 text-sm text-gray-500 dark:text-gray-400 uppercase">
+                                    Resumen Mensual</h3>
+                                <p class="text-3xl font-bold text-center py-2"><span id="monthly-count"
+                                        class="text-accent-magenta">0</span> <span
+                                        class="text-lg font-normal text-gray-500">tareas</span></p>
+                                <p id="current-maintenance-month-year" class="text-center text-xs text-gray-400"></p>
+                            </div>
+
+                            <div id="monthly-maintenance-list" class="space-y-3 flex-grow overflow-y-auto">
+                                <div class="loading-spinner"></div>
+                            </div>
+
+                            <p id="no-maintenance-message" class="text-center mt-8 text-gray-500 hidden">
+                                No hay mantenimientos activos asignados a ti para este mes.
+                            </p>
                         </div>
                     </div>
+                </section>
 
-                    <div id="calendar-week-days" class="grid grid-cols-7 gap-1 text-center mb-1 font-semibold text-sm">
-                        <div>Lun</div>
-                        <div>Mar</div>
-                        <div>Mié</div>
-                        <div>Jue</div>
-                        <div>Vie</div>
-                        <div>Sáb</div>
-                        <div>Dom</div>
-                    </div>
-                    <div id="calendar-grid" class="grid grid-cols-7 gap-1 flex-grow">
-                    </div>
-                </div>
-
-                <div id="chat-view" class="app-view p-0 h-full flex flex-col" style="display: none;">
-                    <header class="flex justify-between items-center mb-6 px-0">
-                        <h2 class="text-2xl font-bold">Contactos de Chat</h2>
-                    </header>
-                    <div id="user-list-container" class="space-y-4">
-                    </div>
-                </div>
-
-                <div id="maintenance-view" class="app-view p-0 h-full flex flex-col" style="display: none;">
-                    <header class="flex justify-between items-center mb-6 px-0">
-                        <h2 class="text-2xl font-bold">Mantenimientos Pendientes</h2>
-                        <button onclick="window.toggleMaintenanceSearch()" class="secondary-icon-btn p-2 rounded-full"
-                            title="Buscar">
-                            <i class="ph ph-magnifying-glass text-xl"></i>
-                        </button>
-                    </header>
-
-                    <div id="maintenance-search-container" class="hidden mb-4 transition-all duration-300">
-                        <div class="relative">
-                            <i
-                                class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                            <input id="maintenance-search-input" type="text"
-                                placeholder="Buscar por ubicación o descripción..." class="minimal-input w-full pl-10">
-                        </div>
-                    </div>
-
-                    <div id="maintenance-summary" class="mb-4 p-4 rounded-xl">
-                        <h3 class="font-semibold mb-2">Resumen Mensual (<span
-                                id="current-maintenance-month-year"></span>)</h3>
-                        <p class="text-3xl font-bold"><span id="monthly-count">0</span> tareas asignadas</p>
-                    </div>
-                    <div id="monthly-maintenance-list" class="space-y-4 flex-grow">
-                    </div>
-                    <p id="no-maintenance-message" class="text-center mt-8 text-gray-500" style="display: none;">No hay
-                        mantenimientos activos asignados a ti para este mes.</p>
-                </div>
             </div>
 
-            <footer id="bottom-navbar"
-                class="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-6 py-3 rounded-t-2xl">
+        </main>
 
-                <button id="nav-maintenance-btn" class="nav-icon-btn nav-link" data-target="maintenance-view">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                        <path d="M9 12l2 2 4-4" />
-                    </svg>
+        <!-- Barra de Navegación Inferior -->
+        <footer id="bottom-navbar" class="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md bg-opacity-95 shadow-2xl">
+            <div class="w-full max-w-lg mx-auto flex justify-around items-center h-16 px-4">
+
+                <button id="nav-home-btn" data-target="dashboard-view" class="nav-button active" title="Inicio">
+                    <i class="ph ph-squares-four text-2xl"></i>
                 </button>
 
-                <button id="nav-messages-btn" class="nav-icon-btn nav-link" data-target="chat-view">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                    </svg>
+                <button id="nav-calendar-btn" data-target="calendar-view" class="nav-button" title="Calendario">
+                    <i class="ph ph-calendar-check text-2xl"></i>
                 </button>
 
-                <button id="nav-home-btn" class="nav-icon-btn nav-link active" data-target="dashboard-view">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                        <polyline points="9 22 9 12 15 12 15 22" />
-                    </svg>
+                <button id="nav-messages-btn" data-target="chat-view" class="nav-button" title="Chat">
+                    <i class="ph ph-chat-circle-text text-2xl"></i>
                 </button>
 
-                <button id="nav-calendar-btn" class="nav-icon-btn nav-link" data-target="calendar-view">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
-                        <line x1="16" y1="2" x2="16" y2="6" />
-                        <line x1="8" y1="2" x2="8" y2="6" />
-                        <line x1="3" y1="10" x2="21" y2="10" />
-                    </svg>
+                <button id="nav-maintenance-btn" data-target="maintenance-view" class="nav-button" title="Pendientes">
+                    <i class="ph ph-list-checks text-2xl"></i>
                 </button>
 
-                <button id="logout-btn" class="nav-icon-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                        <polyline points="16 17 21 12 16 7" />
-                        <line x1="21" y1="12" x2="9" y2="12" />
-                    </svg>
+                <button id="logout-btn" class="nav-button text-red-500" title="Cerrar Sesión">
+                    <i class="ph ph-sign-out text-2xl"></i>
                 </button>
 
-            </footer>
-
-        </section>
-
-        <div id="logout-confirmation-modal"
-            class="fixed inset-0 z-[100] hidden items-center justify-center p-4 modal-backdrop">
-            <div class="modal-content w-full max-w-sm rounded-xl p-6 text-center">
-                <h3 class="text-xl font-bold mb-4">¿Estás seguro?</h3>
-                <p class="mb-6 text-sm">Esto cerrará tu sesión en el dispositivo.</p>
-                <div class="flex justify-center space-x-4">
-                    <button id="cancel-logout-btn" class="py-2 px-4 rounded-lg font-semibold">
-                        Cancelar
-                    </button>
-                    <button id="confirm-logout-btn" class="primary-btn py-2 px-4 rounded-lg">
-                        Cerrar Sesión
-                    </button>
-                </div>
             </div>
-        </div>
+        </footer>
+    </div>
 
-        <div id="event-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 modal-backdrop"
-            onclick="closeModal('event-modal')">
-            <div class="modal-content w-full max-w-sm rounded-xl p-6 text-center" onclick="event.stopPropagation()">
-                <h3 class="text-xl font-bold mb-4">Seleccionar Evento</h3>
-                <p id="modal-date-display" class="mb-6 text-sm"></p>
+    <!-- MODALES (Fuera del slider) -->
 
-                <div id="event-options-container" class="space-y-3">
-                </div>
-
-                <button onclick="closeModal('event-modal')" class="py-2 px-4 rounded-lg font-semibold mt-6 w-full">
-                    Cerrar
-                </button>
-            </div>
-        </div>
-
-        <div id="overtime-modal" class="fixed inset-0 z-[110] hidden items-center justify-center p-4 modal-backdrop"
-            onclick="closeModal('overtime-modal')">
-            <div class="modal-content w-full max-w-xs rounded-xl p-6 text-center" onclick="event.stopPropagation()">
-                <h3 class="text-xl font-bold mb-4">Registrar Horas Extra</h3>
-                <p class="mb-4 text-sm">Introduce las horas (ej: 1, 1.5, 8):</p>
-
-                <input type="number" id="overtime-input" min="0.5" step="0.5" value="1"
-                    class="w-full minimal-input text-center text-lg font-bold mb-6">
-
-                <button onclick="saveOvertimeHours()" class="primary-btn py-2 px-4 rounded-lg w-full mb-3">
-                    Guardar Horas
-                </button>
-                <button onclick="goBackToEventModal()"
-                    class="w-full text-sm text-gray-400 hover:text-white transition-colors">
-                    Volver
-                </button>
-            </div>
-        </div>
-
-        <div id="message-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 modal-backdrop"
-            onclick="closeModal('message-modal')">
-            <div class="modal-content w-full max-w-lg h-full max-h-[90vh] rounded-xl p-0 flex flex-col"
-                onclick="event.stopPropagation()">
-
-                <div class="flex items-center justify-between p-4">
-                    <button id="close-chat-modal-btn" onclick="closeChatModal('message-modal')"
-                        class="text-2xl p-2 rounded-full hover:bg-white/10 transition">&lt;</button>
-                    <h3 id="chat-recipient-name" class="text-xl font-bold mr-auto ml-4"></h3>
-                </div>
-
-                <div id="chat-messages-container" class="flex-grow p-4 overflow-y-auto space-y-3 message-list">
-                </div>
-
-                <!-- Main.html -->
-                <div class="p-3 flex items-center gap-2">
-                    <input type="file" id="chat-image-input" accept="image/*" class="hidden">
-
-                    <!-- Botón Imagen: Añadido !p-3 y flex-shrink-0 -->
-                    <button id="chat-image-btn"
-                        class="secondary-btn !p-3 rounded-full flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex-shrink-0"
-                        title="Enviar imagen">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                            <circle cx="8.5" cy="8.5" r="1.5" />
-                            <polyline points="21 15 16 10 5 21" />
-                        </svg>
-                    </button>
-
-                    <!-- Input Texto: Añadido min-w-0 -->
-                    <input type="text" id="chat-input" placeholder="Escribe un mensaje..."
-                        class="minimal-input flex-grow py-2 px-4 rounded-full min-w-0">
-
-                    <!-- Botón Enviar: Añadido !p-3 y flex-shrink-0 -->
-                    <button id="send-message-btn"
-                        class="primary-btn !p-3 rounded-full flex items-center justify-center flex-shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="22" y1="2" x2="11" y2="13" />
-                            <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                        </svg>
-                    </button>
-                </div>
+    <!-- Modal Confirmación Logout -->
+    <div id="logout-confirmation-modal"
+        class="fixed inset-0 z-[100] hidden items-center justify-center p-4 modal-backdrop">
+        <div class="modal-content w-full max-w-sm rounded-xl p-6 text-center">
+            <h3 class="text-xl font-bold mb-4">¿Cerrar Sesión?</h3>
+            <p class="mb-6 text-sm text-gray-500">Tendrás que volver a iniciar sesión para acceder.</p>
+            <div class="flex justify-center space-x-4">
+                <button id="cancel-logout-btn" class="secondary-btn w-1/2">Cancelar</button>
+                <button id="confirm-logout-btn"
+                    class="primary-btn w-1/2 bg-red-600 hover:bg-red-700 border-none">Salir</button>
             </div>
         </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
+    <!-- Modal Evento Calendario -->
+    <div id="event-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 modal-backdrop"
+        onclick="closeModal('event-modal')">
+        <div class="modal-content w-full max-w-sm rounded-xl p-6 text-center" onclick="event.stopPropagation()">
+            <h3 class="text-xl font-bold mb-2">Gestionar Día</h3>
+            <p id="modal-date-display" class="mb-6 text-sm text-accent-magenta font-semibold"></p>
+
+            <div id="event-options-container" class="space-y-3">
+                <!-- Opciones generadas por JS -->
+            </div>
+
+            <button onclick="closeModal('event-modal')" class="secondary-btn w-full mt-6">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- Modal Horas Extra -->
+    <div id="overtime-modal" class="fixed inset-0 z-[110] hidden items-center justify-center p-4 modal-backdrop"
+        onclick="closeModal('overtime-modal')">
+        <div class="modal-content w-full max-w-xs rounded-xl p-6 text-center" onclick="event.stopPropagation()">
+            <h3 class="text-xl font-bold mb-4">Registrar Horas Extra</h3>
+            <p class="mb-4 text-sm text-gray-500">Introduce las horas realizadas:</p>
+
+            <div class="flex items-center justify-center gap-4 mb-6">
+                <button onclick="adjustOvertime(-0.5)" class="secondary-icon-btn p-2 rounded-full"><i
+                        class="ph ph-minus"></i></button>
+                <input type="number" id="overtime-input" min="0" step="0.5" value="1"
+                    class="w-20 text-center text-2xl font-bold bg-transparent border-none focus:ring-0">
+                <button onclick="adjustOvertime(0.5)" class="secondary-icon-btn p-2 rounded-full"><i
+                        class="ph ph-plus"></i></button>
+            </div>
+
+            <button onclick="saveOvertimeHours()" class="primary-btn w-full mb-3">Guardar</button>
+            <button onclick="goBackToEventModal()"
+                class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">Volver</button>
+        </div>
+    </div>
+
+    <!-- Modal Chat -->
+    <div id="message-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-0 sm:p-4 modal-backdrop"
+        onclick="closeModal('message-modal')">
+        <div class="modal-content w-full h-full sm:h-[80vh] max-w-lg rounded-none sm:rounded-xl flex flex-col overflow-hidden"
+            onclick="event.stopPropagation()">
+
+            <div
+                class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-opacity-95 backdrop-blur-sm">
+                <button onclick="closeChatModal('message-modal')" class="secondary-icon-btn p-2 rounded-full">
+                    <i class="ph ph-arrow-left text-xl"></i>
+                </button>
+                <h3 id="chat-recipient-name" class="text-lg font-bold mx-auto">Chat</h3>
+                <div class="w-10"></div> <!-- Espaciador para centrar título -->
+            </div>
+
+            <div id="chat-messages-container"
+                class="flex-grow p-4 overflow-y-auto space-y-3 bg-gray-50 dark:bg-gray-900/50">
+                <!-- Mensajes -->
+            </div>
+
+            <div
+                class="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1f1f33] flex items-center gap-2">
+                <input type="file" id="chat-image-input" accept="image/*" class="hidden">
+
+                <button id="chat-image-btn" class="secondary-icon-btn p-3 rounded-full flex-shrink-0"
+                    title="Enviar imagen">
+                    <i class="ph ph-image text-xl"></i>
+                </button>
+
+                <input type="text" id="chat-input" placeholder="Escribe un mensaje..."
+                    class="minimal-input flex-grow py-2 px-4 rounded-full min-w-0 border-gray-200 dark:border-gray-700">
+
+                <button id="send-message-btn"
+                    class="primary-btn !p-3 rounded-full flex items-center justify-center flex-shrink-0 shadow-none">
+                    <i class="ph ph-paper-plane-right text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
     <script src="../Config/Config.js"></script>
     <script src="../Config/Buttons.js"></script>
     <script src="Main.js"></script>

@@ -308,6 +308,9 @@ function resetForm() {
     // Establecer prioridad por defecto en Baja
     document.getElementById('priority').value = 'Baja';
 
+    // Establecer mes y año actuales
+    setCurrentDate();
+
     // Ocultar campos de contacto
     const contactCheckbox = document.getElementById('contact_checkbox');
     contactCheckbox.checked = false;
@@ -319,6 +322,18 @@ function resetForm() {
     `;
     document.getElementById('save-repair-btn').innerHTML = '<i class="ph ph-floppy-disk mr-2"></i> Guardar Mantenimiento';
     document.getElementById('cancel-edit-btn').classList.add('hidden');
+}
+
+/**
+ * Establece el mes y año actuales en los campos del formulario.
+ */
+function setCurrentDate() {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1; // getMonth() devuelve 0-11
+    const currentYear = now.getFullYear();
+
+    document.getElementById('month').value = currentMonth;
+    document.getElementById('year').value = currentYear;
 }
 
 // ====================================================================
@@ -565,6 +580,9 @@ window.addEventListener('load', () => {
             }
         }
     });
+
+    // Establecer fecha actual en los campos del formulario
+    setCurrentDate();
 
     // Inicializar autenticación y datos
     checkAuthenticationAndSetup();
