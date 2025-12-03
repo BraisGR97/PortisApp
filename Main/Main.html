@@ -61,7 +61,77 @@
 
             <div id="views-slider">
 
-                <!-- VISTA 1: DASHBOARD (Inicio) -->
+                <!-- VISTA 1: CALENDARIO -->
+                <section id="calendar-view" class="view-section">
+                    <div class="card-container">
+                        <div class="card-inner-content h-full flex flex-col">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-2xl font-bold flex items-center gap-2 card-title">
+                                    <i class="ph ph-calendar-check card-icon"></i>
+                                    Calendario
+                                </h2>
+                                <div class="flex gap-2">
+                                    <button id="prev-month-btn" class="secondary-icon-btn p-2 rounded-full">
+                                        <i class="ph ph-caret-left text-xl"></i>
+                                    </button>
+                                    <button id="next-month-btn" class="secondary-icon-btn p-2 rounded-full">
+                                        <i class="ph ph-caret-right text-xl"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="summary-panel"
+                                class="mb-4 p-4 rounded-xl bg-opacity-50 border border-gray-200 dark:border-gray-700">
+                                <h3 id="current-month-display" class="text-xl font-bold mb-2 text-center capitalize">
+                                </h3>
+
+                                <div id="summary-metrics-container" class="grid grid-cols-2 gap-2 text-sm">
+                                    <div
+                                        class="p-2 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-900/30">
+                                        <span class="block text-xs text-gray-500 dark:text-gray-400">Horas Extra</span>
+                                        <span id="summary-overtime"
+                                            class="text-lg font-bold text-orange-600 dark:text-orange-400">0 h</span>
+                                    </div>
+                                    <div
+                                        class="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30">
+                                        <span class="block text-xs text-gray-500 dark:text-gray-400">Guardias</span>
+                                        <span id="summary-shifts-number"
+                                            class="text-lg font-bold text-blue-600 dark:text-blue-400">0</span>
+                                    </div>
+                                    <div
+                                        class="p-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30">
+                                        <span class="block text-xs text-gray-500 dark:text-gray-400">Festivos</span>
+                                        <span id="summary-holidays-number"
+                                            class="text-lg font-bold text-green-600 dark:text-green-400">0</span>
+                                    </div>
+                                    <div
+                                        class="p-2 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-900/30">
+                                        <span class="block text-xs text-gray-500 dark:text-gray-400">Vacaciones</span>
+                                        <span id="summary-vacation-quota"
+                                            class="text-lg font-bold text-purple-600 dark:text-purple-400">28
+                                            días</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="calendar-week-days"
+                                class="grid grid-cols-7 gap-1 text-center mb-2 font-semibold text-xs uppercase">
+                                <div class="text-gray-500">Lun</div>
+                                <div class="text-gray-500">Mar</div>
+                                <div class="text-gray-500">Mié</div>
+                                <div class="text-gray-500">Jue</div>
+                                <div class="text-gray-500">Vie</div>
+                                <div class="text-accent-magenta">Sáb</div>
+                                <div class="text-accent-magenta">Dom</div>
+                            </div>
+                            <div id="calendar-grid" class="grid grid-cols-7 gap-1 flex-grow overflow-y-auto">
+                                <!-- Días del calendario generados por JS -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VISTA 2: DASHBOARD (Inicio) - VISTA POR DEFECTO -->
                 <section id="dashboard-view" class="view-section">
                     <div class="card-container">
                         <div class="card-inner-content">
@@ -159,76 +229,6 @@
                     </div>
                 </section>
 
-                <!-- VISTA 2: CALENDARIO -->
-                <section id="calendar-view" class="view-section">
-                    <div class="card-container">
-                        <div class="card-inner-content h-full flex flex-col">
-                            <div class="flex justify-between items-center mb-4">
-                                <h2 class="text-2xl font-bold flex items-center gap-2 card-title">
-                                    <i class="ph ph-calendar-check card-icon"></i>
-                                    Calendario
-                                </h2>
-                                <div class="flex gap-2">
-                                    <button id="prev-month-btn" class="secondary-icon-btn p-2 rounded-full">
-                                        <i class="ph ph-caret-left text-xl"></i>
-                                    </button>
-                                    <button id="next-month-btn" class="secondary-icon-btn p-2 rounded-full">
-                                        <i class="ph ph-caret-right text-xl"></i>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div id="summary-panel"
-                                class="mb-4 p-4 rounded-xl bg-opacity-50 border border-gray-200 dark:border-gray-700">
-                                <h3 id="current-month-display" class="text-xl font-bold mb-2 text-center capitalize">
-                                </h3>
-
-                                <div id="summary-metrics-container" class="grid grid-cols-2 gap-2 text-sm">
-                                    <div
-                                        class="p-2 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-900/30">
-                                        <span class="block text-xs text-gray-500 dark:text-gray-400">Horas Extra</span>
-                                        <span id="summary-overtime"
-                                            class="text-lg font-bold text-orange-600 dark:text-orange-400">0 h</span>
-                                    </div>
-                                    <div
-                                        class="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30">
-                                        <span class="block text-xs text-gray-500 dark:text-gray-400">Guardias</span>
-                                        <span id="summary-shifts-number"
-                                            class="text-lg font-bold text-blue-600 dark:text-blue-400">0</span>
-                                    </div>
-                                    <div
-                                        class="p-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30">
-                                        <span class="block text-xs text-gray-500 dark:text-gray-400">Festivos</span>
-                                        <span id="summary-holidays-number"
-                                            class="text-lg font-bold text-green-600 dark:text-green-400">0</span>
-                                    </div>
-                                    <div
-                                        class="p-2 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-900/30">
-                                        <span class="block text-xs text-gray-500 dark:text-gray-400">Vacaciones</span>
-                                        <span id="summary-vacation-quota"
-                                            class="text-lg font-bold text-purple-600 dark:text-purple-400">28
-                                            días</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div id="calendar-week-days"
-                                class="grid grid-cols-7 gap-1 text-center mb-2 font-semibold text-xs text-gray-500 uppercase">
-                                <div>Lun</div>
-                                <div>Mar</div>
-                                <div>Mié</div>
-                                <div>Jue</div>
-                                <div>Vie</div>
-                                <div>Sáb</div>
-                                <div>Dom</div>
-                            </div>
-                            <div id="calendar-grid" class="grid grid-cols-7 gap-1 flex-grow overflow-y-auto">
-                                <!-- Días del calendario generados por JS -->
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
                 <!-- VISTA 3: CHAT -->
                 <section id="chat-view" class="view-section">
                     <div class="card-container">
@@ -299,12 +299,12 @@
         <footer id="bottom-navbar" class="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md bg-opacity-95 shadow-2xl">
             <div class="w-full max-w-lg mx-auto flex justify-around items-center h-16 px-4">
 
-                <button id="nav-home-btn" data-target="dashboard-view" class="nav-button active" title="Inicio">
-                    <i class="ph ph-squares-four text-2xl"></i>
-                </button>
-
                 <button id="nav-calendar-btn" data-target="calendar-view" class="nav-button" title="Calendario">
                     <i class="ph ph-calendar-check text-2xl"></i>
+                </button>
+
+                <button id="nav-home-btn" data-target="dashboard-view" class="nav-button active" title="Inicio">
+                    <i class="ph ph-squares-four text-2xl"></i>
                 </button>
 
                 <button id="nav-messages-btn" data-target="chat-view" class="nav-button" title="Chat">
@@ -332,9 +332,9 @@
             <h3 class="text-xl font-bold mb-4">¿Cerrar Sesión?</h3>
             <p class="mb-6 text-sm text-gray-500">Tendrás que volver a iniciar sesión para acceder.</p>
             <div class="flex justify-center space-x-4">
-                <button id="cancel-logout-btn" class="secondary-btn w-1/2">Cancelar</button>
+                <button id="cancel-logout-btn" class="secondary-btn w-1/2 rounded-lg">Cancelar</button>
                 <button id="confirm-logout-btn"
-                    class="primary-btn w-1/2 bg-red-600 hover:bg-red-700 border-none">Salir</button>
+                    class="primary-btn w-1/2 bg-red-600 hover:bg-red-700 border-none rounded-lg">Salir</button>
             </div>
         </div>
     </div>
@@ -350,7 +350,7 @@
                 <!-- Opciones generadas por JS -->
             </div>
 
-            <button onclick="closeModal('event-modal')" class="secondary-btn w-full mt-6">Cerrar</button>
+            <button onclick="closeModal('event-modal')" class="secondary-btn w-full mt-6 rounded-lg">Cerrar</button>
         </div>
     </div>
 
@@ -370,7 +370,7 @@
                         class="ph ph-plus"></i></button>
             </div>
 
-            <button onclick="saveOvertimeHours()" class="primary-btn w-full mb-3">Guardar</button>
+            <button onclick="saveOvertimeHours()" class="primary-btn w-full mb-3 rounded-lg">Guardar</button>
             <button onclick="goBackToEventModal()"
                 class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">Volver</button>
         </div>

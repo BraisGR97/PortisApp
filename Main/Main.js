@@ -15,9 +15,9 @@
     let db;
     let userId = null;
 
-    // Estado de la navegación
-    let currentView = 'dashboard-view';
-    const views = ['dashboard-view', 'calendar-view', 'chat-view', 'maintenance-view'];
+    // Estado de la navegación - Dashboard en el centro (posición 1 del array)
+    let currentView = 'dashboard-view'; // Vista por defecto
+    const views = ['calendar-view', 'dashboard-view', 'chat-view', 'maintenance-view'];
 
     // Variables para gestos táctiles (Swipe)
     let touchStartX = 0;
@@ -129,6 +129,9 @@
 
         // Inicializar módulos específicos según la vista
         initializeModuleForView(targetViewId);
+
+        // Actualizar efecto de borde en tarjetas
+        setTimeout(updateCardBorderOpacity, 100);
     }
 
     /**
@@ -195,6 +198,34 @@
     }
 
     // ====================================================================
+    // EFECTOS VISUALES
+    // ====================================================================
+
+    /**
+     * Actualiza la opacidad del borde superior de las tarjetas según el scroll.
+     */
+    function updateCardBorderOpacity() {
+        const elements = document.querySelectorAll('.card-container');
+        const viewportHeight = window.innerHeight;
+
+        elements.forEach(element => {
+            const rect = element.getBoundingClientRect();
+            const elementTop = rect.top;
+            const elementHeight = rect.height;
+
+            let opacity = 0;
+
+            if (elementTop < viewportHeight && elementTop > -elementHeight) {
+                const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
+                opacity = 1 - normalizedPosition;
+                opacity = 0.2 + (opacity * 0.8);
+            }
+
+            element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
+        });
+    }
+
+    // ====================================================================
     // GESTIÓN DE SESIÓN
     // ====================================================================
 
@@ -256,6 +287,15 @@
 
         // Configurar swipe
         initializeSwipe();
+
+        // Listeners para efectos de scroll
+        window.addEventListener('scroll', updateCardBorderOpacity);
+        window.addEventListener('resize', updateCardBorderOpacity);
+
+        // Listener de scroll en cada vista
+        document.querySelectorAll('.view-section').forEach(section => {
+            section.addEventListener('scroll', updateCardBorderOpacity);
+        });
 
         // Iniciar autenticación
         setupAuthListener();
