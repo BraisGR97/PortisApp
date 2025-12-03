@@ -135,15 +135,20 @@ html.light-mode #geometric-wrapper {
     flex: 1;
     display: flex;
     flex-direction: column;
+    padding-top: 4rem;
+    /* Espacio para navbar superior */
     padding-bottom: 5rem;
     /* Espacio para navbar inferior */
+    height: 100vh;
+    box-sizing: border-box;
 }
 
 #views-slider {
     display: flex;
     width: 400%;
     /* 4 vistas */
-    height: 100%;
+    height: calc(100vh - 9rem);
+    /* Altura total menos navbar superior (4rem) e inferior (5rem) */
     transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
@@ -152,7 +157,8 @@ html.light-mode #geometric-wrapper {
     /* 100% / 4 vistas */
     height: 100%;
     flex-shrink: 0;
-    overflow-y: auto;
+    overflow: hidden;
+    /* Sin scroll aquí, el scroll estará dentro de card-container */
     padding: 1rem;
     box-sizing: border-box;
 }
@@ -167,7 +173,8 @@ html.light-mode #geometric-wrapper {
     border-radius: 1rem;
     box-shadow: 0 4px 6px var(--color-shadow);
     border: 1px solid var(--color-border);
-    height: 100%;
+    height: calc(100vh - 11rem);
+    /* Altura total menos navbar superior (4rem), inferior (5rem) y padding de view-section (2rem) */
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -180,6 +187,10 @@ html.light-mode #geometric-wrapper {
     padding: 1.5rem;
     height: 100%;
     overflow-y: auto;
+    /* Scroll dentro del contenido de la tarjeta */
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .card-title {
@@ -273,7 +284,29 @@ html.light-mode #geometric-wrapper {
     border: 1px solid var(--color-border);
 }
 
+/* ================================================================
+   NAVBARS
+   ================================================================ */
+
+/* Navbar Superior */
+#top-navbar {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+}
+
+html.light-mode #top-navbar {
+    background-color: var(--color-bg-secondary);
+}
+
 /* Navbar Inferior */
+#bottom-navbar {
+    background-color: var(--color-bg-secondary);
+}
+
+html.light-mode #bottom-navbar {
+    background-color: var(--color-bg-secondary);
+}
+
 .nav-button {
     color: var(--color-text-secondary);
     background: transparent;
