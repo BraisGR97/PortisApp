@@ -18,32 +18,6 @@ window.cloudinaryConfig = {
     uploadPreset: "portis_chat" // Requiere un 'Unsigned Upload Preset' llamado 'portis_chat' en Cloudinary
 };
 
-// Configuración de Modos
-window.IS_MOCK_MODE = false; // Cambiar a false para usar Firebase real
-window.MOCK_USER_ID = "mock-admin-id";
-window.MOCK_USER_DISPLAY_NAME = "Admin";
-
-// Funciones helper para Mock Mode - LocalStorage
-window.getMockData = function (key, defaultValue = []) {
-    if (!window.IS_MOCK_MODE) return defaultValue;
-    try {
-        const data = localStorage.getItem(`portis-mock-${key}`);
-        return data ? JSON.parse(data) : defaultValue;
-    } catch (e) {
-        console.error('Error reading mock data:', e);
-        return defaultValue;
-    }
-};
-
-window.setMockData = function (key, value) {
-    if (!window.IS_MOCK_MODE) return;
-    try {
-        localStorage.setItem(`portis-mock-${key}`, JSON.stringify(value));
-    } catch (e) {
-        console.error('Error saving mock data:', e);
-    }
-};
-
 /**
  * Función para cambiar entre modo claro y oscuro.
  * La inicialización del tema se hace con script inline en cada HTML para evitar FOUC.
@@ -64,8 +38,6 @@ window.toggleColorMode = function () {
         document.documentElement.classList.add('dark-mode');
         document.documentElement.classList.remove('light-mode');
     }
-
-    console.log(`✓ Tema cambiado a: ${newTheme.toUpperCase()}`);
 
     return newTheme;
 };

@@ -701,6 +701,9 @@
             window.applyColorMode();
         }
 
+        renderCalendar(); // Renderizar grid vacío inmediatamente
+        updateSummary();
+
         // 🚨 Llamamos a la función asíncrona que ESPERARÁ la señal de Main.js
         setupFirebaseAndListeners();
 
