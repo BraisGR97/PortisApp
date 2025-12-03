@@ -161,13 +161,15 @@ html.light-mode #geometric-wrapper {
    COMPONENTES UI (Tarjetas, Botones, Inputs)
    ================================================================ */
 
-/* Contenedor de Tarjeta Principal */
+/* Contenedor de Tarjeta Principal CON SCROLL INTERNO */
 .card-container {
     background-color: var(--color-bg-secondary);
     border-radius: 1rem;
     box-shadow: 0 4px 6px var(--color-shadow);
     border: 1px solid var(--color-border);
     height: 100%;
+    max-height: calc(100vh - 7rem);
+    /* Altura pantalla - navbars aprox */
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -180,6 +182,9 @@ html.light-mode #geometric-wrapper {
     padding: 1.5rem;
     height: 100%;
     overflow-y: auto;
+    /* Custom scrollbar para navegadores webkit */
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
 }
 
 .card-title {
@@ -224,6 +229,22 @@ html.light-mode #geometric-wrapper {
     outline: none;
     border-color: var(--color-accent-magenta);
     box-shadow: 0 0 0 2px rgba(233, 30, 99, 0.2);
+}
+
+/* Inputs Solo Lectura (Estilo Texto Plano) */
+.minimal-input:read-only {
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    color: var(--color-text-primary);
+    font-weight: 500;
+    cursor: default;
+    box-shadow: none;
+}
+
+.minimal-input:read-only:focus {
+    box-shadow: none;
+    outline: none;
 }
 
 /* Botones */
@@ -285,8 +306,10 @@ html.light-mode #geometric-wrapper {
 
 #bottom-navbar {
     background-color: var(--color-bg-glass);
-    border-top: 1px solid var(--color-border-light);
-    box-shadow: 0 0 25px var(--color-shadow-light);
+    border-top: 1px solid #000000;
+    /* Linea negra */
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+    /* Sombra negra */
 }
 
 .navbar-title {
@@ -464,15 +487,15 @@ html.light-mode #geometric-wrapper {
     align-items: center;
     justify-content: center;
     border-radius: 0.25rem;
-    font-size: 0.7rem;
-    padding: 0.15rem;
+    font-size: 0.75rem;
+    padding: 0.2rem;
     cursor: pointer;
     transition: all 0.2s;
     background-color: var(--color-bg-primary);
     border: 1px solid var(--color-border);
     position: relative;
-    min-height: 2rem;
-    max-height: 2.5rem;
+    min-height: 2.2rem;
+    max-height: 2.8rem;
 }
 
 .calendar-day:hover:not(.empty) {
@@ -524,11 +547,4 @@ html.light-mode #geometric-wrapper {
 
 .event-dot.vacation {
     background-color: #a855f7;
-}
-/* Dias del calendario */
-.calendar-day {
-    font-size: 0.75rem !important;
-    min-height: 2.2rem !important;
-    max-height: 2.8rem !important;
-    padding: 0.2rem !important;
 }
