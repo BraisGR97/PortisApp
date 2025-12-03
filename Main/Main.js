@@ -1,12 +1,12 @@
 /**
  * ====================================================================
- * Main.js - Lógica Central de la Aplicación Portis
+ * Main.js - Logica Central de la Aplicacion Portis
  * ====================================================================
  */
 
 (function () {
     // ====================================================================
-    // CONFIGURACIÓN Y VARIABLES GLOBALES
+    // CONFIGURACION Y VARIABLES GLOBALES
     // ====================================================================
 
     const firebaseConfig = window.firebaseConfig;
@@ -15,30 +15,30 @@
     let db;
     let userId = null;
 
-    // Estado de la navegación - Dashboard en el centro (posición 1 del array)
-    let currentView = 'dashboard-view'; // Vista por defecto
-    const views = ['calendar-view', 'dashboard-view', 'chat-view', 'maintenance-view'];
+    // Estado de la navegacion - Chat en el centro (posicion 1 del array)
+    let currentView = 'chat-view'; // Vista por defecto
+    const views = ['calendar-view', 'chat-view', 'dashboard-view', 'maintenance-view'];
 
-    // Variables para gestos táctiles (Swipe)
+    // Variables para gestos tactiles (Swipe)
     let touchStartX = 0;
     let touchEndX = 0;
 
-    // Promesa para indicar que Firebase está listo
+    // Promesa para indicar que Firebase esta listo
     let resolveFirebaseReady;
     window.firebaseReadyPromise = new Promise(resolve => {
         resolveFirebaseReady = resolve;
     });
 
     // ====================================================================
-    // AUTENTICACIÓN Y SETUP
+    // AUTENTICACION Y SETUP
     // ====================================================================
 
     /**
-     * Inicializa Firebase y configura el listener de autenticación.
+     * Inicializa Firebase y configura el listener de autenticacion.
      */
     async function setupAuthListener() {
         if (!firebaseConfig) {
-            console.error("Configuración de Firebase no encontrada.");
+            console.error("Configuracion de Firebase no encontrada.");
             window.location.href = '../index.html';
             return;
         }
@@ -53,11 +53,11 @@
             auth = firebase.auth();
             db = firebase.firestore();
 
-            // Exponer instancias globalmente para otros módulos
+            // Exponer instancias globalmente para otros modulos
             window.db = db;
             window.auth = auth;
 
-            // Persistencia de sesión
+            // Persistencia de sesion
             await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
 
             auth.onAuthStateChanged((user) => {
@@ -70,7 +70,7 @@
                     const displayElement = document.getElementById('current-user-display');
                     if (displayElement) displayElement.textContent = displayName;
 
-                    // Resolver promesa para módulos dependientes
+                    // Resolver promesa para modulos dependientes
                     resolveFirebaseReady();
 
                     // Inicializar vista
@@ -89,16 +89,16 @@
     }
 
     /**
-     * Inicializa la vista correcta al cargar la aplicación.
+     * Inicializa la vista correcta al cargar la aplicacion.
      */
     function initializeView() {
-        // Recuperar última vista o usar dashboard por defecto
-        const lastView = sessionStorage.getItem('last-view') || 'dashboard-view';
+        // Recuperar ultima vista o usar chat por defecto
+        const lastView = sessionStorage.getItem('last-view') || 'chat-view';
         switchView(lastView);
     }
 
     // ====================================================================
-    // NAVEGACIÓN Y SLIDER
+    // NAVEGACION Y SLIDER
     // ====================================================================
 
     /**
@@ -119,7 +119,7 @@
         const translateX = -(viewIndex * 25); // 25% por cada vista (ya que son 4 vistas en 400% de ancho)
         slider.style.transform = `translateX(${translateX}%)`;
 
-        // Actualizar botones de navegación
+        // Actualizar botones de navegacion
         document.querySelectorAll('.nav-button').forEach(btn => {
             btn.classList.remove('active');
             if (btn.dataset.target === targetViewId) {
@@ -127,7 +127,7 @@
             }
         });
 
-        // Inicializar módulos específicos según la vista
+        // Inicializar modulos especificos segun la vista
         initializeModuleForView(targetViewId);
 
         // Actualizar efecto de borde en tarjetas
@@ -135,7 +135,7 @@
     }
 
     /**
-     * Inicializa el módulo correspondiente a la vista activa.
+     * Inicializa el modulo correspondiente a la vista activa.
      * @param {string} viewId - ID de la vista
      */
     function initializeModuleForView(viewId) {
@@ -153,14 +153,14 @@
     }
 
     // ====================================================================
-    // GESTOS TÁCTILES (SWIPE)
+    // GESTOS TACTILES (SWIPE)
     // ====================================================================
 
     /**
      * Maneja el gesto de swipe para cambiar de vista.
      */
     function handleSwipeGesture() {
-        const swipeThreshold = 50; // Distancia mínima para considerar swipe
+        const swipeThreshold = 50; // Distancia minima para considerar swipe
         const diffX = touchStartX - touchEndX;
 
         if (Math.abs(diffX) > swipeThreshold) {
@@ -181,7 +181,7 @@
     }
 
     /**
-     * Inicializa los listeners para gestos táctiles.
+     * Inicializa los listeners para gestos tactiles.
      */
     function initializeSwipe() {
         const content = document.getElementById('app-content');
@@ -202,10 +202,10 @@
     // ====================================================================
 
     /**
-     * Actualiza la opacidad del borde superior de las tarjetas según el scroll.
+     * Actualiza la opacidad del borde superior de las tarjetas segun el scroll.
      */
     function updateCardBorderOpacity() {
-        const elements = document.querySelectorAll('.card-container');
+        const elements = document.querySelectorAll('.card-container, .dashboard-card, .user-chat-card, .maintenance-item');
         const viewportHeight = window.innerHeight;
 
         elements.forEach(element => {
@@ -226,11 +226,11 @@
     }
 
     // ====================================================================
-    // GESTIÓN DE SESIÓN
+    // GESTION DE SESION
     // ====================================================================
 
     /**
-     * Cierra la sesión del usuario.
+     * Cierra la sesion del usuario.
      */
     window.handleLogout = async function () {
         try {
@@ -238,12 +238,12 @@
             sessionStorage.clear();
             window.location.href = '../index.html';
         } catch (error) {
-            console.error("Error al cerrar sesión:", error);
+            console.error("Error al cerrar sesion:", error);
         }
     }
 
     // ====================================================================
-    // GESTIÓN DE MODALES (Global)
+    // GESTION DE MODALES (Global)
     // ====================================================================
 
     window.showModal = function (modalId) {
@@ -263,7 +263,7 @@
     }
 
     // ====================================================================
-    // INICIALIZACIÓN
+    // INICIALIZACION
     // ====================================================================
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -277,7 +277,7 @@
             window.initializeButtons();
         }
 
-        // Configurar navegación por botones
+        // Configurar navegacion por botones
         document.querySelectorAll('.nav-button').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const target = e.currentTarget.dataset.target;
@@ -297,7 +297,7 @@
             section.addEventListener('scroll', updateCardBorderOpacity);
         });
 
-        // Iniciar autenticación
+        // Iniciar autenticacion
         setupAuthListener();
     });
 
