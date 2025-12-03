@@ -305,6 +305,9 @@ function resetForm() {
     form.reset();
     document.getElementById('repair-id').value = '';
 
+    // Establecer prioridad por defecto en Baja
+    document.getElementById('priority').value = 'Baja';
+
     // Ocultar campos de contacto
     const contactCheckbox = document.getElementById('contact_checkbox');
     contactCheckbox.checked = false;
