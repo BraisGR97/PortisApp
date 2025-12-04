@@ -1,4 +1,4 @@
-// Se asume que Firebase (compatibilidad) está disponible globalmente desde los scripts CDN de Main.html
+﻿// Se asume que Firebase (compatibilidad) está disponible globalmente desde los scripts CDN de Main.html
 // Se asume que window.firebaseReadyPromise, window.db, y window.auth serán establecidos por Main.js.
 
 (function () { // ⬅️ INICIO: IIFE para aislar el ámbito y evitar conflictos de declaración.
@@ -447,7 +447,7 @@
             // =========================
 
             calendarGrid.innerHTML += `
-                <div class="calendar-day p-2 rounded-lg text-center cursor-pointer transition h-14 flex flex-col items-center justify-start 
+                <div class="calendar-day p-2 rounded-lg text-center cursor-pointer transition h-12 flex flex-col items-center justify-start 
                     ${todayClass} ${eventDisplayClass || 'hover:bg-white/10 dark:hover:bg-black/10'}" 
                     data-date="${fullDate}" 
                     onclick="window.openEventModal('${fullDate}')">
@@ -554,8 +554,8 @@
         }
 
         overtimeDisplay.textContent = `${totalOvertimeMonthly.toFixed(1)} h`;
-        shiftsDisplay.textContent = `${totalShiftsAnnual}`;
-        holidaysDisplay.textContent = `${totalFestivosAnnual}`;
+        shiftsDisplay.textContent = `${totalShiftsAnnual} guardias`;
+        holidaysDisplay.textContent = `${totalFestivosAnnual} dias`;
         // Contar festivos nacionales
         for (let dayNum = 0; dayNum < 365; dayNum++) {
             const checkDate = new Date(currentYear, 0, 1 + dayNum);
@@ -566,7 +566,7 @@
                 }
             }
         }
-        holidaysDisplay.textContent = `${totalFestivosAnnual}`;
+        holidaysDisplay.textContent = `${totalFestivosAnnual} dias`;
     }
 
     function updateHolidayQuota() {
