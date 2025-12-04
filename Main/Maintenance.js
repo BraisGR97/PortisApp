@@ -437,76 +437,122 @@
         return date.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
     }
 
-    function generateMaintenanceModalContent(item, isEditMode) {
-        const priority = item.priority || 'Media';
-        const status = isEditMode ? (item.status || 'Pendiente') : 'En Progreso';
-        const maintenanceDate = getFormattedDate(item.maintenance_month, item.maintenance_year);
-        const contact = item.contact || {};
+function generateMaintenanceModalContent(item, isEditMode) {
+    const priority = item.priority || 'Media';
+    const status = isEditMode ? (item.status || 'Pendiente') : 'En Progreso';
+    const maintenanceDate = getFormattedDate(item.maintenance_month, item.maintenance_year);
+    const contact = item.contact || {};
 
-        // Helper para inputs
-        const baseInput = (id, label, value, readOnly = true, type = 'text', customClass = 'minimal-input') => `
-            <div class="space-y-1">
-                <label for="${id}" class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">${label}</label>
-                <input id="${id}" type="${type}" value="${value || ''}" ${readOnly ? 'readonly' : ''} 
-                        class="${customClass} w-full ${!readOnly && isEditMode ? 'border-accent-magenta' : ''}">
-            </div>
-        `;
-
-        const baseTextarea = (id, label, value, readOnly = true, rows = 2, customClass = 'minimal-input') => `
-            <div class="space-y-1">
-                <label for="${id}" class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">${label}</label>
-                <textarea id="${id}" rows="${rows}" ${readOnly ? 'readonly' : ''} 
-                        class="${customClass} w-full resize-none ${!readOnly && isEditMode ? 'border-accent-magenta' : ''}">${value || ''}</textarea>
-            </div>
-        `;
-
-        const prioritySelect = (priorityValue, readOnly = true) => {
-            const options = ['Alta', 'Media', 'Baja'];
-            const optionHtml = options.map(opt =>
-                `<option value="${opt}" ${priorityValue === opt ? 'selected' : ''}>${opt}</option>`
-            ).join('');
+    // Helper para inputs (MODIFICADO: Texto estático si es readOnly)
+    const baseInput = (id, label, value, readOnly = true, type = 'text', customClass = 'minimal-input') => {
+        if (readOnly) {
             return `
+                <div class="space-y-1">
+                    <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">${label}</span>
+                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-1">${value || '---'}</p>
+                </div>
+                `;
+        }
+        return `
+            <div class="space-y-1">
+                <label for="${id}" class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">${label}</label>
+                <input id="${id}" type="${type}" value="${value || ''}" 
+                        class="${customClass} w-full border-accent-magenta">
+            </div>
+            `;
+    };
+
+    const baseTextarea = (id, label, value, readOnly = true, rows = 2, customClass = 'minimal-input') => {
+        if (readOnly) {
+            return `
+                <div class="space-y-1">
+                    <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">${label}</span>
+                    <p class="text-sm text-gray-700 dark:text-gray-300 italic whitespace-pre-wrap border-b border-gray-200 dark:border-gray-700 pb-1">${value || '---'}</p>
+                </div>
+                `;
+        }
+        return `
+            <div class="space-y-1">
+                <label for="${id}" class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">${label}</label>
+                <textarea id="${id}" rows="${rows}" 
+                        class="${customClass} w-full resize-none border-accent-magenta">${value || ''}</textarea>
+            </div>
+            `;
+    };
+
+    const prioritySelect = (priorityValue, readOnly = true) => {
+        if (readOnly) {
+            return `
+                <div class="space-y-1">
+                    <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Prioridad</span>
+                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-1">${priorityValue}</p>
+                </div>
+                `;
+        }
+        const options = ['Alta', 'Media', 'Baja'];
+        const optionHtml = options.map(opt =>
+            `<option value="${opt}" ${priorityValue === opt ? 'selected' : ''}>${opt}</option>`
+        ).join('');
+        return `
             <div class="space-y-1">
                 <label for="edit-priority" class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Prioridad</label>
-                <select id="edit-priority" ${readOnly ? 'disabled' : ''} class="minimal-input w-full ${!readOnly ? 'border-accent-magenta' : ''}">
+                <select id="edit-priority" class="minimal-input w-full border-accent-magenta">
                     ${optionHtml}
                 </select>
             </div>
             `;
-        };
+    };
 
-        const contractSelect = (contractValue, readOnly = true) => {
-            const options = ['Mensual', 'Bimensual', 'Trimestral', 'Cuatrimestral', 'Semestral', 'Anual'];
-            const optionHtml = options.map(opt =>
-                `<option value="${opt}" ${contractValue === opt ? 'selected' : ''}>${opt}</option>`
-            ).join('');
-
+    const contractSelect = (contractValue, readOnly = true) => {
+        if (readOnly) {
             return `
                 <div class="space-y-1">
+                    <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Contrato</span>
+                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-1">${contractValue}</p>
+                </div>
+                `;
+        }
+        const options = ['Mensual', 'Bimensual', 'Trimestral', 'Cuatrimestral', 'Semestral', 'Anual'];
+        const optionHtml = options.map(opt =>
+            `<option value="${opt}" ${contractValue === opt ? 'selected' : ''}>${opt}</option>`
+        ).join('');
+
+        return `
+                <div class="space-y-1">
                     <label for="edit-contract" class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Contrato</label>
-                    <select id="edit-contract" ${readOnly ? 'disabled' : ''} class="minimal-input w-full ${!readOnly ? 'border-accent-magenta' : ''}">
+                    <select id="edit-contract" class="minimal-input w-full border-accent-magenta">
                         ${optionHtml}
                     </select>
                 </div>
             `;
-        };
+    };
 
-        let bodyContent = '';
-        if (!isEditMode) {
-            // MODO VISTA
-            bodyContent = `
-            <div class="p-6 space-y-4">
+    let bodyContent = '';
+    if (!isEditMode) {
+        // MODO VISTA
+        bodyContent = `
+            <div class="p-6 space-y-4 relative">
+                <!-- Botones Superiores -->
+                <div class="flex justify-between items-center mb-2">
+                    <button id="close-maintenance-modal-btn" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors">
+                        <i class="ph ph-x text-2xl"></i>
+                    </button>
+                    <button id="edit-toggle-btn" class="text-accent-magenta hover:text-accent-magenta/80 transition-colors p-2 rounded-full hover:bg-accent-magenta/10">
+                        <i class="ph ph-pencil-simple text-2xl"></i>
+                    </button>
+                </div>
+
                 <div class="flex justify-between items-start">
                     <h3 class="text-xl font-bold text-accent-magenta">${item.location}</h3>
                     <span class="px-2 py-1 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300">${status}</span>
                 </div>
                 
-                <div class="grid grid-cols-2 gap-4 text-sm">
+                <div class="grid grid-cols-2 gap-4 text-sm mt-4">
                     ${baseInput('view-date', 'Fecha Prevista', maintenanceDate)}
                     ${baseInput('view-model', 'Modelo', item.model)}
-                    ${baseInput('view-contract', 'Contrato', item.contract)}
+                    ${contractSelect(item.contract)}
                     ${baseInput('view-key', 'ID Clave/TAG', item.key_id)}
-                    ${baseInput('view-priority', 'Prioridad', priority)}
+                    ${prioritySelect(priority)}
                     ${baseInput('view-status', 'Estado', status)}
                 </div>
     
@@ -523,9 +569,9 @@
                 ` : ''}
             </div>
             `;
-        } else {
-            // MODO EDICION
-            bodyContent = `
+    } else {
+        // MODO EDICION
+        bodyContent = `
             <div class="p-6 space-y-4">
                 <h3 class="text-xl font-bold mb-4">Editar Mantenimiento</h3>
                 
@@ -549,21 +595,15 @@
                 </div>
             </div>
             `;
-        }
+    }
 
-        // Footer con botones
-        const footerContent = `
+    // Footer con botones
+    const footerContent = `
             <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800/50 rounded-b-xl">
                 ${!isEditMode ? `
-                    <button id="close-maintenance-modal-btn" class="secondary-btn rounded-lg">Cerrar</button>
-                    <button onclick="window.openMaintenanceMap('${item.location}')" class="secondary-icon-btn p-2 rounded-lg" title="Ver Mapa">
-                        <i class="ph ph-map-pin text-xl"></i>
-                    </button>
-                    <button id="edit-toggle-btn" class="secondary-icon-btn p-2 rounded-lg" title="Editar">
-                        <i class="ph ph-pencil-simple text-xl"></i>
-                    </button>
-                    <button onclick="window.confirmCompleteMaintenance('${item.id}')" class="primary-btn px-4 py-2 rounded-lg flex items-center gap-2">
-                        <i class="ph ph-check-circle text-lg"></i> Completar
+                    <button onclick="window.confirmCompleteMaintenance('${item.id}')" class="primary-btn w-full py-3 rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-accent-magenta/20">
+                        <i class="ph ph-check-circle text-xl"></i> 
+                        <span class="text-lg">Completar Tarea</span>
                     </button>
                 ` : `
                     <button id="edit-toggle-btn" class="secondary-btn rounded-lg">Cancelar</button>
@@ -572,8 +612,9 @@
             </div>
         `;
 
-        return bodyContent + footerContent;
-    }
+    return bodyContent + footerContent;
+}
+
 
     function showMaintenanceDetailsModal(item, isEditMode = false) {
         currentEditMaintenanceId = item.id;
