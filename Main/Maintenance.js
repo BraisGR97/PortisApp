@@ -1,4 +1,4 @@
-// ===================================================================================
+﻿// ===================================================================================
 // Maintenance.js - Lógica de la Vista de Mantenimientos (Pendientes)
 // ===================================================================================
 
@@ -212,6 +212,13 @@
                     <span>${item.model || 'N/A'}</span>
                 </div>
             </div>
+
+            ${item.description ? `
+            <div class="mb-3 p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+                <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Observaciones:</p>
+                <p class="text-sm text-gray-700 dark:text-gray-300 italic">${item.description}</p>
+            </div>
+            ` : ''}
 
             <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
                 <span class="text-xs text-gray-400">ID: ${item.key_id || '---'}</span>
