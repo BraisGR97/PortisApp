@@ -1,4 +1,4 @@
-// Se asume que Firebase (compatibilidad) está disponible globalmente desde Main.js.
+﻿// Se asume que Firebase (compatibilidad) está disponible globalmente desde Main.js.
 // Se asume que Main.js ha establecido window.db y window.auth tras el login.
 
 (function () { // ⬅️ INICIO: IIFE para aislar el ámbito y evitar conflictos de declaración.
@@ -372,6 +372,19 @@
                 <p class="font-semibold user-chat-item-name">${user.name}</p>
                 </div>
         `).join('');
+
+        // Actualizar badge de mensajes sin leer
+        updateUnreadBadge();
+    }
+
+    // Función para actualizar el badge de mensajes sin leer
+    function updateUnreadBadge() {
+        const badge = document.getElementById('unread-badge');
+        if (!badge) return;
+
+        // Por ahora, ocultar el badge (se mostrará cuando haya mensajes sin leer)
+        // TODO: Implementar lógica para detectar mensajes sin leer
+        badge.classList.add('hidden');
     }
 
 

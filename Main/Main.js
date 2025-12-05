@@ -310,10 +310,29 @@
         window.addEventListener('scroll', updateCardBorderOpacity);
         window.addEventListener('resize', updateCardBorderOpacity);
 
-        // Listener de scroll en cada contenedor interno (donde ocurre el scroll real)
-        document.querySelectorAll('.card-inner-content').forEach(section => {
-            section.addEventListener('scroll', updateCardBorderOpacity);
+        // FunciÃ³n para agregar listeners a los contenedores de scroll
+        function attachScrollListeners() {
+            document.querySelectorAll('.card-inner-content').forEach(section => {
+                // Remover listener anterior si existe para evitar duplicados
+                section.removeEventListener('scroll', updateCardBorderOpacity);
+                section.addEventListener('scroll', updateCardBorderOpacity);
+            });
+        }
+
+        // Agregar listeners inicialmente
+        attachScrollListeners();
+
+        // Re-agregar listeners cuando cambie de vista
+        const observer = new MutationObserver(() => {
+            attachScrollListeners();
+            updateCardBorderOpacity(); // Actualizar inmediatamente
         });
+
+        // Observar cambios en el slider de vistas
+        const viewsSlider = document.getElementById('views-slider');
+        if (viewsSlider) {
+            observer.observe(viewsSlider, { childList: true, subtree: true });
+        }
 
         // Iniciar autenticacion
         setupAuthListener();

@@ -447,7 +447,7 @@
             // =========================
 
             calendarGrid.innerHTML += `
-                <div class="calendar-day p-2 rounded-lg text-center cursor-pointer transition h-12 flex flex-col items-center justify-start 
+                <div class="calendar-day p-2 rounded-lg text-center cursor-pointer transition h-10 flex flex-col items-center justify-start 
                     ${todayClass} ${eventDisplayClass || 'hover:bg-white/10 dark:hover:bg-black/10'}" 
                     data-date="${fullDate}" 
                     onclick="window.openEventModal('${fullDate}')">
