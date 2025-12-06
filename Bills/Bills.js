@@ -359,7 +359,22 @@ function renderBills(bills, updateCache = true) {
 /**
  * Actualiza la opacidad del borde superior de las tarjetas (Efecto Visual).
  */
+/**
+ * Actualiza la opacidad del borde superior de las tarjetas (Efecto Visual).
+ */
 function updateCardBorderOpacity() {
+    // 1. Contenedores (Border TOP por scroll interno)
+    const innerContents = document.querySelectorAll('.card-inner-content');
+    innerContents.forEach(inner => {
+        const container = inner.closest('.card-container');
+        if (container) {
+            const scrollTop = inner.scrollTop;
+            const opacity = Math.min(scrollTop / 50, 1);
+            container.style.borderTopColor = `rgba(255, 255, 255, ${0.1 + (opacity * 0.9)})`;
+        }
+    });
+
+    // 2. Tarjetas de Facturas (Border TOP por posición en pantalla)
     const elements = document.querySelectorAll('.bill-card');
     const viewportHeight = window.innerHeight;
 
@@ -369,13 +384,11 @@ function updateCardBorderOpacity() {
         const elementHeight = rect.height;
 
         let opacity = 0;
-
         if (elementTop < viewportHeight && elementTop > -elementHeight) {
             const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
             opacity = 1 - normalizedPosition;
             opacity = 0.2 + (opacity * 0.8);
         }
-
         element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
     });
 }
@@ -493,23 +506,5 @@ window.addEventListener('load', () => {
 // ================================================================
 // BORDE ANIMADO EN SCROLL
 // ================================================================
-document.addEventListener('DOMContentLoaded', function () {
-    const cardInnerContents = document.querySelectorAll('.card-inner-content');
-
-    cardInnerContents.forEach(innerContent => {
-        const container = innerContent.closest('.card-container');
-
-        if (container && innerContent) {
-            innerContent.addEventListener('scroll', function () {
-                const scrollTop = innerContent.scrollTop;
-
-                if (scrollTop > 10) {
-                    container.style.borderTopColor = 'rgba(255, 255, 255, 0.2)';
-                } else {
-                    container.style.borderTopColor = 'transparent';
-                }
-            });
-        }
-    });
-});
+// Fin del archivo
 

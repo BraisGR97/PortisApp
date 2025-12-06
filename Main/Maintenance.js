@@ -244,121 +244,112 @@
         window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
     }
 
-    window.confirmCompleteMaintenance = function (id) {
-        // Crear modal de confirmación dinámicamente si no existe
-        let confirmModal = document.getElementById('confirm-complete-modal');
-        if (!confirmModal) {
-            const modalHtml = `
-                <div id="confirm-complete-modal" class="fixed inset-0 z-[60] hidden items-center justify-center p-4 modal-backdrop">
-                    <div class="modal-content w-full max-w-sm rounded-xl p-6 text-center bg-white dark:bg-[#1f1f33]">
-                        <div class="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-green-600 dark:text-green-400">
-                            <i class="ph ph-check text-3xl"></i>
-                        </div>
-                        <h3 class="text-xl font-bold mb-2">¿Completar Tarea?</h3>
-                        <p class="mb-6 text-sm text-gray-500">Se registrará en el historial y se programará el próximo mantenimiento.</p>
-                        <div class="flex justify-center space-x-3">
-                            <button id="cancel-complete-btn" class="secondary-btn w-1/2 rounded-lg">Cancelar</button>
-                            <button id="confirm-complete-action-btn" class="primary-btn w-1/2 bg-green-600 hover:bg-green-700 border-none rounded-lg">Confirmar</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-            confirmModal = document.getElementById('confirm-complete-modal');
-        }
-
-        // Mostrar modal
-        confirmModal.classList.remove('hidden');
-        confirmModal.classList.add('flex');
-
-        // Configurar botones
-        const cancelBtn = document.getElementById('cancel-complete-btn');
-        const confirmBtn = document.getElementById('confirm-complete-action-btn');
-
-        // Función para cerrar modal
-        const closeModal = () => {
-            confirmModal.classList.add('hidden');
-            confirmModal.classList.remove('flex');
-        };
-
-        cancelBtn.onclick = closeModal;
-
-        confirmBtn.onclick = async () => {
-            closeModal();
-
-            // Lógica de completado
-            try {
-                // 1. Obtener el mantenimiento actual
-                let repair = null;
-                if (!isFirebaseReady) {
-                    // Handle not ready
-                } else {
-                    const doc = await getRepairsCollectionRef().doc(id).get();
-                    if (doc.exists) repair = { id: doc.id, ...doc.data() };
-                }
-
-                if (!repair) {
-                    showMessage('error', 'No se encontró el mantenimiento.');
-                    return;
-                }
-
-                // 2. Calcular próxima fecha según contrato
-                let nextMonth = repair.maintenance_month;
-                let nextYear = repair.maintenance_year;
-                let increment = 1; // Default Mensual
-
-                switch (repair.contract) {
-                    case 'Mensual': increment = 1; break;
-                    case 'Bimensual': increment = 2; break;
-                    case 'Trimestral': increment = 3; break;
-                    case 'Cuatrimestral': increment = 4; break;
-                    case 'Semestral': increment = 6; break;
-                    case 'Anual': increment = 12; break;
-                }
-
-                nextMonth += increment;
-                while (nextMonth > 12) {
-                    nextMonth -= 12;
-                    nextYear++;
-                }
-
-                // 3. Crear registro de historial
-                const historyRecord = {
-                    ...repair,
-                    completedDate: new Date().toISOString(),
-                    completedBy: userId,
-                    original_month: repair.maintenance_month,
-                    original_year: repair.maintenance_year
-                };
-                delete historyRecord.id; // No guardar el ID original en el historial
-
-                // 4. Actualizar DB
-                if (!isFirebaseReady) {
-                    // Handle not ready
-                } else {
-                    // FIREBASE
-                    const batch = db.batch();
-                    const repairRef = getRepairsCollectionRef().doc(id);
-                    const historyRef = db.collection(`users/${userId}/history`).doc();
-
-                    batch.update(repairRef, {
-                        maintenance_month: nextMonth,
-                        maintenance_year: nextYear,
-                        description: '' // Limpiar observaciones
-                    });
-                    batch.set(historyRef, historyRecord);
-
-                    await batch.commit();
-                }
-
-                showMessage('success', 'Mantenimiento completado y reprogramado.');
-                hideMaintenanceModal(); // Cerrar modal de detalles si está abierto
-                window.fetchMaintenanceData(); // Recargar lista
-
-            } catch (error) {
-                showMessage('error', 'Error al completar la tarea.');
+    async function executeCompleteMaintenance(id, keepObservations) {
+        try {
+            let repair = null;
+            if (isFirebaseReady) {
+                const doc = await getRepairsCollectionRef().doc(id).get();
+                if (doc.exists) repair = { id: doc.id, ...doc.data() };
             }
-        };
+
+            if (!repair) {
+                showMessage('error', 'No se encontró el mantenimiento.');
+                return;
+            }
+
+            // Calcular próxima fecha
+            let nextMonth = repair.maintenance_month;
+            let nextYear = repair.maintenance_year;
+            let increment = 1;
+
+            switch (repair.contract) {
+                case 'Mensual': increment = 1; break;
+                case 'Bimensual': increment = 2; break;
+                case 'Trimestral': increment = 3; break;
+                case 'Cuatrimestral': increment = 4; break;
+                case 'Semestral': increment = 6; break;
+                case 'Anual': increment = 12; break;
+            }
+
+            nextMonth += increment;
+            while (nextMonth > 12) {
+                nextMonth -= 12;
+                nextYear++;
+            }
+
+            // Historial
+            const historyRecord = {
+                ...repair,
+                completedDate: new Date().toISOString(),
+                completedBy: userId,
+                original_month: repair.maintenance_month,
+                original_year: repair.maintenance_year
+            };
+            delete historyRecord.id;
+
+            // Update en Firebase
+            if (isFirebaseReady) {
+                const batch = db.batch();
+                const repairRef = getRepairsCollectionRef().doc(id);
+                // NOTA: El historial se guarda en la raiz 'users/{userId}/history' según diseño previo
+                const historyRef = db.collection(`users/${userId}/history`).doc();
+
+                batch.update(repairRef, {
+                    maintenance_month: nextMonth,
+                    maintenance_year: nextYear,
+                    status: 'Pendiente', // Asegurar reset de estado
+                    description: keepObservations ? (repair.description || '') : '' // Lógica de observaciones
+                });
+                batch.set(historyRef, historyRecord);
+
+                await batch.commit();
+            }
+
+            showMessage('success', 'Mantenimiento completado.');
+            hideMaintenanceModal();
+            if (window.fetchMaintenanceData) window.fetchMaintenanceData();
+
+        } catch (error) {
+            console.error("Error completing maintenance:", error);
+            showMessage('error', 'Error al completar la tarea.');
+        }
+    }
+
+    window.confirmCompleteMaintenance = function (id) {
+        const obsModal = document.getElementById('observation-retention-modal');
+        if (obsModal) {
+            obsModal.classList.remove('hidden');
+            obsModal.classList.add('flex');
+
+            const btnKeep = document.getElementById('btn-keep-obs');
+            const btnDelete = document.getElementById('btn-delete-obs');
+
+            // Reemplazar botones para eliminar listeners viejos
+            if (btnKeep) {
+                const newBtn = btnKeep.cloneNode(true);
+                btnKeep.parentNode.replaceChild(newBtn, btnKeep);
+                newBtn.onclick = () => {
+                    obsModal.classList.add('hidden');
+                    obsModal.classList.remove('flex');
+                    executeCompleteMaintenance(id, true);
+                };
+            }
+
+            if (btnDelete) {
+                const newBtn = btnDelete.cloneNode(true);
+                btnDelete.parentNode.replaceChild(newBtn, btnDelete);
+                newBtn.onclick = () => {
+                    obsModal.classList.add('hidden');
+                    obsModal.classList.remove('flex');
+                    executeCompleteMaintenance(id, false);
+                };
+            }
+        } else {
+            // Fallback
+            if (confirm("¿Completar tarea?")) {
+                executeCompleteMaintenance(id, false);
+            }
+        }
     }
 
     window.toggleMaintenanceSearch = function () {

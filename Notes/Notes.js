@@ -481,9 +481,23 @@ function renderNotes(notes, updateCache = true) {
 /**
  * Actualiza la opacidad del borde superior de las tarjetas basada en su posición.
  */
+/**
+ * Actualiza la opacidad del borde superior de las tarjetas.
+ */
 function updateCardBorderOpacity() {
-    // Actualizar tanto tarjetas como contenedores (ambos relativos al viewport)
-    const elements = document.querySelectorAll('.note-card, .card-container');
+    // 1. Contenedores (Border TOP por scroll interno)
+    const innerContents = document.querySelectorAll('.card-inner-content');
+    innerContents.forEach(inner => {
+        const container = inner.closest('.card-container');
+        if (container) {
+            const scrollTop = inner.scrollTop;
+            const opacity = Math.min(scrollTop / 50, 1);
+            container.style.borderTopColor = `rgba(255, 255, 255, ${0.1 + (opacity * 0.9)})`;
+        }
+    });
+
+    // 2. Tarjetas de Notas (Border TOP por posición en pantalla)
+    const elements = document.querySelectorAll('.note-card');
     const viewportHeight = window.innerHeight;
 
     elements.forEach(element => {
@@ -491,22 +505,12 @@ function updateCardBorderOpacity() {
         const elementTop = rect.top;
         const elementHeight = rect.height;
 
-        // Calcular la opacidad basada en la posición en el viewport
         let opacity = 0;
-
         if (elementTop < viewportHeight && elementTop > -elementHeight) {
-            // El elemento está visible en el viewport
-            // Normalizar la posición: 0 (arriba) a 1 (abajo)
             const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
-
-            // Invertir para que la opacidad sea mayor arriba
             opacity = 1 - normalizedPosition;
-
-            // Ajustar el rango de opacidad (de 0.2 a 1)
             opacity = 0.2 + (opacity * 0.8);
         }
-
-        // Aplicar la opacidad al borde superior
         element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
     });
 }
@@ -642,26 +646,5 @@ window.addEventListener('load', () => {
     window.addEventListener('resize', updateCardBorderOpacity);
 });
 
-// ================================================================
-// BORDE ANIMADO EN SCROLL
-// ================================================================
-document.addEventListener('DOMContentLoaded', function () {
-    const cardInnerContents = document.querySelectorAll('.card-inner-content');
-
-    cardInnerContents.forEach(innerContent => {
-        const container = innerContent.closest('.card-container');
-
-        if (container && innerContent) {
-            innerContent.addEventListener('scroll', function () {
-                const scrollTop = innerContent.scrollTop;
-
-                if (scrollTop > 10) {
-                    container.style.borderTopColor = 'rgba(255, 255, 255, 0.2)';
-                } else {
-                    container.style.borderTopColor = 'transparent';
-                }
-            });
-        }
-    });
-});
+// Fin del archivo
 

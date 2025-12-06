@@ -678,6 +678,15 @@
         saveEventToFirestore(selectedDateForEvent, 'Extra', parsedHours);
     }
 
+    window.adjustOvertime = function (amount) {
+        const input = document.getElementById('overtime-input');
+        if (input) {
+            let val = parseFloat(input.value) || 0;
+            val = Math.max(0, val + amount);
+            input.value = val;
+        }
+    }
+
     window.goBackToEventModal = function () {
         // 🔑 Uso de closeModal global
         if (typeof window.closeModal === 'function') {

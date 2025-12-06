@@ -17,17 +17,17 @@
 
     // Estado de la navegacion - Chat en el centro (posicion 1 del array)
     // Estado de la navegacion
-    let currentView = 'chat-view';
+    let currentView = 'dashboard-view';
     const views = ['calendar-view', 'chat-view', 'dashboard-view', 'maintenance-view'];
 
     // Variables para gestos tactiles y slider animado
-    let currentIndex = 1; // Sincronizado con chat-view por defecto
+    let currentIndex = 2;
     let isDragging = false;
     let startPos = 0;
     let startPosY = 0;
     let isScrolling = undefined; // undefined: detecting, true: vertical, false: horizontal
-    let currentTranslate = -25; // Chat view inicial
-    let prevTranslate = -25;
+    let currentTranslate = -50;
+    let prevTranslate = -50;
     let animationID;
     const slider = document.getElementById('views-slider');
 
@@ -266,26 +266,26 @@
      * Actualiza la opacidad del borde de las tarjetas segun el scroll.
      */
     function updateCardBorderOpacity() {
-        const viewportHeight = window.innerHeight;
+        // 1. Manejar Card Containers (Border TOP basado en scroll interno)
+        const contentScrollables = document.querySelectorAll('.card-inner-content');
 
-        // 1. Manejar Card Containers (Border TOP)
-        const containers = document.querySelectorAll('.card-container');
-        containers.forEach(element => {
-            const rect = element.getBoundingClientRect();
-            const elementTop = rect.top;
-            const elementHeight = rect.height;
-
-            let opacity = 0;
-            if (elementTop < viewportHeight && elementTop > -elementHeight) {
-                const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
-                opacity = 1 - normalizedPosition;
-                opacity = 0.2 + (opacity * 0.8);
+        contentScrollables.forEach(inner => {
+            const container = inner.closest('.card-container');
+            if (container) {
+                const scrollTop = inner.scrollTop;
+                // Opacidad aumenta con el scroll (max 1 a los 50px de scroll)
+                const opacity = Math.min(scrollTop / 50, 1);
+                container.style.borderTopColor = `rgba(255, 255, 255, ${0.1 + (opacity * 0.9)})`;
             }
-            element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
         });
 
         // 2. Manejar Items Internos (Border BOTTOM)
+        // Mantener lógica original o ajustar si es necesario
+        // En este caso, si los items se mueven, su position cambia. 
+        // La lógica original usaba getBoundingClientRect que ES correcta para items que se mueven.
         const items = document.querySelectorAll('.dashboard-card, .user-chat-card, .maintenance-item');
+        const viewportHeight = window.innerHeight;
+
         items.forEach(element => {
             const rect = element.getBoundingClientRect();
             const elementTop = rect.top;

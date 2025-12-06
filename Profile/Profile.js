@@ -43,6 +43,8 @@ window.addEventListener('load', () => {
     if (saveBtn) saveBtn.addEventListener('click', handleProfileEdit);
 
     // Efectos visuales
+    const innerScrolls = document.querySelectorAll('.card-inner-content');
+    innerScrolls.forEach(el => el.addEventListener('scroll', updateCardBorderOpacity, { passive: true }));
     window.addEventListener('scroll', updateCardBorderOpacity);
     const appContent = document.getElementById('app-content');
     if (appContent) appContent.addEventListener('scroll', updateCardBorderOpacity);
@@ -418,24 +420,31 @@ function renderExpensesChart(paid, pending) {
 // ====================================================================
 
 function updateCardBorderOpacity() {
-    const elements = document.querySelectorAll('.card-container');
-    const viewportHeight = window.innerHeight;
-
-    elements.forEach(element => {
-        const rect = element.getBoundingClientRect();
-        const elementTop = rect.top;
-        const elementHeight = rect.height;
-
-        let opacity = 0;
-
-        if (elementTop < viewportHeight && elementTop > -elementHeight) {
-            const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
-            opacity = 1 - normalizedPosition;
-            opacity = 0.2 + (opacity * 0.8);
+    const innerContents = document.querySelectorAll('.card-inner-content');
+    innerContents.forEach(inner => {
+        const container = inner.closest('.card-container');
+        if (container) {
+            const scrollTop = inner.scrollTop;
+            const opacity = Math.min(scrollTop / 50, 1);
+            container.style.borderTopColor = `rgba(255, 255, 255, ${0.1 + (opacity * 0.9)})`;
         }
-
-        element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
     });
+
+    // También soportar tarjetas individuales si existen
+    const cards = document.querySelectorAll('.dashboard-card, .repair-card, .bill-card'); // Elementos generales
+    if (cards.length > 0) {
+        const viewportHeight = window.innerHeight;
+        cards.forEach(element => {
+            const rect = element.getBoundingClientRect();
+            const elementTop = rect.top;
+            const elementHeight = rect.height;
+            if (elementTop < viewportHeight && elementTop > -elementHeight) {
+                const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
+                const opacity = 0.2 + ((1 - normalizedPosition) * 0.8);
+                element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
+            }
+        });
+    }
 }
 
 // ====================================================================

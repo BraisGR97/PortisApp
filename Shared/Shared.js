@@ -707,22 +707,31 @@ function switchView(targetViewId) {
  * Actualiza la opacidad del borde superior de las tarjetas según el scroll.
  */
 function updateCardBorderOpacity() {
-    const elements = document.querySelectorAll('.card-container');
+    const contentScrollables = document.querySelectorAll('.card-inner-content');
+
+    contentScrollables.forEach(inner => {
+        const container = inner.closest('.card-container');
+        if (container) {
+            const scrollTop = inner.scrollTop;
+            const opacity = Math.min(scrollTop / 50, 1);
+            container.style.borderTopColor = `rgba(255, 255, 255, ${0.1 + (opacity * 0.9)})`;
+        }
+    });
+
+    // También actualizar items internos si los hay (repair-card)
+    const items = document.querySelectorAll('.repair-card');
     const viewportHeight = window.innerHeight;
 
-    elements.forEach(element => {
+    items.forEach(element => {
         const rect = element.getBoundingClientRect();
         const elementTop = rect.top;
         const elementHeight = rect.height;
-
         let opacity = 0;
-
         if (elementTop < viewportHeight && elementTop > -elementHeight) {
             const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
             opacity = 1 - normalizedPosition;
             opacity = 0.2 + (opacity * 0.8);
         }
-
         element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
     });
 }
