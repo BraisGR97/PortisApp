@@ -79,11 +79,11 @@ body {
     background-attachment: fixed;
     color: var(--color-text-primary);
     transition: background-color 0.3s, color 0.3s;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
     margin: 0;
     padding: 0;
     width: 100%;
-    overflow-x: hidden;
 }
 
 html.light-mode body {
@@ -94,7 +94,8 @@ html.light-mode body {
 .app-layout {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
 }
 
 /* Scrollbar oculta */
@@ -130,6 +131,8 @@ html.light-mode body {
     padding: 1rem;
     flex-grow: 1;
     padding-bottom: 5rem;
+    height: auto;
+    overflow: hidden;
 }
 
 /* ================================================================
@@ -146,8 +149,7 @@ html.light-mode body {
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    transition: border-top-color 0.3s ease;
-    border-top: 2px solid transparent;
+    border-top: 1px solid #ffffff;
     margin-bottom: 1.5rem;
 }
 

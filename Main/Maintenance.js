@@ -316,6 +316,16 @@
     }
 
     window.confirmCompleteMaintenance = function (id) {
+        // Buscar el ítem en los datos cargados
+        const item = currentMaintenanceData.find(i => i.id === id);
+
+        // Si no tiene observaciones, completar directamente
+        if (!item || !item.description || !item.description.trim()) {
+            executeCompleteMaintenance(id, false);
+            return;
+        }
+
+        // Si tiene observaciones, mostrar modal de decisión
         const obsModal = document.getElementById('observation-retention-modal');
         if (obsModal) {
             obsModal.classList.remove('hidden');
@@ -458,7 +468,7 @@
                 return `
                 <div class="space-y-1">
                     <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">${label}</span>
-                    <p class="text-sm text-gray-700 dark:text-gray-300 italic whitespace-pre-wrap border-b border-gray-200 dark:border-gray-700 pb-1">${value || '---'}</p>
+                    <p class="text-sm text-gray-300 dark:text-gray-300 italic whitespace-pre-wrap border-b border-gray-200 dark:border-gray-700 pb-1">${value || '---'}</p>
                 </div>
                 `;
             }

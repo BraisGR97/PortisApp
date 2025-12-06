@@ -179,9 +179,9 @@ html.light-mode #geometric-wrapper {
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    transition: border-top-color 0.3s ease;
-    border-top: 2px solid rgba(255, 255, 255, 0.1);
-    /* Borde estático, sin efecto de scroll */
+    /* transition: border-top-color 0.3s ease; - Eliminado por borde estático */
+    border-top: 1px solid #ffffff;
+    /* Borde estático, blanco y opaco */
 }
 
 .card-inner-content {
