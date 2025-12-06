@@ -24,6 +24,8 @@
     let currentIndex = 1; // Sincronizado con chat-view por defecto
     let isDragging = false;
     let startPos = 0;
+    let startPosY = 0;
+    let isScrolling = undefined; // undefined: detecting, true: vertical, false: horizontal
     let currentTranslate = -25; // Chat view inicial
     let prevTranslate = -25;
     let animationID;
@@ -182,7 +184,9 @@
 
     function touchStart(event) {
         isDragging = true;
+        isScrolling = undefined; // Resetear detección
         startPos = getPositionX(event);
+        startPosY = event.touches[0].clientY;
         animationID = requestAnimationFrame(animation);
 
         if (slider) {
@@ -193,6 +197,23 @@
     function touchMove(event) {
         if (isDragging) {
             const currentPosition = getPositionX(event);
+            const currentPositionY = event.touches[0].clientY;
+
+            const diffX = Math.abs(currentPosition - startPos);
+            const diffY = Math.abs(currentPositionY - startPosY);
+
+            // Determinar dirección si aún no se sabe
+            if (typeof isScrolling === 'undefined') {
+                if (diffX > 5 || diffY > 5) {
+                    isScrolling = diffY > diffX; // True si es vertical
+                }
+            }
+
+            // Si es scroll vertical, no mover el slider
+            if (isScrolling) {
+                return;
+            }
+
             const currentMove = currentPosition - startPos;
 
             // Convertir movimiento en px a porcentaje aproximado para el slider 400%

@@ -33,6 +33,17 @@ let allRepairs = [];
 let allUsers = [];
 let sharedReceived = [];
 
+// Variables de estado para animación (Swipe)
+let currentIndex = 0;
+const views = ['upload-view', 'download-view'];
+let isDragging = false;
+let startPos = 0;
+let startPosY = 0;
+let isScrolling = undefined;
+let currentTranslate = 0;
+let prevTranslate = 0;
+let animationID;
+
 // ====================================================================
 // AUTENTICACIÓN Y SETUP
 // ====================================================================
@@ -720,43 +731,116 @@ function updateCardBorderOpacity() {
 // FUNCIONALIDAD DE SWIPE
 // ====================================================================
 
-let touchStartX = 0;
-let touchEndX = 0;
-let currentView = 'upload-view';
+// ====================================================================
+// FUNCIONALIDAD DE SWIPE Y ANIMACIÓN
+// ====================================================================
+
+function getPositionX(event) {
+    return event.type.includes('mouse') ? event.pageX : event.touches[0].clientX;
+}
+
+function setSliderPosition() {
+    const slider = document.getElementById('views-slider');
+    if (slider) slider.style.transform = `translateX(${currentTranslate}%)`;
+}
+
+function animation() {
+    setSliderPosition();
+    if (isDragging) requestAnimationFrame(animation);
+}
+
+function touchStart(event) {
+    isDragging = true;
+    isScrolling = undefined;
+    startPos = getPositionX(event);
+    startPosY = event.touches[0].clientY;
+    animationID = requestAnimationFrame(animation);
+
+    const slider = document.getElementById('views-slider');
+    if (slider) slider.style.transition = 'none';
+}
+
+function touchMove(event) {
+    if (isDragging) {
+        const currentPosition = getPositionX(event);
+        const currentPositionY = event.touches[0].clientY;
+
+        const diffX = Math.abs(currentPosition - startPos);
+        const diffY = Math.abs(currentPositionY - startPosY);
+
+        if (typeof isScrolling === 'undefined') {
+            if (diffX > 5 || diffY > 5) {
+                isScrolling = diffY > diffX;
+            }
+        }
+
+        if (isScrolling) return;
+
+        const currentMove = currentPosition - startPos;
+        // Slider ancho 200%. 1 vista = 50% de desplazamiento.
+        const movePercent = (currentMove / window.innerWidth) * 50;
+        currentTranslate = prevTranslate + movePercent;
+
+        // Limites
+        if (currentTranslate > 5) currentTranslate = 5;
+        if (currentTranslate < -55) currentTranslate = -55;
+    }
+}
+
+function touchEnd() {
+    isDragging = false;
+    cancelAnimationFrame(animationID);
+    const movedBy = currentTranslate - prevTranslate;
+
+    if (movedBy < -10 && currentIndex < views.length - 1) currentIndex += 1;
+    else if (movedBy > 10 && currentIndex > 0) currentIndex -= 1;
+
+    setPositionByIndex();
+
+    const slider = document.getElementById('views-slider');
+    if (slider) slider.style.transition = 'transform 0.3s ease-out';
+}
+
+function setPositionByIndex() {
+    currentTranslate = currentIndex * -50;
+    prevTranslate = currentTranslate;
+    setSliderPosition();
+
+    updateNavButtons(views[currentIndex]);
+    if (typeof window !== 'undefined') window.currentView = views[currentIndex];
+}
+
+function updateNavButtons(targetViewId) {
+    const buttons = document.querySelectorAll('#bottom-navbar .nav-button');
+    buttons.forEach(button => button.classList.remove('active'));
+
+    const activeButton = document.querySelector(`[data-target="${targetViewId}"]`);
+    if (activeButton) activeButton.classList.add('active');
+}
 
 /**
- * Detecta gestos de swipe para cambiar entre vistas.
+ * Cambia la vista activa de forma programática (Override).
  */
-function handleSwipeGesture() {
-    const swipeThreshold = 50; // Mínimo de píxeles para considerar un swipe
-    const diff = touchStartX - touchEndX;
-
-    if (Math.abs(diff) > swipeThreshold) {
-        if (diff > 0 && currentView === 'upload-view') {
-            // Swipe izquierda: ir a vista de recibidos
-            switchView('download-view');
-        } else if (diff < 0 && currentView === 'download-view') {
-            // Swipe derecha: volver a vista de enviar
-            switchView('upload-view');
-        }
+window.switchView = function (targetViewId) {
+    const index = views.indexOf(targetViewId);
+    if (index !== -1) {
+        currentIndex = index;
+        const slider = document.getElementById('views-slider');
+        if (slider) slider.style.transition = 'transform 0.3s ease-out';
+        setPositionByIndex();
     }
 }
 
 /**
- * Inicializa los event listeners para swipe.
+ * Inicializa los listeners para swipe.
  */
 function initializeSwipe() {
     const appContent = document.getElementById('app-content');
     if (!appContent) return;
 
-    appContent.addEventListener('touchstart', (e) => {
-        touchStartX = e.changedTouches[0].screenX;
-    }, { passive: true });
-
-    appContent.addEventListener('touchend', (e) => {
-        touchEndX = e.changedTouches[0].screenX;
-        handleSwipeGesture();
-    }, { passive: true });
+    appContent.addEventListener('touchstart', touchStart, { passive: true });
+    appContent.addEventListener('touchmove', touchMove, { passive: true });
+    appContent.addEventListener('touchend', touchEnd);
 }
 
 // ====================================================================
@@ -803,16 +887,16 @@ window.addEventListener('load', () => {
 // ================================================================
 // BORDE ANIMADO EN SCROLL (para sistema de slider)
 // ================================================================
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const cardInnerContents = document.querySelectorAll('.card-inner-content');
-    
+
     cardInnerContents.forEach(innerContent => {
         const container = innerContent.closest('.card-container');
-        
+
         if (container && innerContent) {
-            innerContent.addEventListener('scroll', function() {
+            innerContent.addEventListener('scroll', function () {
                 const scrollTop = innerContent.scrollTop;
-                
+
                 if (scrollTop > 10) {
                     container.style.borderTopColor = 'rgba(255, 255, 255, 0.2)';
                 } else {
