@@ -180,8 +180,8 @@ html.light-mode #geometric-wrapper {
     display: flex;
     flex-direction: column;
     transition: border-top-color 0.3s ease;
-    border-top: 2px solid transparent;
-    /* Para efecto de scroll */
+    border-top: 2px solid rgba(255, 255, 255, 0.1);
+    /* Borde estático, sin efecto de scroll */
 }
 
 .card-inner-content {
