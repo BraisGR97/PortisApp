@@ -43,17 +43,23 @@
         if (typeof window.firebaseReadyPromise !== 'undefined') {
             await window.firebaseReadyPromise;
         } else {
+            console.error('firebaseReadyPromise no está definido');
             return;
         }
 
-        // 3. Verificar estado después de la espera
-        if (!userId || typeof window.db === 'undefined' || window.db === null) {
+        // 3. Leer userId DESPUÉS de que Firebase esté listo
+        const currentUserId = sessionStorage.getItem('portis-user-identifier');
+
+        // 4. Verificar estado después de la espera
+        if (!currentUserId || typeof window.db === 'undefined' || window.db === null) {
             showMessage('error', 'Error de sesión. Intente iniciar sesión nuevamente.');
+            console.error('userId:', currentUserId, 'db:', window.db);
             return;
         }
 
-        // 4. Iniciar Listener
+        // 5. Iniciar Listener
         isFirebaseReady = true;
+        console.log('Firebase listo, iniciando listener de eventos');
         setupEventsListener();
     }
 
@@ -63,11 +69,21 @@
      * con la ruta simplificada: users/{userId}/calendar
      */
     function getEventsCollectionRef() {
+        // Leer userId dinámicamente
+        const currentUserId = sessionStorage.getItem('portis-user-identifier');
+
         // Aseguramos que DB esté inicializada y que haya un ID de usuario válido
-        if (typeof window.db === 'undefined' || !userId || !isFirebaseReady) return null;
+        if (typeof window.db === 'undefined' || !currentUserId || !isFirebaseReady) {
+            console.error('getEventsCollectionRef: db, userId o isFirebaseReady no están listos', {
+                db: typeof window.db,
+                userId: currentUserId,
+                isFirebaseReady
+            });
+            return null;
+        }
 
         // Nueva ruta simplificada
-        const path = `users/${userId}/calendar`;
+        const path = `users/${currentUserId}/calendar`;
 
         return window.db.collection(path);
     }
@@ -101,10 +117,27 @@
      * Guarda o actualiza un evento en Firestore.
      */
     async function saveEventToFirestore(dateStr, eventType, hours = null) {
+        // Leer userId dinámicamente
+        const currentUserId = sessionStorage.getItem('portis-user-identifier');
 
-        if (!isFirebaseReady || !window.db || !userId) {
-            showMessage('error', 'El sistema de base de datos no está listo. Inténtelo de nuevo.');
+        console.log('saveEventToFirestore llamado:', { dateStr, eventType, hours, isFirebaseReady, userId: currentUserId });
+
+        if (!isFirebaseReady || !window.db || !currentUserId) {
+            const errorMsg = 'El sistema de base de datos no está listo. Inténtelo de nuevo.';
+            showMessage('error', errorMsg);
+            console.error(errorMsg, { isFirebaseReady, db: !!window.db, userId: currentUserId });
             return;
+        }
+
+        // Si ya existe un evento en esta fecha, eliminarlo primero
+        const existingEvent = calendarEvents[dateStr];
+        if (existingEvent && existingEvent.id) {
+            console.log('Eliminando evento existente:', existingEvent);
+            try {
+                await getEventsCollectionRef().doc(existingEvent.id).delete();
+            } catch (error) {
+                console.error('Error al eliminar evento existente:', error);
+            }
         }
 
         const eventData = {
@@ -115,11 +148,15 @@
             hours: hours ? parseFloat(hours) : null,
         };
 
+        console.log('Guardando nuevo evento:', eventData);
+
         try {
-            await getEventsCollectionRef().add(eventData);
+            const docRef = await getEventsCollectionRef().add(eventData);
+            console.log('Evento guardado con ID:', docRef.id);
             showMessage('success', `Evento de ${eventType} guardado exitosamente.`);
         } catch (error) {
             showMessage('error', 'Error al guardar el evento en la base de datos.');
+            console.error('Error al guardar evento:', error);
         }
     }
 
@@ -396,7 +433,7 @@
         const startDay = (firstDayOfMonth === 0) ? 6 : firstDayOfMonth - 1;
 
         for (let i = 0; i < startDay; i++) {
-            calendarGrid.innerHTML += `<div class="p-2 text-xs opacity-30"></div>`;
+            calendarGrid.innerHTML += `<div class="w-full h-full bg-gray-50 dark:bg-[#0f0f1a]/50"></div>`;
         }
 
         for (let day = 1; day <= daysInMonth; day++) {
@@ -407,7 +444,6 @@
             const todayDate = new Date();
             const currentDate = new Date(year, month, day);
             const isToday = todayDate.toDateString() === currentDate.toDateString();
-            const todayClass = isToday ? 'border-2 border-dashed border-red-500' : '';
 
             const dayOfWeek = currentDate.getDay();
             const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
@@ -421,37 +457,54 @@
             }
             let eventDisplayClass = '';
             let eventTypeTag = ''; // Será el contenido de la etiqueta del día
+            let todayBorderStyle = ''; // Estilo del borde del día actual
 
             if (eventData) {
                 // Si la fecha está en el calendario, el texto es blanco
                 weekendTextColor = 'text-white';
 
                 if (eventData.type === 'Extra') {
-                    eventDisplayClass = 'bg-orange-600/50 hover:bg-orange-700/70 border-l-4 border-orange-600';
-                    // 🔑 MODIFICACIÓN 1: Mostrar SOLO las horas
-                    eventTypeTag = `<span class="text-xs font-medium text-orange-200 block leading-tight">${eventData.hours}h</span>`;
+                    eventDisplayClass = 'day-overtime';
+                    // 🔑 Mostrar horas con opacidad 0.7
+                    eventTypeTag = `<span class="text-xs font-medium block leading-tight" style="color: rgba(255, 255, 255, 0.7);">${eventData.hours}h</span>`;
+                    // Borde discontinuo naranja si es el día actual
+                    if (isToday) {
+                        todayBorderStyle = 'border: 2px dashed #ea580c !important;';
+                    }
                 } else if (eventData.type === 'Guardia') {
-                    eventDisplayClass = 'bg-blue-600/50 hover:bg-blue-700/70 border-l-4 border-blue-600';
-                    // 🔑 MODIFICACIÓN 2: Etiqueta vacía
-                    eventTypeTag = `<span class="text-xs font-medium text-blue-200 block leading-tight"></span>`;
+                    eventDisplayClass = 'day-shift';
+                    eventTypeTag = `<span class="text-xs font-medium text-white block leading-tight"></span>`;
+                    // Borde discontinuo azul si es el día actual
+                    if (isToday) {
+                        todayBorderStyle = 'border: 2px dashed #2563eb !important;';
+                    }
                 } else if (eventData.type === 'Vacaciones') {
-                    eventDisplayClass = 'bg-purple-600/50 hover:bg-purple-700/70 border-l-4 border-purple-600';
-                    // 🔑 MODIFICACIÓN 3: Etiqueta vacía
-                    eventTypeTag = `<span class="text-xs font-medium text-purple-200 block leading-tight"></span>`;
+                    eventDisplayClass = 'day-vacation';
+                    eventTypeTag = `<span class="text-xs font-medium text-white block leading-tight"></span>`;
+                    // Borde discontinuo morado si es el día actual
+                    if (isToday) {
+                        todayBorderStyle = 'border: 2px dashed #9333ea !important;';
+                    }
                 } else if (eventData.type === 'Festivo') {
-                    eventDisplayClass = 'bg-green-600/50 hover:bg-green-700/70 border-l-4 border-green-600';
-                    // 🔑 MODIFICACIÓN 4: Etiqueta vacía
-                    eventTypeTag = `<span class="text-xs font-medium text-green-200 block leading-tight"></span>`;
+                    eventDisplayClass = 'day-holiday';
+                    eventTypeTag = `<span class="text-xs font-medium text-white block leading-tight"></span>`;
+                    // Borde discontinuo verde si es el día actual
+                    if (isToday) {
+                        todayBorderStyle = 'border: 2px dashed #16a34a !important;';
+                    }
                 }
+            } else if (isToday) {
+                // Si es el día actual pero no tiene evento, borde discontinuo magenta
+                todayBorderStyle = 'border: 2px dashed #E91E63 !important;';
             }
             // =========================
 
             calendarGrid.innerHTML += `
-                <div class="calendar-day p-2 rounded-lg text-center cursor-pointer transition h-10 flex flex-col items-center justify-start 
-                    ${todayClass} ${eventDisplayClass || 'hover:bg-white/10 dark:hover:bg-black/10'}" 
+                <div class="calendar-day ${eventDisplayClass || ''}" 
+                    style="${todayBorderStyle}"
                     data-date="${fullDate}" 
                     onclick="window.openEventModal('${fullDate}')">
-                    <span class="text-sm font-semibold block ${weekendTextColor}">${day}</span> 
+                    <span class="text-sm md:text-xl font-bold block ${weekendTextColor}">${day}</span> 
                     ${eventTypeTag}
                 </div>
             `;
@@ -641,6 +694,8 @@
     }
 
     window.registerEvent = function (eventType) {
+        console.log('registerEvent llamado con:', eventType, 'para fecha:', selectedDateForEvent);
+
         // 🔑 Uso de closeModal global
         if (typeof window.closeModal === 'function') {
             window.closeModal('event-modal');
@@ -655,6 +710,7 @@
                 window.showModal('overtime-modal');
             }
         } else {
+            console.log('Llamando a saveEventToFirestore...');
             saveEventToFirestore(selectedDateForEvent, eventType);
         }
     }

@@ -245,7 +245,14 @@ html.light-mode #geometric-wrapper {
     color: white;
     font-weight: 600;
     transition: all 0.2s;
-    border: none;
+    border: 1px solid transparent;
+    padding: 0.5rem 1rem;
+}
+
+#calendar-grid,
+#calendar-week-days {
+    border-color: var(--color-border);
+    /* Fallback */
 }
 
 .primary-btn:hover {
@@ -467,38 +474,33 @@ html.light-mode #bottom-navbar {
    ESTILOS ESPECIFICOS - CALENDARIO
    ================================================================ */
 
+/* Estilos para dias del calendario (Card Style) */
 .calendar-day {
-    aspect-ratio: 1;
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    border-radius: 0.25rem;
-    font-size: 0.7rem;
-    padding: 0.15rem;
+    justify-content: space-between;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    /* Rounded corners like image */
+    font-size: 1rem;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    background-color: var(--color-bg-primary);
-    border: 1px solid var(--color-border);
+    background-color: #1f1f33;
+    /* Dark background matching image */
+    border: 2px solid #2a2a3e;
+    /* Subtle border */
     position: relative;
-    min-height: 2rem;
-    max-height: 2.5rem;
+    color: #ffffff;
 }
 
 .calendar-day:hover:not(.empty) {
-    border-color: var(--color-accent-magenta);
-    background-color: var(--color-bg-tertiary);
-}
-
-.calendar-day.today {
-    border-color: var(--color-accent-magenta);
-    font-weight: bold;
-    box-shadow: 0 0 0 1px var(--color-accent-magenta);
-}
-
-.calendar-day.selected {
-    background-color: var(--color-accent-magenta);
-    color: white;
+    transform: scale(1.05);
+    /* Slight pop */
+    z-index: 10;
     border-color: var(--color-accent-magenta);
 }
 
@@ -508,40 +510,37 @@ html.light-mode #bottom-navbar {
     cursor: default;
 }
 
-.calendar-day.weekend {
-    color: var(--color-accent-magenta);
+/* Event Specific Backgrounds - Con opacidad 0.7 y bordes visibles */
+.calendar-day.day-overtime {
+    background-color: rgba(234, 88, 12, 0.7);
+    /* Orange with 0.7 opacity */
+    border: 2px solid #ea580c;
+    /* Solid border */
+    color: white;
 }
 
-/* Indicadores de eventos en calendario */
-.event-dot {
-    width: 3px;
-    height: 3px;
-    border-radius: 50%;
-    margin-top: 1px;
+.calendar-day.day-shift {
+    background-color: rgba(37, 99, 235, 0.7);
+    /* Blue with 0.7 opacity */
+    border: 2px solid #2563eb;
+    /* Solid border */
+    color: white;
 }
 
-.event-dot.overtime {
-    background-color: #f97316;
+.calendar-day.day-holiday {
+    background-color: rgba(22, 163, 74, 0.7);
+    /* Green with 0.7 opacity */
+    border: 2px solid #16a34a;
+    /* Solid border */
+    color: white;
 }
 
-.event-dot.shift {
-    background-color: #3b82f6;
-}
-
-.event-dot.holiday {
-    background-color: #22c55e;
-}
-
-.event-dot.vacation {
-    background-color: #a855f7;
-}
-
-/* Dias del calendario */
-.calendar-day {
-    font-size: 0.75rem !important;
-    min-height: 2.3rem !important;
-    max-height: 3.3rem !important;
-    padding: 0.2rem !important;
+.calendar-day.day-vacation {
+    background-color: rgba(147, 51, 234, 0.7);
+    /* Purple with 0.7 opacity */
+    border: 2px solid #9333ea;
+    /* Solid border */
+    color: white;
 }
 
 /* User ID Display */
