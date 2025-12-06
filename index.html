@@ -4,28 +4,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portis - Autenticación</title>
+    <title>PortisApp | Autenticación</title>
 
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+    <!-- Estilos personalizados -->
     <link rel="stylesheet" href="style.css">
+
+    <!-- Favicon -->
     <link rel="icon" type="image/png" href="./assets/logo.png">
+
+    <!-- Script inline para evitar parpadeo (FOUC) al cambiar de tema -->
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem('portis-theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+
+            if (theme === 'light') {
+                document.documentElement.classList.add('light-mode');
+            } else {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
 </head>
 
-<body class="text-gray-900 split-base">
-
+<body class="antialiased">
+    <!-- Fondo geométrico -->
     <div id="geometric-wrapper"></div>
 
+    <!-- Contenedor principal de la aplicación -->
     <div id="app-container" class="flex items-center justify-center h-screen w-full p-4">
 
+        <!-- ============================================
+             PANTALLA DE INICIO (Logo y Botón Iniciar)
+             ============================================ -->
         <section id="home-screen" class="screen w-full max-w-md relative z-10 flex flex-col items-center"
             style="display: flex;">
 
             <div class="flex flex-col items-center justify-center flex-grow pt-16 pb-12">
+                <!-- Logo con efecto neón -->
                 <div id="app-logo-wrapper" class="pulse-glow">
                     <div id="app-logo-inner-circle">
-                        <img src="./assets/logo.png" alt="Logo de Portis" id="app-logo">
+                        <img src="./assets/logo.png" alt="Logo de PortisApp" id="app-logo">
                     </div>
                 </div>
                 <p class="text-xl text-center text-white mt-8">Cuando se cierra una puerta, se abre... otra.</p>
@@ -37,14 +63,19 @@
 
         </section>
 
+        <!-- ============================================
+             PANTALLA DE INICIO DE SESIÓN
+             ============================================ -->
         <section id="login-screen"
             class="screen w-full max-w-md flex flex-col items-center justify-center relative z-10 p-6 rounded-2xl"
             style="display: none;">
             <div class="form-wrapper glass-background w-full p-8 md:p-10 rounded-2xl shadow-xl">
                 <h2 class="text-3xl font-bold mb-8 text-center text-white">Iniciar Sesión</h2>
 
+                <!-- Mensaje de estado -->
                 <div id="login-message" class="message-box w-full" style="display: none;"></div>
 
+                <!-- Formulario de login -->
                 <input id="login-email" type="text" placeholder="Usuario o Correo electrónico" autocomplete="username"
                     class="minimal-input w-full mb-6">
                 <input id="login-password" type="password" placeholder="Contraseña" autocomplete="current-password"
@@ -54,6 +85,7 @@
                     <span>Entrar</span>
                 </button>
 
+                <!-- Enlaces de navegación -->
                 <div class="w-full flex justify-between text-sm">
                     <button id="go-to-forgot-btn" class="link-button transition">Recuperar Contraseña</button>
                     <button id="go-to-register-btn" class="link-button transition">Regístrate</button>
@@ -61,14 +93,19 @@
             </div>
         </section>
 
+        <!-- ============================================
+             PANTALLA DE REGISTRO
+             ============================================ -->
         <section id="register-screen"
             class="screen w-full max-w-md flex flex-col items-center justify-center relative z-10 p-6 rounded-2xl"
             style="display: none;">
             <div class="form-wrapper glass-background w-full p-8 md:p-10 rounded-2xl shadow-xl">
                 <h2 class="text-3xl font-bold mb-8 text-center text-white">Crear Cuenta</h2>
 
+                <!-- Mensaje de estado -->
                 <div id="register-message" class="message-box w-full" style="display: none;"></div>
 
+                <!-- Formulario de registro -->
                 <input id="register-username" type="text" placeholder="Nombre de usuario" autocomplete="nickname"
                     class="minimal-input w-full mb-6">
                 <input id="register-email" type="email" placeholder="Correo electrónico" autocomplete="email"
@@ -87,6 +124,9 @@
             </div>
         </section>
 
+        <!-- ============================================
+             PANTALLA DE RECUPERACIÓN DE CONTRASEÑA
+             ============================================ -->
         <section id="forgot-password-screen"
             class="screen w-full max-w-md flex flex-col items-center justify-center relative z-10 p-6 rounded-2xl"
             style="display: none;">
@@ -95,8 +135,10 @@
                 <p class="text-sm mb-6 text-left" style="color: var(--color-text-secondary);">Introduce tu correo para
                     recibir un enlace de restablecimiento.</p>
 
+                <!-- Mensaje de estado -->
                 <div id="forgot-message" class="message-box w-full" style="display: none;"></div>
 
+                <!-- Formulario de recuperación -->
                 <input id="forgot-email" type="email" placeholder="Correo electrónico" autocomplete="email"
                     class="minimal-input w-full mb-8">
 
@@ -111,11 +153,13 @@
 
     </div>
 
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
+
+    <!-- Scripts de la aplicación -->
     <script src="Config/Config.js"></script>
-    <script src="Config/Buttons.js"></script>
     <script src="script.js"></script>
 </body>
 

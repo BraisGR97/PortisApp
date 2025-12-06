@@ -493,16 +493,16 @@ window.addEventListener('load', () => {
 // ================================================================
 // BORDE ANIMADO EN SCROLL
 // ================================================================
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const cardInnerContents = document.querySelectorAll('.card-inner-content');
-    
+
     cardInnerContents.forEach(innerContent => {
         const container = innerContent.closest('.card-container');
-        
+
         if (container && innerContent) {
-            innerContent.addEventListener('scroll', function() {
+            innerContent.addEventListener('scroll', function () {
                 const scrollTop = innerContent.scrollTop;
-                
+
                 if (scrollTop > 10) {
                     container.style.borderTopColor = 'rgba(255, 255, 255, 0.2)';
                 } else {
@@ -511,8 +511,5 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     });
-});
-        });
-    }
 });
 

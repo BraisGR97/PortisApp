@@ -1,73 +1,54 @@
 /**
  * ====================================================================
- * script.js - Lógica de Inicio (index.html)
- * Incluye inicialización y navegación. La lógica de botones está en Buttons.js.
+ * script.js - Lógica de Autenticación y Navegación (index.html)
+ * ====================================================================
+ * Este archivo maneja toda la lógica de autenticación de Firebase,
+ * navegación entre pantallas y validación de formularios.
  * ====================================================================
  */
 
-// NOTA: Se asume que config.js ya está cargado y expone:
-// - window.firebaseConfig
-// - window.IS_MOCK_MODE
-// - window.applyColorMode
-// - window.MOCK_USER_ID
+// ================================================================
+// VARIABLES GLOBALES
+// ================================================================
 
-// Variables globales para Firebase
 window.app = null;
 window.auth = null;
 window.db = null;
 
-// Credenciales MOCK (Exponemos para Buttons.js si es necesario)
-window.MOCK_CREDENTIALS = { email: 'admin@portis.com', password: '0000', displayName: 'Admin' };
+// ================================================================
+// FUNCIONES HELPER (Utilidades)
+// ================================================================
 
-// --- Funciones Helper (Expuestas globalmente) ---
-
-window.toggleBackgroundAnimation = function (active) {
-    const wrapper = document.getElementById('geometric-wrapper');
-    if (wrapper) wrapper.style.opacity = active ? '1' : '0.5';
-};
-
+/**
+ * Cambia entre las diferentes pantallas de autenticación
+ * @param {string} screenId - ID de la pantalla a mostrar
+ */
 window.showScreen = function (screenId) {
-    window.toggleBackgroundAnimation(true);
-
     const screens = document.querySelectorAll('.screen');
     const messageBoxes = document.querySelectorAll('.message-box');
-    const cardContainers = document.querySelectorAll('.card-container');
-    const currentScreen = document.querySelector('.screen[style*="display: flex;"]');
     const targetScreen = document.getElementById(screenId);
 
-    if (!targetScreen || screenId === 'app-screen') return;
+    if (!targetScreen) return;
 
-    const isSwapping = currentScreen && currentScreen.id !== screenId;
+    // Limpiar mensajes
+    messageBoxes.forEach(box => {
+        box.style.display = 'none';
+        box.textContent = '';
+    });
 
-    if (isSwapping) {
-        cardContainers.forEach(card => card.classList.add('is-swapping'));
-    }
-
-    const isInverted = screenId === 'register-screen';
-
-    setTimeout(() => {
-        cardContainers.forEach(card => {
-            card.classList.remove('default-split', 'inverted-split');
-            card.classList.add(isInverted ? 'inverted-split' : 'default-split');
-        });
-
-        messageBoxes.forEach(box => {
-            box.style.display = 'none';
-            box.textContent = '';
-        });
-
-        screens.forEach(screen => {
-            screen.style.display = 'none';
-        });
-        targetScreen.style.display = 'flex';
-
-    }, 200);
-
-    setTimeout(() => {
-        cardContainers.forEach(card => card.classList.remove('is-swapping'));
-    }, 600);
+    // Cambiar pantallas
+    screens.forEach(screen => {
+        screen.style.display = 'none';
+    });
+    targetScreen.style.display = 'flex';
 };
 
+/**
+ * Muestra un mensaje de estado (error o éxito)
+ * @param {string} messageId - ID del elemento de mensaje
+ * @param {string} text - Texto del mensaje
+ * @param {string} type - Tipo de mensaje ('error' o 'success')
+ */
 window.showMessage = function (messageId, text, type = 'error') {
     const messageBox = document.getElementById(messageId);
     if (!messageBox) return;
@@ -84,32 +65,242 @@ window.showMessage = function (messageId, text, type = 'error') {
     messageBox.style.display = 'block';
 };
 
+/**
+ * Convierte códigos de error de Firebase en mensajes legibles
+ * @param {string} code - Código de error de Firebase
+ * @returns {string} Mensaje de error en español
+ */
 window.getFirebaseErrorMessage = function (code) {
     switch (code) {
-        case 'auth/email-already-in-use': return 'Este correo electrónico ya está en uso.';
-        case 'auth/invalid-email': return 'El formato del correo no es válido.';
-        case 'auth/weak-password': return 'La contraseña es demasiado débil (mín. 6 caracteres).';
+        case 'auth/email-already-in-use':
+            return 'Este correo electrónico ya está en uso.';
+        case 'auth/invalid-email':
+            return 'El formato del correo no es válido.';
+        case 'auth/weak-password':
+            return 'La contraseña es demasiado débil (mín. 6 caracteres).';
         case 'auth/user-not-found':
         case 'auth/wrong-password':
-        case 'auth/invalid-credential': return 'Credenciales incorrectas.';
-        case 'auth/too-many-requests': return 'Demasiados intentos fallidos. Inténtalo más tarde.';
-        case 'auth/network-request-failed': return 'Error de red. Asegúrate de estar conectado.';
-        default: return 'Ha ocurrido un error inesperado.';
+        case 'auth/invalid-credential':
+            return 'Credenciales incorrectas.';
+        case 'auth/too-many-requests':
+            return 'Demasiados intentos fallidos. Inténtalo más tarde.';
+        case 'auth/network-request-failed':
+            return 'Error de red. Asegúrate de estar conectado.';
+        default:
+            return 'Ha ocurrido un error inesperado.';
     }
 };
 
-
-// --- Lógica de Autenticación ---
+// ================================================================
+// FUNCIONES DE AUTENTICACIÓN
+// ================================================================
 
 /**
- * Intenta iniciar sesión automáticamente si hay persistencia o token (solo modo REAL).
+ * Maneja el inicio de sesión con Firebase
  */
-async function authUser() {
-    if (window.IS_MOCK_MODE) {
-        window.showScreen('home-screen');
+async function handleLogin() {
+    const loginMessageId = 'login-message';
+    const loginBtn = document.getElementById('login-btn');
+
+    if (loginBtn) {
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Entrando...';
+    }
+
+    const inputIdentifier = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value.trim();
+
+    // Validación de campos
+    if (!inputIdentifier || !password) {
+        window.showMessage(loginMessageId, 'Por favor, introduce tu correo/usuario y contraseña.', 'error');
+        if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'Entrar';
+        }
         return;
     }
 
+    try {
+        if (!window.auth) {
+            throw new Error("Firebase Auth no inicializado. Intenta recargar la página.");
+        }
+
+        // Configurar persistencia de sesión
+        await window.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+        // Iniciar sesión
+        const userCredential = await window.auth.signInWithEmailAndPassword(inputIdentifier, password);
+        const user = userCredential.user;
+
+        // Verificar que el correo esté verificado
+        if (!user.emailVerified) {
+            await window.auth.signOut();
+            window.showMessage(loginMessageId, '¡Acceso denegado! Por favor, verifica tu correo electrónico para iniciar sesión.', 'error');
+        } else {
+            // Guardar información del usuario en sessionStorage
+            const userDisplayName = user.displayName || user.email.split('@')[0] || 'Usuario';
+            sessionStorage.setItem('portis-user-identifier', user.uid);
+            sessionStorage.setItem('portis-user-display-name', userDisplayName);
+            sessionStorage.setItem('portis-show-welcome', 'true');
+
+            window.showMessage(loginMessageId, 'Inicio de sesión exitoso. Redirigiendo...', 'success');
+            setTimeout(() => {
+                window.location.href = 'Main/Main.html';
+            }, 800);
+        }
+    } catch (error) {
+        window.showMessage(loginMessageId, window.getFirebaseErrorMessage(error.code), 'error');
+    } finally {
+        if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'Entrar';
+        }
+    }
+}
+
+/**
+ * Maneja el registro de nuevos usuarios
+ */
+async function handleRegister() {
+    const username = document.getElementById('register-username').value.trim();
+    const email = document.getElementById('register-email').value.trim();
+    const password = document.getElementById('register-password').value.trim();
+    const passwordConfirm = document.getElementById('register-password-confirm').value.trim();
+
+    // Validación de contraseñas
+    if (password !== passwordConfirm) {
+        window.showMessage('register-message', 'Las contraseñas no coinciden.', 'error');
+        return;
+    }
+
+    // Validación de campos
+    if (!username || !email || !password) {
+        window.showMessage('register-message', 'Por favor, rellena todos los campos.', 'error');
+        return;
+    }
+
+    const registerBtn = document.getElementById('register-btn');
+    registerBtn.disabled = true;
+    registerBtn.textContent = 'Creando...';
+
+    try {
+        if (!window.auth || !window.db) {
+            throw new Error("Firebase no inicializado para registro.");
+        }
+
+        // Crear usuario en Firebase Auth
+        const userCredential = await window.auth.createUserWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+
+        // Actualizar perfil con nombre de usuario
+        await user.updateProfile({ displayName: username });
+
+        // Enviar correo de verificación
+        await user.sendEmailVerification();
+
+        // Crear documento de usuario en Firestore
+        await window.db.collection('users').doc(user.uid).set({
+            username: username,
+            email: email,
+            registrationDate: firebase.firestore.FieldValue.serverTimestamp(),
+            totalRepairs: 0,
+            totalBills: 0
+        });
+
+        window.showMessage('register-message', '¡Cuenta creada! Se ha enviado un correo de verificación. Por favor, revísalo para iniciar sesión.', 'success');
+
+        // Cerrar sesión y redirigir al login
+        await window.auth.signOut();
+
+        setTimeout(() => {
+            window.showScreen('login-screen');
+        }, 3000);
+
+    } catch (error) {
+        window.showMessage('register-message', window.getFirebaseErrorMessage(error.code), 'error');
+    } finally {
+        registerBtn.disabled = false;
+        registerBtn.textContent = 'Crear Cuenta';
+    }
+}
+
+/**
+ * Maneja la recuperación de contraseña
+ */
+async function handlePasswordReset() {
+    const email = document.getElementById('forgot-email').value.trim();
+
+    if (!email) {
+        window.showMessage('forgot-message', 'Por favor, introduce tu correo.', 'error');
+        return;
+    }
+
+    const resetPasswordBtn = document.getElementById('reset-password-btn');
+    resetPasswordBtn.disabled = true;
+    resetPasswordBtn.textContent = 'Enviando...';
+
+    try {
+        if (!window.auth) {
+            throw new Error("Firebase Auth no inicializado.");
+        }
+
+        await window.auth.sendPasswordResetEmail(email);
+        window.showMessage('forgot-message', '¡Enlace enviado! Revisa tu correo.', 'success');
+    } catch (error) {
+        window.showMessage('forgot-message', window.getFirebaseErrorMessage(error.code), 'error');
+    } finally {
+        resetPasswordBtn.disabled = false;
+        resetPasswordBtn.textContent = 'Enviar Enlace';
+    }
+}
+
+// ================================================================
+// INICIALIZACIÓN DE BOTONES
+// ================================================================
+
+/**
+ * Inicializa todos los event listeners de los botones
+ */
+function initializeButtons() {
+    // Botones de navegación
+    const startBtn = document.getElementById('start-btn');
+    const goToRegisterBtn = document.getElementById('go-to-register-btn');
+    const goToForgotBtn = document.getElementById('go-to-forgot-btn');
+    const goToLoginFromRegisterBtn = document.getElementById('go-to-login-from-register-btn');
+    const goToLoginFromForgotBtn = document.getElementById('go-to-login-from-forgot-btn');
+
+    // Botones de acción
+    const loginBtn = document.getElementById('login-btn');
+    const registerBtn = document.getElementById('register-btn');
+    const resetPasswordBtn = document.getElementById('reset-password-btn');
+
+    // Event listeners de navegación
+    if (startBtn) startBtn.addEventListener('click', () => window.showScreen('login-screen'));
+    if (goToRegisterBtn) goToRegisterBtn.addEventListener('click', () => window.showScreen('register-screen'));
+    if (goToForgotBtn) goToForgotBtn.addEventListener('click', () => window.showScreen('forgot-password-screen'));
+    if (goToLoginFromRegisterBtn) goToLoginFromRegisterBtn.addEventListener('click', () => window.showScreen('login-screen'));
+    if (goToLoginFromForgotBtn) goToLoginFromForgotBtn.addEventListener('click', () => window.showScreen('login-screen'));
+
+    // Event listeners de acción
+    if (loginBtn) loginBtn.addEventListener('click', handleLogin);
+    if (registerBtn) registerBtn.addEventListener('click', handleRegister);
+    if (resetPasswordBtn) resetPasswordBtn.addEventListener('click', handlePasswordReset);
+
+    // Permitir Enter en los inputs
+    const loginEmail = document.getElementById('login-email');
+    const loginPassword = document.getElementById('login-password');
+    if (loginEmail) loginEmail.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleLogin(); });
+    if (loginPassword) loginPassword.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleLogin(); });
+}
+
+// ================================================================
+// AUTENTICACIÓN AUTOMÁTICA
+// ================================================================
+
+/**
+ * Intenta iniciar sesión automáticamente si hay persistencia
+ */
+async function authUser() {
     window.auth.onAuthStateChanged((user) => {
         if (user && !user.isAnonymous && user.emailVerified) {
             console.log("Usuario autenticado y verificado. Redirigiendo a Main/Main.html.");
@@ -133,7 +324,13 @@ async function authUser() {
     }
 }
 
-// --- Lógica de Inicialización de Firebase (Solo Modo Real) ---
+// ================================================================
+// INICIALIZACIÓN DE FIREBASE
+// ================================================================
+
+/**
+ * Inicializa Firebase y la autenticación
+ */
 async function initAuthApp() {
     try {
         window.app = firebase.initializeApp(window.firebaseConfig);
@@ -149,27 +346,14 @@ async function initAuthApp() {
     }
 }
 
-
-// --- Punto de Entrada Principal (DOM Content Loaded) ---
+// ================================================================
+// PUNTO DE ENTRADA PRINCIPAL
+// ================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Inicializar botones
+    initializeButtons();
 
-    if (typeof window.applyColorMode === 'function') {
-        window.applyColorMode();
-    }
-
-    // Inicializar botones desde Buttons.js
-    if (typeof window.initializeButtons === 'function') {
-        window.initializeButtons();
-    } else {
-        console.error("Buttons.js no se ha cargado correctamente.");
-    }
-
-    // Inicialización de la aplicación
-    if (window.IS_MOCK_MODE) {
-        console.warn("Modo MOCK/DEMO activado. Saltando inicialización de Firebase.");
-        window.showScreen('home-screen');
-    } else {
-        initAuthApp();
-    }
+    // Inicializar Firebase
+    initAuthApp();
 });

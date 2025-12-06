@@ -47,11 +47,16 @@ function checkAuthenticationAndSetup() {
     }
 
     initializeAppAndAuth();
-    document.getElementById('new-repair-form').addEventListener('submit', saveRepair);
+    const form = document.getElementById('new-repair-form');
+    if (form) {
+        form.removeEventListener('submit', saveRepair); // Evitar duplicados
+        form.addEventListener('submit', saveRepair);
+    }
 
     // Listener para checkbox de contacto
     const contactCheckbox = document.getElementById('contact_checkbox');
     if (contactCheckbox) {
+        contactCheckbox.removeEventListener('change', toggleContactFields);
         contactCheckbox.addEventListener('change', toggleContactFields);
     }
 }
@@ -65,7 +70,12 @@ async function initializeAppAndAuth() {
             throw new Error("La configuración de Firebase está incompleta.");
         }
 
-        app = firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) {
+            app = firebase.initializeApp(firebaseConfig);
+        } else {
+            app = firebase.app();
+        }
+
         auth = firebase.auth();
         db = firebase.firestore();
 
@@ -79,11 +89,15 @@ async function initializeAppAndAuth() {
         });
 
     } catch (error) {
-        document.getElementById('repairs-list').innerHTML = `
-            <div class="message-error p-3 mt-4 text-red-400 bg-red-900/40 border border-red-900 rounded-lg">
-                Error de conexión. No se pudo cargar el módulo de datos.
-            </div>
-        `;
+        console.error("Firebase init error:", error);
+        const list = document.getElementById('repairs-list');
+        if (list) {
+            list.innerHTML = `
+                <div class="message-error p-3 mt-4 text-red-400 bg-red-900/40 border border-red-900 rounded-lg">
+                    Error de conexión. No se pudo cargar el módulo de datos.
+                </div>
+            `;
+        }
     }
 }
 
@@ -115,7 +129,7 @@ function setupRepairsListener() {
         });
         renderRepairs(repairs);
     }, (error) => {
-        // Error en la conexión
+        console.error("Error getting repairs:", error);
     });
 }
 
@@ -154,6 +168,7 @@ async function saveRepair(e) {
         contact_notes: document.getElementById('contact_notes').value.trim()
     } : {};
 
+    const originalBtnContent = submitButton.innerHTML;
     submitButton.innerHTML = '<i class="ph ph-circle-notch animate-spin mr-2"></i> Guardando...';
     submitButton.disabled = true;
 
@@ -195,6 +210,7 @@ async function saveRepair(e) {
         window.toggleNewRepairForm();
 
     } catch (error) {
+        console.error("Error saving repair:", error);
         alert("Error al guardar el mantenimiento. Inténtalo de nuevo.");
     }
 
@@ -229,6 +245,7 @@ window.deleteRepair = async function (id) {
             await repairsRef.doc(id).delete();
         }
     } catch (error) {
+        console.error("Error deleting repair:", error);
         if (repairElement) {
             repairElement.classList.remove('opacity-0', 'transform', '-translate-x-full');
         }
@@ -459,33 +476,6 @@ function renderRepairs(repairs, updateCache = true) {
         card.innerHTML = repairHtml;
         listContainer.appendChild(card);
     });
-
-    // Actualizar efectos visuales una vez renderizado
-    setTimeout(updateCardBorderOpacity, 50);
-}
-
-/**
- * Actualiza la opacidad del borde superior de las tarjetas basada en su posición.
- */
-function updateCardBorderOpacity() {
-    const elements = document.querySelectorAll('.repair-card, .card-container');
-    const viewportHeight = window.innerHeight;
-
-    elements.forEach(element => {
-        const rect = element.getBoundingClientRect();
-        const elementTop = rect.top;
-        const elementHeight = rect.height;
-
-        let opacity = 0;
-
-        if (elementTop < viewportHeight && elementTop > -elementHeight) {
-            const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
-            opacity = 1 - normalizedPosition;
-            opacity = 0.2 + (opacity * 0.8);
-        }
-
-        element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
-    });
 }
 
 /**
@@ -602,39 +592,21 @@ window.addEventListener('load', () => {
             }
         });
     }
-
-    // Ejecutar al hacer scroll en la página y en el contenedor de mantenimientos
-    window.addEventListener('scroll', updateCardBorderOpacity);
-
-    const appContent = document.getElementById('app-content');
-    if (appContent) {
-        appContent.addEventListener('scroll', updateCardBorderOpacity);
-    }
-
-    // Escuchar scroll del contenedor interno de mantenimientos
-    const scrollContainer = document.querySelector('.card-container.inverted-split .card-inner-content');
-    if (scrollContainer) {
-        scrollContainer.addEventListener('scroll', updateCardBorderOpacity);
-    }
-
-    // Ejecutar una vez al cargar y al redimensionar
-    setTimeout(updateCardBorderOpacity, 100);
-    window.addEventListener('resize', updateCardBorderOpacity);
 });
 
 // ================================================================
 // BORDE ANIMADO EN SCROLL
 // ================================================================
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const cardInnerContents = document.querySelectorAll('.card-inner-content');
-    
+
     cardInnerContents.forEach(innerContent => {
         const container = innerContent.closest('.card-container');
-        
+
         if (container && innerContent) {
-            innerContent.addEventListener('scroll', function() {
+            innerContent.addEventListener('scroll', function () {
                 const scrollTop = innerContent.scrollTop;
-                
+
                 if (scrollTop > 10) {
                     container.style.borderTopColor = 'rgba(255, 255, 255, 0.2)';
                 } else {
@@ -644,7 +616,3 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
-        });
-    }
-});
-
