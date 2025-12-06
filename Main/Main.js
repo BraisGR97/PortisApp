@@ -16,12 +16,18 @@
     let userId = null;
 
     // Estado de la navegacion - Chat en el centro (posicion 1 del array)
-    let currentView = 'chat-view'; // Vista por defecto
+    // Estado de la navegacion
+    let currentView = 'chat-view';
     const views = ['calendar-view', 'chat-view', 'dashboard-view', 'maintenance-view'];
 
-    // Variables para gestos tactiles (Swipe)
-    let touchStartX = 0;
-    let touchEndX = 0;
+    // Variables para gestos tactiles y slider animado
+    let currentIndex = 1; // Sincronizado con chat-view por defecto
+    let isDragging = false;
+    let startPos = 0;
+    let currentTranslate = -25; // Chat view inicial
+    let prevTranslate = -25;
+    let animationID;
+    const slider = document.getElementById('views-slider');
 
     // Promesa para indicar que Firebase esta listo
     let resolveFirebaseReady;
@@ -101,37 +107,50 @@
     // NAVEGACION Y SLIDER
     // ====================================================================
 
-    /**
-     * Cambia la vista activa usando el slider.
-     * @param {string} targetViewId - ID de la vista a mostrar
-     */
-    window.switchView = function (targetViewId) {
-        const slider = document.getElementById('views-slider');
-        const viewIndex = views.indexOf(targetViewId);
+    function getPositionX(event) {
+        return event.type.includes('mouse') ? event.pageX : event.touches[0].clientX;
+    }
 
-        if (viewIndex === -1 || !slider) return;
+    function setSliderPosition() {
+        if (slider) slider.style.transform = `translateX(${currentTranslate}%)`;
+    }
 
-        // Actualizar estado
-        currentView = targetViewId;
-        sessionStorage.setItem('last-view', targetViewId);
-
-        // Mover el slider
-        const translateX = -(viewIndex * 25); // 25% por cada vista (ya que son 4 vistas en 400% de ancho)
-        slider.style.transform = `translateX(${translateX}%)`;
-
-        // Actualizar botones de navegacion
+    function updateNavButtons(targetViewId) {
         document.querySelectorAll('.nav-button').forEach(btn => {
             btn.classList.remove('active');
             if (btn.dataset.target === targetViewId) {
                 btn.classList.add('active');
             }
         });
+    }
 
-        // Inicializar modulos especificos segun la vista
-        initializeModuleForView(targetViewId);
+    function setPositionByIndex() {
+        currentTranslate = currentIndex * -25;
+        prevTranslate = currentTranslate;
 
-        // Actualizar efecto de borde en tarjetas
-        setTimeout(updateCardBorderOpacity, 100);
+        // Actualizar vista logica
+        const viewId = views[currentIndex];
+        if (viewId) {
+            updateNavButtons(viewId);
+            currentView = viewId;
+            sessionStorage.setItem('last-view', viewId);
+            initializeModuleForView(viewId);
+            setTimeout(updateCardBorderOpacity, 100);
+        }
+
+        setSliderPosition();
+    }
+
+    /**
+     * Cambia la vista activa de forma programática.
+     */
+    window.switchView = function (targetViewId) {
+        const index = views.indexOf(targetViewId);
+        if (index !== -1) {
+            currentIndex = index;
+            if (slider) slider.style.transition = 'transform 0.3s ease-out';
+            setPositionByIndex();
+        }
     }
 
     /**
@@ -156,45 +175,63 @@
     // GESTOS TACTILES (SWIPE)
     // ====================================================================
 
-    /**
-     * Maneja el gesto de swipe para cambiar de vista.
-     */
-    function handleSwipeGesture() {
-        const swipeThreshold = 50; // Distancia minima para considerar swipe
-        const diffX = touchStartX - touchEndX;
+    function animation() {
+        setSliderPosition();
+        if (isDragging) requestAnimationFrame(animation);
+    }
 
-        if (Math.abs(diffX) > swipeThreshold) {
-            const currentIndex = views.indexOf(currentView);
+    function touchStart(event) {
+        isDragging = true;
+        startPos = getPositionX(event);
+        animationID = requestAnimationFrame(animation);
 
-            if (diffX > 0) {
-                // Swipe izquierda -> Siguiente vista
-                if (currentIndex < views.length - 1) {
-                    switchView(views[currentIndex + 1]);
-                }
-            } else {
-                // Swipe derecha -> Vista anterior
-                if (currentIndex > 0) {
-                    switchView(views[currentIndex - 1]);
-                }
-            }
+        if (slider) {
+            slider.style.transition = 'none';
+        }
+    }
+
+    function touchMove(event) {
+        if (isDragging) {
+            const currentPosition = getPositionX(event);
+            const currentMove = currentPosition - startPos;
+
+            // Convertir movimiento en px a porcentaje aproximado para el slider 400%
+            const movePercent = (currentMove / window.innerWidth) * 25;
+            currentTranslate = prevTranslate + movePercent;
+
+            // Limites elasticos
+            if (currentTranslate > 5) currentTranslate = 5;
+            if (currentTranslate < -80) currentTranslate = -80;
+        }
+    }
+
+    function touchEnd() {
+        isDragging = false;
+        cancelAnimationFrame(animationID);
+
+        const movedBy = currentTranslate - prevTranslate;
+
+        // Umbral para cambiar de vista (ej. 5% de arrastre)
+        if (movedBy < -5 && currentIndex < views.length - 1) currentIndex += 1;
+        else if (movedBy > 5 && currentIndex > 0) currentIndex -= 1;
+
+        setPositionByIndex();
+
+        if (slider) {
+            slider.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1)';
         }
     }
 
     /**
-     * Inicializa los listeners para gestos tactiles.
+     * Inicializa los listeners para gestos tactiles avanzados.
      */
     function initializeSwipe() {
         const content = document.getElementById('app-content');
         if (!content) return;
 
-        content.addEventListener('touchstart', (e) => {
-            touchStartX = e.changedTouches[0].screenX;
-        }, { passive: true });
-
-        content.addEventListener('touchend', (e) => {
-            touchEndX = e.changedTouches[0].screenX;
-            handleSwipeGesture();
-        }, { passive: true });
+        content.addEventListener('touchstart', touchStart, { passive: true });
+        content.addEventListener('touchmove', touchMove, { passive: true });
+        content.addEventListener('touchend', touchEnd);
     }
 
     // ====================================================================
@@ -285,12 +322,33 @@
     // ====================================================================
 
     document.addEventListener('DOMContentLoaded', () => {
+        // 1. Sincronización Inicial
+        const lastView = sessionStorage.getItem('last-view');
+        if (lastView) {
+            const idx = views.indexOf(lastView);
+            if (idx !== -1) {
+                currentIndex = idx;
+                currentTranslate = idx * -25;
+                prevTranslate = currentTranslate;
+
+                if (slider) {
+                    slider.style.transition = 'none';
+                    slider.style.transform = `translateX(${currentTranslate}%)`;
+                    // Reactivar animación
+                    setTimeout(() => {
+                        if (slider) slider.style.transition = 'transform 0.3s ease-out';
+                    }, 50);
+                }
+                updateNavButtons(lastView);
+            }
+        }
+
         // Aplicar tema
         if (typeof window.applyColorMode === 'function') {
             window.applyColorMode();
         }
 
-        // Configurar botones de acción (anteriormente en Buttons.js)
+        // Configurar botones de acción
         setupActionButtons();
 
         /**
@@ -302,33 +360,39 @@
             const confirmLogoutBtn = document.getElementById('confirm-logout-btn');
 
             if (logoutBtn) {
-                logoutBtn.addEventListener('click', (e) => {
+                // Clonar para limpiar eventos anteriores
+                const newBtn = logoutBtn.cloneNode(true);
+                logoutBtn.parentNode.replaceChild(newBtn, logoutBtn);
+
+                newBtn.addEventListener('click', (e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     window.showModal('logout-confirmation-modal');
                 });
             }
 
             if (cancelLogoutBtn) {
-                cancelLogoutBtn.addEventListener('click', (e) => {
+                cancelLogoutBtn.onclick = (e) => {
                     e.preventDefault();
                     window.closeModal('logout-confirmation-modal');
-                });
+                };
             }
 
             if (confirmLogoutBtn) {
-                confirmLogoutBtn.addEventListener('click', (e) => {
+                confirmLogoutBtn.onclick = (e) => {
                     e.preventDefault();
                     window.closeModal('logout-confirmation-modal');
                     window.handleLogout();
-                });
+                };
             }
         }
 
-        // Configurar navegacion por botones
+        // Configurar navegacion por botones (excluyendo logout)
         document.querySelectorAll('.nav-button').forEach(btn => {
+            if (btn.id === 'logout-btn') return;
             btn.addEventListener('click', (e) => {
                 const target = e.currentTarget.dataset.target;
-                if (target) switchView(target);
+                if (target) window.switchView(target);
             });
         });
 
