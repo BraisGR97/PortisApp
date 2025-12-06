@@ -1,4 +1,4 @@
-﻿// ===================================================================================
+// ===================================================================================
 // Maintenance.js - Lógica de la Vista de Mantenimientos (Pendientes)
 // ===================================================================================
 
@@ -437,63 +437,63 @@
         return date.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
     }
 
-function generateMaintenanceModalContent(item, isEditMode) {
-    const priority = item.priority || 'Media';
-    const status = isEditMode ? (item.status || 'Pendiente') : 'En Progreso';
-    const maintenanceDate = getFormattedDate(item.maintenance_month, item.maintenance_year);
-    const contact = item.contact || {};
+    function generateMaintenanceModalContent(item, isEditMode) {
+        const priority = item.priority || 'Media';
+        const status = isEditMode ? (item.status || 'Pendiente') : 'En Progreso';
+        const maintenanceDate = getFormattedDate(item.maintenance_month, item.maintenance_year);
+        const contact = item.contact || {};
 
-    // Helper para inputs (MODIFICADO: Texto estático si es readOnly)
-    const baseInput = (id, label, value, readOnly = true, type = 'text', customClass = 'minimal-input') => {
-        if (readOnly) {
-            return `
+        // Helper para inputs (MODIFICADO: Texto estático si es readOnly)
+        const baseInput = (id, label, value, readOnly = true, type = 'text', customClass = 'minimal-input') => {
+            if (readOnly) {
+                return `
                 <div class="space-y-1">
                     <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">${label}</span>
                     <p class="text-sm font-medium text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-1">${value || '---'}</p>
                 </div>
                 `;
-        }
-        return `
+            }
+            return `
             <div class="space-y-1">
                 <label for="${id}" class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">${label}</label>
                 <input id="${id}" type="${type}" value="${value || ''}" 
                         class="${customClass} w-full border-accent-magenta">
             </div>
             `;
-    };
+        };
 
-    const baseTextarea = (id, label, value, readOnly = true, rows = 2, customClass = 'minimal-input') => {
-        if (readOnly) {
-            return `
+        const baseTextarea = (id, label, value, readOnly = true, rows = 2, customClass = 'minimal-input') => {
+            if (readOnly) {
+                return `
                 <div class="space-y-1">
                     <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">${label}</span>
                     <p class="text-sm text-gray-700 dark:text-gray-300 italic whitespace-pre-wrap border-b border-gray-200 dark:border-gray-700 pb-1">${value || '---'}</p>
                 </div>
                 `;
-        }
-        return `
+            }
+            return `
             <div class="space-y-1">
                 <label for="${id}" class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">${label}</label>
                 <textarea id="${id}" rows="${rows}" 
                         class="${customClass} w-full resize-none border-accent-magenta">${value || ''}</textarea>
             </div>
             `;
-    };
+        };
 
-    const prioritySelect = (priorityValue, readOnly = true) => {
-        if (readOnly) {
-            return `
+        const prioritySelect = (priorityValue, readOnly = true) => {
+            if (readOnly) {
+                return `
                 <div class="space-y-1">
                     <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Prioridad</span>
                     <p class="text-sm font-medium text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-1">${priorityValue}</p>
                 </div>
                 `;
-        }
-        const options = ['Alta', 'Media', 'Baja'];
-        const optionHtml = options.map(opt =>
-            `<option value="${opt}" ${priorityValue === opt ? 'selected' : ''}>${opt}</option>`
-        ).join('');
-        return `
+            }
+            const options = ['Alta', 'Media', 'Baja'];
+            const optionHtml = options.map(opt =>
+                `<option value="${opt}" ${priorityValue === opt ? 'selected' : ''}>${opt}</option>`
+            ).join('');
+            return `
             <div class="space-y-1">
                 <label for="edit-priority" class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Prioridad</label>
                 <select id="edit-priority" class="minimal-input w-full border-accent-magenta">
@@ -501,23 +501,23 @@ function generateMaintenanceModalContent(item, isEditMode) {
                 </select>
             </div>
             `;
-    };
+        };
 
-    const contractSelect = (contractValue, readOnly = true) => {
-        if (readOnly) {
-            return `
+        const contractSelect = (contractValue, readOnly = true) => {
+            if (readOnly) {
+                return `
                 <div class="space-y-1">
                     <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Contrato</span>
                     <p class="text-sm font-medium text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-1">${contractValue}</p>
                 </div>
                 `;
-        }
-        const options = ['Mensual', 'Bimensual', 'Trimestral', 'Cuatrimestral', 'Semestral', 'Anual'];
-        const optionHtml = options.map(opt =>
-            `<option value="${opt}" ${contractValue === opt ? 'selected' : ''}>${opt}</option>`
-        ).join('');
+            }
+            const options = ['Mensual', 'Bimensual', 'Trimestral', 'Cuatrimestral', 'Semestral', 'Anual'];
+            const optionHtml = options.map(opt =>
+                `<option value="${opt}" ${contractValue === opt ? 'selected' : ''}>${opt}</option>`
+            ).join('');
 
-        return `
+            return `
                 <div class="space-y-1">
                     <label for="edit-contract" class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Contrato</label>
                     <select id="edit-contract" class="minimal-input w-full border-accent-magenta">
@@ -525,12 +525,12 @@ function generateMaintenanceModalContent(item, isEditMode) {
                     </select>
                 </div>
             `;
-    };
+        };
 
-    let bodyContent = '';
-    if (!isEditMode) {
-        // MODO VISTA
-        bodyContent = `
+        let bodyContent = '';
+        if (!isEditMode) {
+            // MODO VISTA
+            bodyContent = `
             <div class="p-6 space-y-4 relative">
                 <!-- Botones Superiores -->
                 <div class="flex justify-between items-center mb-2">
@@ -569,9 +569,9 @@ function generateMaintenanceModalContent(item, isEditMode) {
                 ` : ''}
             </div>
             `;
-    } else {
-        // MODO EDICION
-        bodyContent = `
+        } else {
+            // MODO EDICION
+            bodyContent = `
             <div class="p-6 space-y-4">
                 <h3 class="text-xl font-bold mb-4">Editar Mantenimiento</h3>
                 
@@ -595,10 +595,10 @@ function generateMaintenanceModalContent(item, isEditMode) {
                 </div>
             </div>
             `;
-    }
+        }
 
-    // Footer con botones
-    const footerContent = `
+        // Footer con botones
+        const footerContent = `
             <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800/50 rounded-b-xl">
                 ${!isEditMode ? `
                     <button onclick="window.confirmCompleteMaintenance('${item.id}')" class="primary-btn w-full py-3 rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-accent-magenta/20">
@@ -612,8 +612,8 @@ function generateMaintenanceModalContent(item, isEditMode) {
             </div>
         `;
 
-    return bodyContent + footerContent;
-}
+        return bodyContent + footerContent;
+    }
 
 
     function showMaintenanceDetailsModal(item, isEditMode = false) {

@@ -140,8 +140,7 @@ html.light-mode body {
     padding: 1rem;
     flex-grow: 1;
     padding-bottom: 5rem;
-    height: 100vh;
-    box-sizing: border-box;
+    overflow-y: auto;
 }
 
 /* ================================================================
@@ -154,23 +153,16 @@ html.light-mode body {
     box-shadow: 0 4px 6px var(--color-shadow);
     border: 1px solid var(--color-border);
     border-bottom: 1px solid var(--color-bg-secondary);
-    height: calc(100vh - 11rem);
-    /* Altura total menos navbar superior (4rem), inferior (5rem) y padding de app-content (2rem) */
     overflow: hidden;
     display: flex;
     flex-direction: column;
     transition: border-top-color 0.3s ease;
     border-top: 2px solid transparent;
-    /* Para efecto de scroll */
     margin-bottom: 1.5rem;
 }
 
 .card-inner-content {
     padding: 1.5rem;
-    height: 100%;
-    overflow-y: auto;
-    /* Scroll dentro del contenido de la tarjeta */
-    flex: 1;
     display: flex;
     flex-direction: column;
 }

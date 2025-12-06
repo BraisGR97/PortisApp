@@ -1,4 +1,4 @@
-﻿// Se asume que Firebase (compatibilidad) está disponible globalmente desde los scripts CDN de Main.html
+// Se asume que Firebase (compatibilidad) está disponible globalmente desde los scripts CDN de Main.html
 // Se asume que window.firebaseReadyPromise, window.db, y window.auth serán establecidos por Main.js.
 
 (function () { // ⬅️ INICIO: IIFE para aislar el ámbito y evitar conflictos de declaración.
@@ -555,7 +555,7 @@
 
         overtimeDisplay.textContent = `${totalOvertimeMonthly.toFixed(1)} h`;
         shiftsDisplay.textContent = `${totalShiftsAnnual} guardias`;
-        holidaysDisplay.textContent = `${totalFestivosAnnual} dias`;
+        holidaysDisplay.textContent = `${totalFestivosAnnual} días`;
         // Contar festivos nacionales
         for (let dayNum = 0; dayNum < 365; dayNum++) {
             const checkDate = new Date(currentYear, 0, 1 + dayNum);
@@ -566,7 +566,7 @@
                 }
             }
         }
-        holidaysDisplay.textContent = `${totalFestivosAnnual} dias`;
+        holidaysDisplay.textContent = `${totalFestivosAnnual} días`;
     }
 
     function updateHolidayQuota() {

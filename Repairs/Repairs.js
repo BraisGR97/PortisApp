@@ -621,3 +621,25 @@ window.addEventListener('load', () => {
     setTimeout(updateCardBorderOpacity, 100);
     window.addEventListener('resize', updateCardBorderOpacity);
 });
+
+// ================================================================
+// BORDE ANIMADO EN SCROLL
+// ================================================================
+document.addEventListener('DOMContentLoaded', function() {
+    const appContent = document.getElementById('app-content');
+    const cardContainers = document.querySelectorAll('.card-container');
+    
+    if (appContent && cardContainers.length > 0) {
+        appContent.addEventListener('scroll', function() {
+            const scrollTop = appContent.scrollTop;
+            
+            cardContainers.forEach(container => {
+                if (scrollTop > 10) {
+                    container.style.borderTopColor = 'rgba(255, 255, 255, 0.2)';
+                } else {
+                    container.style.borderTopColor = 'transparent';
+                }
+            });
+        });
+    }
+});

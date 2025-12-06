@@ -1,4 +1,4 @@
-﻿// Se asume que Firebase (compatibilidad) está disponible globalmente desde Main.js.
+// Se asume que Firebase (compatibilidad) está disponible globalmente desde Main.js.
 // Se asume que Main.js ha establecido window.db y window.auth tras el login.
 
 (function () { // ⬅️ INICIO: IIFE para aislar el ámbito y evitar conflictos de declaración.

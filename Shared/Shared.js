@@ -799,3 +799,26 @@ window.addEventListener('load', () => {
     window.addEventListener('resize', updateCardBorderOpacity);
     setTimeout(updateCardBorderOpacity, 100);
 });
+
+// ================================================================
+// BORDE ANIMADO EN SCROLL (para sistema de slider)
+// ================================================================
+document.addEventListener('DOMContentLoaded', function() {
+    const cardInnerContents = document.querySelectorAll('.card-inner-content');
+    
+    cardInnerContents.forEach(innerContent => {
+        const container = innerContent.closest('.card-container');
+        
+        if (container && innerContent) {
+            innerContent.addEventListener('scroll', function() {
+                const scrollTop = innerContent.scrollTop;
+                
+                if (scrollTop > 10) {
+                    container.style.borderTopColor = 'rgba(255, 255, 255, 0.2)';
+                } else {
+                    container.style.borderTopColor = 'transparent';
+                }
+            });
+        }
+    });
+});
