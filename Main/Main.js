@@ -270,6 +270,8 @@
         const contentScrollables = document.querySelectorAll('.card-inner-content');
 
         contentScrollables.forEach(inner => {
+            /*
+            // 1. Manejar Card Containers (Border TOP basado en scroll interno) - DESACTIVADO POR PETICION DE USUARIO
             const container = inner.closest('.card-container');
             if (container) {
                 const scrollTop = inner.scrollTop;
@@ -277,6 +279,7 @@
                 const opacity = Math.min(scrollTop / 50, 1);
                 container.style.borderTopColor = `rgba(255, 255, 255, ${0.1 + (opacity * 0.9)})`;
             }
+            */
         });
 
         // 2. Manejar Items Internos (Border BOTTOM)
