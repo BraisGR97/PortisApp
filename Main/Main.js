@@ -290,9 +290,38 @@
             window.applyColorMode();
         }
 
-        // Inicializar botones (Buttons.js)
-        if (typeof window.initializeButtons === 'function') {
-            window.initializeButtons();
+        // Configurar botones de acción (anteriormente en Buttons.js)
+        setupActionButtons();
+
+        /**
+         * Configura los listeners para los botones de acción globales (Logout).
+         */
+        function setupActionButtons() {
+            const logoutBtn = document.getElementById('logout-btn');
+            const cancelLogoutBtn = document.getElementById('cancel-logout-btn');
+            const confirmLogoutBtn = document.getElementById('confirm-logout-btn');
+
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    window.showModal('logout-confirmation-modal');
+                });
+            }
+
+            if (cancelLogoutBtn) {
+                cancelLogoutBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    window.closeModal('logout-confirmation-modal');
+                });
+            }
+
+            if (confirmLogoutBtn) {
+                confirmLogoutBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    window.closeModal('logout-confirmation-modal');
+                    window.handleLogout();
+                });
+            }
         }
 
         // Configurar navegacion por botones

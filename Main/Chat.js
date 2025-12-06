@@ -450,11 +450,23 @@
         }
     }
 
-    // Exponer acciones del chat para Buttons.js
-    window.ChatActions = {
-        sendMessage: (e) => sendMessage(e),
-        closeChatModal: () => window.closeChatModal()
-    };
+    // Listener para el botón de enviar mensaje
+    const sendBtn = document.getElementById('send-message-btn');
+    if (sendBtn) {
+        sendBtn.addEventListener('click', (e) => sendMessage(e));
+    }
+
+    // Listener para cerrar modal
+    const closeModalBtn = document.querySelector('button[onclick="closeChatModal(\'message-modal\')"]');
+    // El botón en HTML ya tiene onclick="closeChatModal...", pero si queremos manejarlo aqui:
+    // Pero espera, Main.html linea 390 dice: onclick="closeChatModal('message-modal')"
+    // Buttons.js tenia 'close-chat-modal-btn' pero en el HTML no veo ese ID.
+    // Veo <button onclick="closeChatModal('message-modal')" ...>
+    // Asi que probablemente no se necesite listener JS extra si ya hay onclick inline o si Main.js maneja modales de otra forma.
+    // Buttons.js linea 35 referenciaba 'close-chat-modal-btn'.
+    // En Main.html linea 390: <button onclick="closeChatModal('message-modal')" class="secondary-icon-btn p-2 rounded-full">
+    // No tiene ID. Así que Buttons.js probablemente no estaba funcionando para ese boton especificamente o usaba otro selector.
+    // Asique solo añadiré el de enviar.
 
     // Hacer la función de inicialización global
     window.initChat = initChat;
