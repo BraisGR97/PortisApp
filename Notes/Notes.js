@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ====================================================================
  * Notes.js - Lógica para la Gestión de Notas
  * ====================================================================
@@ -646,20 +646,25 @@ window.addEventListener('load', () => {
 // BORDE ANIMADO EN SCROLL
 // ================================================================
 document.addEventListener('DOMContentLoaded', function() {
-    const appContent = document.getElementById('app-content');
-    const cardContainers = document.querySelectorAll('.card-container');
+    const cardInnerContents = document.querySelectorAll('.card-inner-content');
     
-    if (appContent && cardContainers.length > 0) {
-        appContent.addEventListener('scroll', function() {
-            const scrollTop = appContent.scrollTop;
-            
-            cardContainers.forEach(container => {
+    cardInnerContents.forEach(innerContent => {
+        const container = innerContent.closest('.card-container');
+        
+        if (container && innerContent) {
+            innerContent.addEventListener('scroll', function() {
+                const scrollTop = innerContent.scrollTop;
+                
                 if (scrollTop > 10) {
                     container.style.borderTopColor = 'rgba(255, 255, 255, 0.2)';
                 } else {
                     container.style.borderTopColor = 'transparent';
                 }
             });
+        }
+    });
+});
         });
     }
 });
+

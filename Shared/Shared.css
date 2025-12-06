@@ -1,4 +1,4 @@
-﻿@charset "UTF-8";
+@charset "UTF-8";
 
 /**
  * ====================================================================
@@ -421,15 +421,16 @@ html.light-mode .custom-select {
     }
 
     #app-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding-top: 4rem;
-    padding-bottom: 5rem;
-    height: 100vh;
-    box-sizing: border-box;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding-top: 4rem;
+        padding-bottom: 5rem;
+        height: 100vh;
+        box-sizing: border-box;
+    }
 }
-}
+
 /* ================================================================
    SLIDER DE VISTAS (ANIMACI�N TIPO APP M�VIL)
    ================================================================ */
@@ -469,6 +470,3 @@ html.light-mode .custom-select {
     height: 100vh;
     box-sizing: border-box;
 }
-
-
-
