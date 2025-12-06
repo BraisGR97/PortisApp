@@ -1,52 +1,94 @@
+@charset "UTF-8";
+
+/**
+ * ====================================================================
+ * Settings.css - Estilos para Ajustes de la Aplicación
+ * ====================================================================
+ */
+
+/* ================================================================
+   VARIABLES DE COLOR (Idénticas a Profile.css)
+   ================================================================ */
+
 :root {
-    /* 🛑 CAMBIO 2: Paleta de colores de Main.css (DARK DEFAULT) */
+    color-scheme: dark;
+
+    /* Colores de fondo (Dark Mode por defecto) */
     --color-bg-primary: #12121e;
     --color-bg-secondary: #1f1f33;
     --color-bg-tertiary: #2a2a3e;
+    --color-bg-glass: rgba(0, 0, 0, 0.5);
+
+    /* Colores de texto */
     --color-text-primary: #f0f0f5;
     --color-text-secondary: #9999aa;
     --color-text-light: #ffffff;
 
-    /* 🛑 CAMBIO: Bordes y Acentos Magenta para Dark Mode */
-    --color-border: #632b3e;
-    /* Borde Magenta Oscuro sutil */
-    --color-shadow: rgba(0, 0, 0, 0.5);
+    /* Bordes y sombras */
+    --color-border: #47475f;
+    --color-border-light: #dee2e6;
+    --color-shadow: rgba(0, 0, 0, 0.6);
+    --color-shadow-light: rgba(255, 255, 255, 0.6);
 
-    /* 🛑 CAMBIO: Acento Principal ahora es Magenta en Dark Mode */
-    --color-accent-blue: #E91E63;
-
-    --color-accent-red: #ef4444;
-
-    /* 🛑 RESTAURADO: Gradiente Naranja/Rojo original */
+    /* Acentos */
+    --color-accent-magenta: #E91E63;
+    --color-accent-red: #dc3545;
+    --color-accent-green: #4CAF50;
+    --color-accent-orange: #FF9800;
+    --color-accent-blue: #2196F3;
     --gradient-primary: linear-gradient(135deg, #FF5722, #E91E63);
 }
 
-/* --- LIGHT MODE PALETTE --- */
-body.light-mode {
-    --color-bg-primary: #f8f9fa;
-    --color-bg-secondary: #ffffff;
+/* Light Mode Variables */
+html.light-mode,
+html.light-mode body {
+    color-scheme: light;
+
+    /* Colores de fondo (Light Mode) */
+    --color-bg-primary: #ffffff;
+    --color-bg-secondary: #f8f9fa;
     --color-bg-tertiary: #e9ecef;
+    --color-bg-glass: rgba(255, 255, 255, 0.5);
+
+    /* Colores de texto */
     --color-text-primary: #212529;
     --color-text-secondary: #6c757d;
     --color-text-light: #212529;
+
+    /* Bordes y sombras */
     --color-border: #dee2e6;
+    --color-border-light: #dee2e6;
     --color-shadow: rgba(0, 0, 0, 0.1);
-    --color-accent-blue: #0d6efd;
-    /* Mantenemos azul en light mode por legibilidad, o cambiar si se pide */
+    --color-shadow-light: rgba(255, 255, 255, 0.6);
+
+    /* Acentos */
+    --color-accent-magenta: #E91E63;
     --color-accent-red: #dc3545;
+    --color-accent-green: #198754;
+    --color-accent-orange: #fd7e14;
+    --color-accent-blue: #0d6efd;
     --gradient-primary: linear-gradient(135deg, #FF5722, #E91E63);
 }
 
+/* ================================================================
+   LAYOUT GENERAL
+   ================================================================ */
+
 body {
-    background-color: var(--color-bg-primary);
+    background: radial-gradient(circle at center, #050505 0%, #12121e 100%);
+    background-attachment: fixed;
     color: var(--color-text-primary);
     transition: background-color 0.3s, color 0.3s;
     min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow-x: hidden;
 }
 
-.overflow-y-auto {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+html.light-mode body {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    background-attachment: fixed;
 }
 
 .app-layout {
@@ -55,94 +97,151 @@ body {
     min-height: 100vh;
 }
 
-#top-navbar {
-    background-color: var(--color-bg-primary);
-    border-bottom: 1px solid var(--color-border);
+/* Scrollbar oculta */
+* {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
+
+*::-webkit-scrollbar {
+    display: none;
+}
+
+/* ================================================================
+   NAVBAR
+   ================================================================ */
+
+#top-navbar {
+    background-color: var(--color-bg-glass);
+    border-bottom: 1px solid var(--color-border-light);
+    box-shadow: 0 0 25px var(--color-shadow-light);
+    border-radius: 0;
+}
+
+.navbar-title {
+    color: var(--color-text-light);
+}
+
+/* ================================================================
+   CONTENIDO PRINCIPAL
+   ================================================================ */
 
 #app-content {
     padding: 1rem;
     flex-grow: 1;
     padding-bottom: 5rem;
-    /* Espacio para el FAB */
 }
 
-/* Card styles */
+/* ================================================================
+   CARDS Y CONTENEDORES
+   ================================================================ */
+
 .card-container {
     background-color: var(--color-bg-secondary);
-    border: 1px solid var(--color-border);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid #2b2b3a;
     border-radius: 1rem;
-    box-shadow: 0 4px 10px var(--color-shadow);
+    box-shadow: 0 0 5px var(--color-shadow);
     overflow: hidden;
+    margin-bottom: 1.5rem;
+    transition: border-top-color 0.3s ease;
 }
 
 .card-inner-content {
     padding: 1.5rem;
 }
 
-/* 🛑 Input/Form styles con borde negro fino por defecto, y magenta al seleccionar */
+.card-title {
+    color: var(--color-text-light);
+}
+
+.card-icon {
+    color: var(--color-accent-magenta);
+}
+
+/* ================================================================
+   FORMULARIOS E INPUTS
+   ================================================================ */
+
 .minimal-input {
     background-color: var(--color-bg-primary);
     border: 1px solid var(--color-border);
-    /* Borde fino */
     color: var(--color-text-light);
-    padding: 0.6rem 0.8rem;
+    padding: 0.75rem 1rem;
     border-radius: 0.5rem;
-    transition: border-color 0.2s, background-color 0.2s;
+    transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
 }
 
 .minimal-input:focus {
-    border-color: var(--color-accent-blue);
-    /* Magenta al enfocar */
+    border-color: var(--color-accent-magenta);
     outline: none;
-    box-shadow: 0 0 0 1px var(--color-accent-blue);
+    box-shadow: 0 0 0 2px rgba(233, 30, 99, 0.2);
 }
 
 .minimal-input::placeholder {
     color: var(--color-text-secondary);
 }
 
-/* Button styles */
+/* ================================================================
+   BOTONES
+   ================================================================ */
+
 .primary-btn {
     background-image: var(--gradient-primary);
-    color: var(--color-text-light);
+    color: #ffffff;
     font-weight: 600;
-    padding: 0.6rem 1rem;
+    padding: 0.75rem 1.5rem;
     border-radius: 0.5rem;
     border: none;
-    transition: opacity 0.2s;
+    transition: opacity 0.2s, transform 0.1s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
 }
 
 .primary-btn:hover {
     opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.primary-btn:active {
+    transform: translateY(0);
 }
 
 .secondary-icon-btn {
     background-color: var(--color-bg-tertiary);
     color: var(--color-text-secondary);
     border: 1px solid var(--color-border);
-    transition: background-color 0.2s, color 0.2s;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
 }
 
 .secondary-icon-btn:hover {
     background-color: var(--color-bg-primary);
     color: var(--color-text-light);
-    border-color: var(--color-accent-blue);
-    /* Borde magenta al hover */
+    border-color: var(--color-accent-magenta);
 }
 
-/* --- Estilos Específicos de Ajustes --- */
+.user-id-display {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border: 1px solid var(--color-border);
+}
+
+/* ================================================================
+   ESTILOS ESPECÍFICOS DE SETTINGS
+   ================================================================ */
 
 .setting-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid var(--color-border);
-}
-
-.setting-row:last-child {
-    border-bottom: none;
+    padding: 1rem 0;
 }
 
 .setting-label {
@@ -191,8 +290,8 @@ body {
 }
 
 input:checked+.slider {
-    background-color: var(--color-accent-blue);
-    border-color: var(--color-accent-blue);
+    background-color: var(--color-accent-magenta);
+    border-color: var(--color-accent-magenta);
 }
 
 input:checked+.slider:before {
@@ -200,14 +299,17 @@ input:checked+.slider:before {
     background-color: #fff;
 }
 
-/* MODAL */
+/* ================================================================
+   MODALES
+   ================================================================ */
+
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(4px);
     z-index: 100;
     display: flex;
@@ -217,31 +319,22 @@ input:checked+.slider:before {
 
 .modal-content {
     background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
     padding: 2rem;
     border-radius: 1rem;
     max-width: 400px;
     width: 90%;
     color: var(--color-text-light);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    border: 1px solid var(--color-border);
 }
 
-.user-id-display {
-    font-size: 0.75rem;
-    font-weight: 500;
-    padding: 0.25rem 0.5rem;
-    border-radius: 9999px;
-    background-color: var(--color-bg-tertiary);
-    color: var(--color-text-secondary);
-    max-width: 100px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
+/* ================================================================
+   RESPONSIVE
+   ================================================================ */
 
-/* Responsive */
 @media (max-width: 640px) {
-    body {
-        padding: 0;
+    .setting-row {
+        padding: 0.75rem 0;
     }
 }

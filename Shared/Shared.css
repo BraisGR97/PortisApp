@@ -1,4 +1,4 @@
-@charset "UTF-8";
+ï»¿@charset "UTF-8";
 
 /**
  * ====================================================================
@@ -127,9 +127,13 @@ html.light-mode body {
    ================================================================ */
 
 #app-content {
-    padding: 1rem;
-    flex-grow: 1;
-    padding-bottom: 6rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding-top: 4rem;
+    padding-bottom: 5rem;
+    height: 100vh;
+    box-sizing: border-box;
 }
 
 /* ================================================================
@@ -138,17 +142,26 @@ html.light-mode body {
 
 .card-container {
     background-color: var(--color-bg-secondary);
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
-    border-bottom: 1px solid #2b2b3a;
     border-radius: 1rem;
-    box-shadow: 0 0 5px var(--color-shadow);
+    box-shadow: 0 4px 6px var(--color-shadow);
+    border: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-bg-secondary);
+    height: calc(100vh - 11rem);
     overflow: hidden;
-    margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
     transition: border-top-color 0.3s ease;
+    border-top: 2px solid transparent;
+    margin-bottom: 1.5rem;
 }
 
 .card-inner-content {
     padding: 1.5rem;
+    height: 100%;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .card-title {
@@ -408,25 +421,32 @@ html.light-mode .custom-select {
     }
 
     #app-content {
-        padding: 0.5rem;
-        padding-bottom: 6rem;
-    }
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding-top: 4rem;
+    padding-bottom: 5rem;
+    height: 100vh;
+    box-sizing: border-box;
+}
 }
 /* ================================================================
-   SLIDER DE VISTAS (ANIMACIÓN TIPO APP MÓVIL)
+   SLIDER DE VISTAS (ANIMACIï¿½N TIPO APP Mï¿½VIL)
    ================================================================ */
 
 #views-slider {
     display: flex;
-    width: 200%; /* El contenedor mide el doble para albergar las dos vistas */
-    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); /* Transición suave */
-    will-change: transform;
+    width: 200%;
+    height: calc(100vh - 9rem);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .view-section {
-    width: 50%; /* Cada vista ocupa la mitad del slider (100% de la pantalla) */
+    width: 50%;
+    height: 100%;
     flex-shrink: 0;
-    padding: 0 4px; /* Pequeño espaciado */
+    overflow: hidden;
+    padding: 1rem;
     box-sizing: border-box;
 }
 
@@ -441,5 +461,13 @@ html.light-mode .custom-select {
 
 /* Ocultar scrollbar horizontal en el contenedor principal por si acaso */
 #app-content {
-    overflow-x: hidden;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding-top: 4rem;
+    padding-bottom: 5rem;
+    height: 100vh;
+    box-sizing: border-box;
 }
+
+
