@@ -215,8 +215,8 @@ async function loadAndCalculateStats() {
             db.collection(`users/${userId}/repairs`).get(),
             db.collection(`users/${userId}/bills`).get(),
             db.collection(`users/${userId}/history`).get(),
-            // Cargar contadores de compartidos en lugar de solo inbox
-            db.collection(`users/${userId}/shared`).doc('stats').get()
+            // Cargar contadores de compartidos desde colección plana
+            db.collection(`users/${userId}/shared_stats`).doc('general').get()
         ]);
 
         const [repairsResult, billsResult, historyResult, statsResult] = results;

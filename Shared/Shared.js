@@ -475,27 +475,70 @@ window.shareRepair = async function (repairId) {
         if (!db) return;
 
         // Buscar si ya existe un compartido activo para este usuario y reparación en la INBOX del destinatario
-        const existingQuery = await db.collection(`users/${recipientId}/shared`)
+        // Ahora buscamos en 'shared_inbox'
+        const existingQuery = await db.collection(`users/${recipientId}/shared_inbox`)
             .where('senderId', '==', userId)
-            // .where('recipientId', '==', recipientId) // Redundante en subcolección
             .where('repairData.id', '==', repair.id)
             .get();
 
         if (!existingQuery.empty) {
-            // Actualizar existente
+            // Actualizar existente en Shared Inbox
             const docId = existingQuery.docs[0].id;
-            await db.collection(`users/${recipientId}/shared`).doc(docId).update({
+
+            // Actualizar Inbox
+            await db.collection(`users/${recipientId}/shared_inbox`).doc(docId).update({
                 expiresAt: new Date(sharedData.expiresAt),
                 sharedAt: sharedData.sharedAt,
                 includeRecords: includeRecords,
                 records: sharedData.records || []
             });
-        } else {
-            // Crear nuevo en la INBOX del destinatario
-            await db.collection(`users/${recipientId}/shared`).add({
+
+            // Actualizar Outbox (mismo ID)
+            await db.collection(`users/${userId}/shared_outbox`).doc(docId).set({
                 ...sharedData,
-                expiresAt: new Date(sharedData.expiresAt)
+                recipientId: recipientId,
+                type: 'sent',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+        } else {
+            // NO EXISTE: Crear nuevo con la lógica atómica de batch (Inbox + Outbox + Stats)
+            const batch = db.batch();
+            const sharedDataPayload = {
+                ...sharedData,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            // 1. Inbox Destinatario
+            const recipientRef = db.collection(`users/${recipientId}/shared_inbox`).doc();
+            batch.set(recipientRef, {
+                ...sharedDataPayload,
+                type: 'received'
             });
+
+            // 2. Outbox Remitente
+            const senderRef = db.collection(`users/${userId}/shared_outbox`).doc(recipientRef.id);
+            batch.set(senderRef, {
+                ...sharedDataPayload,
+                recipientId: recipientId,
+                type: 'sent'
+            });
+
+            // 3. Stats Destinatario
+            const recipientStatsRef = db.collection(`users/${recipientId}/shared_stats`).doc('general');
+            batch.set(recipientStatsRef, {
+                receivedCount: firebase.firestore.FieldValue.increment(1),
+                lastReceivedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            // 4. Stats Remitente
+            const senderStatsRef = db.collection(`users/${userId}/shared_stats`).doc('general');
+            batch.set(senderStatsRef, {
+                sentCount: firebase.firestore.FieldValue.increment(1),
+                lastSentAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            await batch.commit();
         }
 
         if (messageDiv) {

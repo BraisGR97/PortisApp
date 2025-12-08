@@ -19,31 +19,29 @@ service cloud.firestore {
       match /history/{historyId} { allow read, write: if request.auth != null && request.auth.uid == userId; }
 
       // =====================================
-      // NUEVA ESTRUCTURA SHARED ORGANIZADA
+      // NUEVA ESTRUCTURA SHARED ORGANIZADA (FLAT)
       // =====================================
       
-      // 1. Bandeja de Entrada (INBOX - Received)
-      // El dueño lee y borra. Otros (autenticados) pueden CREAR documentos aquí.
-      match /shared/inbox/{documentId} {
+      // 1. Bandeja de Entrada (INBOX)
+      // users/{userId}/shared_inbox/{docId}
+      match /shared_inbox/{documentId} {
          allow read, delete: if request.auth != null && request.auth.uid == userId;
          allow create: if request.auth != null && request.resource.data.senderId == request.auth.uid;
          allow update: if request.auth != null && request.resource.data.senderId == request.auth.uid;
       }
 
-      // 2. Bandeja de Salida (OUTBOX - Sent)
-      // Solo el dueño puede ver y gestionar lo que ha enviado (copia temporal)
-      match /shared/outbox/{documentId} {
+      // 2. Bandeja de Salida (OUTBOX)
+      // users/{userId}/shared_outbox/{docId}
+      match /shared_outbox/{documentId} {
          allow read, write: if request.auth != null && request.auth.uid == userId;
       }
 
       // 3. Estadísticas (STATS)
-      // El dueño lee. Cualquiera puede INCREMENTAR contadores (para sumar +1 al enviar)
-      match /shared/stats {
+      // users/{userId}/shared_stats/general
+      match /shared_stats/{statId} {
          allow read: if request.auth != null && request.auth.uid == userId;
-         // Permitimos update si es un incremento de campos numéricos (seguridad básica)
          allow update: if request.auth != null; 
-         // En producción idealmente validaríamos con: request.resource.data.receivedCount == resource.data.receivedCount + 1
-         allow create: if request.auth != null; // Para crear el doc si no existe
+         allow create: if request.auth != null;
       }
     }
 
