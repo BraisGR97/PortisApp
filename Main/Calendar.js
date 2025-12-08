@@ -433,7 +433,7 @@
         const startDay = (firstDayOfMonth === 0) ? 6 : firstDayOfMonth - 1;
 
         for (let i = 0; i < startDay; i++) {
-            calendarGrid.innerHTML += `<div class="w-full h-full bg-gray-50 dark:bg-[#0f0f1a]/50"></div>`;
+            calendarGrid.innerHTML += `<div class="calendar-day-empty"></div>`;
         }
 
         for (let day = 1; day <= daysInMonth; day++) {
@@ -447,7 +447,7 @@
 
             const dayOfWeek = currentDate.getDay();
             const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
-            let weekendTextColor = isWeekend ? 'text-accent-magenta' : '';
+            let weekendClass = isWeekend ? 'calendar-weekend-text' : '';
 
             // === LÓGICA DE EVENTOS ===
             let eventData = calendarEvents[fullDate];
@@ -457,54 +457,53 @@
             }
             let eventDisplayClass = '';
             let eventTypeTag = ''; // Será el contenido de la etiqueta del día
-            let todayBorderStyle = ''; // Estilo del borde del día actual
+            let todayClass = ''; // Clase para el borde del día actual
 
             if (eventData) {
-                // Si la fecha está en el calendario, el texto es blanco
-                weekendTextColor = 'text-white';
+                // Si la fecha está en el calendario, el texto debe usar la clase de evento
+                weekendClass = 'calendar-event-text';
 
                 if (eventData.type === 'Extra') {
                     eventDisplayClass = 'day-overtime';
-                    // 🔑 Mostrar horas con opacidad 0.7
-                    eventTypeTag = `<span class="text-xs font-medium block leading-tight" style="color: rgba(255, 255, 255, 0.7);">${eventData.hours}h</span>`;
-                    // Borde discontinuo naranja si es el día actual
+                    // 🔑 Mostrar horas con clase CSS para opacidad
+                    eventTypeTag = `<span class="text-xs font-medium block leading-tight event-overtime-hours">${eventData.hours}h</span>`;
+                    // Clase para borde discontinuo naranja si es el día actual
                     if (isToday) {
-                        todayBorderStyle = 'border: 2px dashed #ea580c !important;';
+                        todayClass = 'today-overtime';
                     }
                 } else if (eventData.type === 'Guardia') {
                     eventDisplayClass = 'day-shift';
-                    eventTypeTag = `<span class="text-xs font-medium text-white block leading-tight"></span>`;
-                    // Borde discontinuo azul si es el día actual
+                    eventTypeTag = `<span class="text-xs font-medium calendar-event-text block leading-tight"></span>`;
+                    // Clase para borde discontinuo azul si es el día actual
                     if (isToday) {
-                        todayBorderStyle = 'border: 2px dashed #2563eb !important;';
+                        todayClass = 'today-shift';
                     }
                 } else if (eventData.type === 'Vacaciones') {
                     eventDisplayClass = 'day-vacation';
-                    eventTypeTag = `<span class="text-xs font-medium text-white block leading-tight"></span>`;
-                    // Borde discontinuo morado si es el día actual
+                    eventTypeTag = `<span class="text-xs font-medium calendar-event-text block leading-tight"></span>`;
+                    // Clase para borde discontinuo morado si es el día actual
                     if (isToday) {
-                        todayBorderStyle = 'border: 2px dashed #9333ea !important;';
+                        todayClass = 'today-vacation';
                     }
                 } else if (eventData.type === 'Festivo') {
                     eventDisplayClass = 'day-holiday';
-                    eventTypeTag = `<span class="text-xs font-medium text-white block leading-tight"></span>`;
-                    // Borde discontinuo verde si es el día actual
+                    eventTypeTag = `<span class="text-xs font-medium calendar-event-text block leading-tight"></span>`;
+                    // Clase para borde discontinuo verde si es el día actual
                     if (isToday) {
-                        todayBorderStyle = 'border: 2px dashed #16a34a !important;';
+                        todayClass = 'today-holiday';
                     }
                 }
             } else if (isToday) {
                 // Si es el día actual pero no tiene evento, borde discontinuo magenta
-                todayBorderStyle = 'border: 2px dashed #E91E63 !important;';
+                todayClass = 'today-default';
             }
             // =========================
 
             calendarGrid.innerHTML += `
-                <div class="calendar-day ${eventDisplayClass || ''}" 
-                    style="${todayBorderStyle}"
+                <div class="calendar-day ${eventDisplayClass} ${todayClass}" 
                     data-date="${fullDate}" 
                     onclick="window.openEventModal('${fullDate}')">
-                    <span class="text-sm md:text-xl font-bold block ${weekendTextColor}">${day}</span> 
+                    <span class="text-xs md:text-base font-bold block ${weekendClass}">${day}</span> 
                     ${eventTypeTag}
                 </div>
             `;
@@ -554,8 +553,9 @@
                 const diffTime = Math.abs(currentDate - prevDateObj);
                 const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-                // Si la diferencia es mayor a 1 día, es un nuevo bloque (no consecutivo)
-                if (diffDays > 1) {
+                // Si la diferencia es mayor a 3 días, es un nuevo bloque (no consecutivo)
+                // (Ej: 15 y 18 [diff 3] es mismo bloque. 15 y 19 [diff 4] son distintos) 
+                if (diffDays > 3) {
                     shiftBlockCount++;
                 }
             }
@@ -574,7 +574,7 @@
 
         if (!overtimeDisplay || !shiftsDisplay || !holidaysDisplay) return;
 
-        let totalOvertimeMonthly = 0;
+        let totalOvertimeAnnual = 0;
         let totalFestivosAnnual = 0;
 
         const currentYear = currentCalendarDate.getFullYear();
@@ -591,10 +591,10 @@
             const eventYear = eventDate.getFullYear();
             const eventMonthKey = `${eventYear}-${eventDate.getMonth()}`;
 
-            // Acumular horas extra del mes actual
-            if (eventMonthKey === currentMonthKey) {
+            // Acumular horas extra del AÑO actual
+            if (eventYear === currentYear) {
                 if (data.type === 'Extra' && data.hours) {
-                    totalOvertimeMonthly += parseFloat(data.hours);
+                    totalOvertimeAnnual += parseFloat(data.hours);
                 }
             }
 
@@ -606,7 +606,7 @@
             }
         }
 
-        overtimeDisplay.textContent = `${totalOvertimeMonthly.toFixed(1)} h`;
+        overtimeDisplay.textContent = `${totalOvertimeAnnual.toFixed(1)} h`;
         shiftsDisplay.textContent = `${totalShiftsAnnual} guardias`;
         holidaysDisplay.textContent = `${totalFestivosAnnual} días`;
         // Contar festivos nacionales
@@ -654,34 +654,32 @@
             weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
         });
 
-        const btnStyle = "py-3 px-4 rounded-lg font-bold w-full transition border-2";
+
         const optionsContainer = document.getElementById('event-options-container');
 
         // Determinar si hay un evento existente para cambiar el botón "Borrar" a "Eliminar" y otros textos
         const existingEvent = calendarEvents[dateStr];
         const deleteButtonText = existingEvent ? 'Eliminar Evento' : 'Borrar (Vacío)';
-        // Se permite borrar (haciendo clic) solo si hay un evento existente
-        const deleteButtonClass = existingEvent
-            ? 'text-red-500 border-red-500 hover:bg-red-500 hover:text-white'
-            : 'text-gray-400 border-gray-400 hover:bg-gray-100 hover:text-gray-500 opacity-50';
-        const deleteButtonDisabled = existingEvent ? '' : 'disabled';
 
+        // Usar clases CSS semánticas en lugar de Tailwind hardcodeado
+        const deleteButtonClass = existingEvent ? 'btn-delete' : 'btn-delete-disabled';
+        const deleteButtonDisabled = existingEvent ? '' : 'disabled';
 
         if (optionsContainer) {
             optionsContainer.innerHTML = `
-                <button onclick="window.deleteEvent('${selectedDateForEvent}')" class="${btnStyle} ${deleteButtonClass}" ${deleteButtonDisabled}>
+                <button onclick="window.deleteEvent('${selectedDateForEvent}')" class="action-btn ${deleteButtonClass}" ${deleteButtonDisabled}>
                     ${deleteButtonText}
                 </button>
-                <button onclick="window.registerEvent('Extra')" class="${btnStyle} text-orange-600 border-orange-600 hover:bg-orange-600 hover:text-white">
+                <button onclick="window.registerEvent('Extra')" class="action-btn btn-extra">
                     Horas Extra
                 </button>
-                <button onclick="window.registerEvent('Guardia')" class="${btnStyle} text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white">
+                <button onclick="window.registerEvent('Guardia')" class="action-btn btn-guardia">
                     Guardia
                 </button>
-                <button onclick="window.registerEvent('Festivo')" class="${btnStyle} text-green-600 border-green-600 hover:bg-green-600 hover:text-white">
+                <button onclick="window.registerEvent('Festivo')" class="action-btn btn-festivo">
                     Festivos
                 </button>
-                <button onclick="window.registerEvent('Vacaciones')" class="${btnStyle} text-purple-600 border-purple-600 hover:bg-purple-600 hover:text-white">
+                <button onclick="window.registerEvent('Vacaciones')" class="action-btn btn-vacaciones">
                     Vacaciones
                 </button>
             `;

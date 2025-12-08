@@ -60,10 +60,13 @@
             <!-- Formulario de Nuevo Mantenimiento -->
             <div id="new-repair-card" class="card-container mb-8 hidden">
                 <div class="card-inner-content">
-                    <h2 id="form-title" class="text-2xl font-bold mb-4 flex items-center gap-2 card-title">
-                        <i class="ph ph-wrench card-icon"></i>
-                        Nuevo Mantenimiento
-                    </h2>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 id="form-title" class="text-2xl font-bold flex items-center gap-2 card-title">
+                            <i class="ph ph-wrench card-icon"></i>
+                            Nuevo Mantenimiento
+                        </h2>
+                    </div>
+
                     <form id="new-repair-form" class="space-y-4 form-content">
                         <input type="hidden" id="repair-id">
 
@@ -129,6 +132,19 @@
                             </select>
                         </div>
 
+                        <div>
+                            <label for="description"
+                                class="block text-sm font-medium mb-1 form-label">Observaciones</label>
+                            <textarea id="description" name="description" placeholder="Detalles extra..."
+                                class="minimal-input w-full resize-none h-16"></textarea>
+                        </div>
+
+                        <div>
+                            <label for="breakdown" class="block text-sm font-medium mb-1 form-label">Avería</label>
+                            <textarea id="breakdown" name="breakdown" placeholder="Describe la avería..."
+                                class="minimal-input w-full resize-none h-16"></textarea>
+                        </div>
+
                         <div class="flex items-center gap-2">
                             <input type="checkbox" id="contact_checkbox" name="contact_checkbox"
                                 class="custom-checkbox">
@@ -136,26 +152,33 @@
                                 Contacto</label>
                         </div>
 
-                        <div id="contact-fields" class="hidden card-container default-split p-4 space-y-3">
-                            <p class="text-sm font-semibold card-title">Información de la persona a contactar:</p>
-                            <div>
-                                <label for="contact_name"
-                                    class="block text-xs font-medium mb-1 form-label">Nombre</label>
-                                <input type="text" id="contact_name" name="contact_name"
-                                    placeholder="Nombre de contacto" class="minimal-input w-full">
-                            </div>
-                            <div>
-                                <label for="contact_phone"
-                                    class="block text-xs font-medium mb-1 form-label">Teléfono</label>
-                                <input type="tel" id="contact_phone" name="contact_phone"
-                                    placeholder="Teléfono de contacto" class="minimal-input w-full">
+                        <div id="contact-fields"
+                            class="hidden bg-tertiary p-3 rounded-lg border border-border space-y-3"
+                            style="background-color: var(--color-bg-tertiary); border: 1px solid var(--color-border);">
+                            <p class="text-xs font-semibold uppercase text-secondary tracking-wider"
+                                style="color: var(--color-text-secondary);">Contacto</p>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label for="contact_name"
+                                        class="block text-[10px] font-medium mb-1 uppercase tracking-wide"
+                                        style="color: var(--color-text-secondary);">Nombre</label>
+                                    <input type="text" id="contact_name" name="contact_name" placeholder="Nombre"
+                                        class="minimal-input w-full text-sm py-1">
+                                </div>
+                                <div>
+                                    <label for="contact_phone"
+                                        class="block text-[10px] font-medium mb-1 uppercase tracking-wide"
+                                        style="color: var(--color-text-secondary);">Teléfono</label>
+                                    <input type="tel" id="contact_phone" name="contact_phone" placeholder="Teléfono"
+                                        class="minimal-input w-full text-sm py-1">
+                                </div>
                             </div>
                             <div>
                                 <label for="contact_notes"
-                                    class="block text-xs font-medium mb-1 form-label">Notas/Comentarios</label>
-                                <textarea id="contact_notes" name="contact_notes"
-                                    placeholder="Cualquier nota adicional para el técnico..."
-                                    class="minimal-input w-full resize-none h-16"></textarea>
+                                    class="block text-[10px] font-medium mb-1 uppercase tracking-wide"
+                                    style="color: var(--color-text-secondary);">Notas</label>
+                                <textarea id="contact_notes" name="contact_notes" placeholder="Notas adicionales..."
+                                    class="minimal-input w-full resize-none h-12 text-sm py-1"></textarea>
                             </div>
                         </div>
 
@@ -175,7 +198,7 @@
             </div>
 
             <!-- Lista de Mantenimientos -->
-            <div class="card-container">
+            <div id="repairs-list-container" class="card-container">
                 <div class="card-inner-content">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-2xl font-bold flex items-center gap-2 card-title">

@@ -24,6 +24,7 @@
     --color-text-primary: #f0f0f5;
     --color-text-secondary: #9999aa;
     --color-text-light: #ffffff;
+    --color-text-on-event: #ffffff;
 
     /* Bordes y sombras */
     --color-border: #47475f;
@@ -35,11 +36,104 @@
     --color-accent-magenta: #E91E63;
     --color-accent-red: #dc3545;
     --gradient-primary: linear-gradient(135deg, #FF5722, #E91E63);
+
+    /* Colores de eventos del calendario */
+    --color-event-overtime-bg: rgba(234, 88, 12, 0.7);
+    --color-event-overtime-border: #ea580c;
+    --color-event-overtime-text: rgba(255, 255, 255, 0.7);
+
+    --color-event-shift-bg: rgba(37, 99, 235, 0.7);
+    --color-event-shift-border: #2563eb;
+
+    --color-event-holiday-bg: rgba(22, 163, 74, 0.7);
+    --color-event-holiday-border: #16a34a;
+
+    --color-event-vacation-bg: rgba(147, 51, 234, 0.7);
+    --color-event-vacation-border: #9333ea;
+    /* Colores de Resumen (Summary Cards) - Dark Mode Defaults */
+    --color-summary-overtime-bg: rgba(124, 45, 18, 0.2);
+    --color-summary-overtime-border: rgba(124, 45, 18, 0.3);
+    --color-summary-overtime-text: #fb923c;
+
+    --color-summary-shift-bg: rgba(30, 58, 138, 0.2);
+    --color-summary-shift-border: rgba(30, 58, 138, 0.3);
+    --color-summary-shift-text: #60a5fa;
+
+    --color-summary-holiday-bg: rgba(20, 83, 45, 0.2);
+    --color-summary-holiday-border: rgba(20, 83, 45, 0.3);
+    --color-summary-holiday-text: #4ade80;
+
+    --color-summary-vacation-bg: rgba(88, 28, 135, 0.2);
+    --color-summary-vacation-border: rgba(88, 28, 135, 0.3);
+    --color-summary-vacation-text: #c084fc;
+
+    /* Calendar Empty Cell */
+    --color-calendar-empty-bg: rgba(15, 15, 26, 0.5);
+    /* Chat Dark Mode */
+    --color-chat-sent-bg: #dc2626;
+    /* red-600 */
+    --color-chat-sent-text: #ffffff;
+    --color-chat-received-bg: #374151;
+    /* gray-700 */
+    --color-chat-received-text: #ffffff;
+    --color-chat-separator-bg: #374151;
+    /* gray-700 */
+    --color-chat-separator-text: #9ca3af;
+    /* gray-400 */
+    --color-chat-input-bg: rgba(31, 31, 51, 1);
+    --color-chat-header-bg: rgba(31, 31, 51, 0.95);
+    --color-user-avatar-bg: #374151;
+    --color-user-avatar-border: #4b5563;
+
+    /* Dashboard Icon Colors (Dark Mode Defaults) */
+    --color-dash-maint-bg: rgba(234, 88, 12, 0.2);
+    --color-dash-maint-text: #fb923c;
+    --color-dash-hist-bg: rgba(30, 58, 138, 0.2);
+    --color-dash-hist-text: #60a5fa;
+    --color-dash-shared-bg: rgba(88, 28, 135, 0.2);
+    --color-dash-shared-text: #c084fc;
+    --color-dash-bills-bg: rgba(20, 83, 45, 0.2);
+    --color-dash-bills-text: #4ade80;
+    --color-dash-notes-bg: rgba(202, 138, 4, 0.2);
+    --color-dash-notes-text: #facc15;
+    --color-dash-profile-bg: rgba(55, 65, 81, 0.5);
+    --color-dash-profile-text: #9ca3af;
+
+    /* Maintenance Module (Pendientes) - Dark Mode */
+    --color-maint-summary-bg: rgba(255, 255, 255, 0.02);
+    --color-maint-summary-border: #47475f;
+    --color-maint-item-bg: rgba(31, 31, 51, 0.5);
+    --color-maint-item-border: #47475f;
 }
 
 /* Light Mode Variables */
 html.light-mode,
 html.light-mode body {
+    /* ... (rest of variables) */
+    --color-bg-primary: #ffffff;
+    /* ... */
+
+    /* Dashboard Icon Colors (Light Mode) */
+    --color-dash-maint-bg: #fff7ed;
+    --color-dash-maint-text: #ea580c;
+    --color-dash-hist-bg: #eff6ff;
+    --color-dash-hist-text: #2563eb;
+    --color-dash-shared-bg: #faf5ff;
+    --color-dash-shared-text: #9333ea;
+    --color-dash-bills-bg: #f0fdf4;
+    --color-dash-bills-text: #16a34a;
+    --color-dash-notes-bg: #fefce8;
+    --color-dash-notes-text: #ca8a04;
+    --color-dash-profile-bg: #f3f4f6;
+    --color-dash-profile-text: #4b5563;
+
+    /* Maintenance Module (Pendientes) - Light Mode */
+    --color-maint-summary-bg: rgba(255, 255, 255, 0.7);
+    --color-maint-summary-border: #e2e8f0;
+    --color-maint-item-bg: #ffffff;
+    --color-maint-item-border: #e2e8f0;
+
+    /* ... (rest of variables) */
     /* Forzar color-scheme para evitar que el navegador modifique los colores */
     color-scheme: light;
 
@@ -53,6 +147,7 @@ html.light-mode body {
     --color-text-primary: #212529;
     --color-text-secondary: #6c757d;
     --color-text-light: #212529;
+    --color-text-on-event: #ffffff;
 
     /* Bordes y sombras */
     --color-border: #dee2e6;
@@ -64,6 +159,57 @@ html.light-mode body {
     --color-accent-magenta: #E91E63;
     --color-accent-red: #dc3545;
     --gradient-primary: linear-gradient(135deg, #FF5722, #E91E63);
+
+    /* Colores de eventos del calendario (iguales en light mode) */
+    --color-event-overtime-bg: rgba(234, 88, 12, 0.7);
+    --color-event-overtime-border: #ea580c;
+    --color-event-overtime-text: rgba(255, 255, 255, 0.7);
+
+    --color-event-shift-bg: rgba(37, 99, 235, 0.7);
+    --color-event-shift-border: #2563eb;
+
+    --color-event-holiday-bg: rgba(22, 163, 74, 0.7);
+    --color-event-holiday-border: #16a34a;
+
+    --color-event-vacation-bg: rgba(147, 51, 234, 0.7);
+    --color-event-vacation-border: #9333ea;
+
+    /* Colores de Resumen (Summary Cards) - Light Mode Defaults */
+    --color-summary-overtime-bg: #fff7ed;
+    --color-summary-overtime-border: #ffedd5;
+    --color-summary-overtime-text: #ea580c;
+
+    --color-summary-shift-bg: #eff6ff;
+    --color-summary-shift-border: #dbeafe;
+    --color-summary-shift-text: #2563eb;
+
+    --color-summary-holiday-bg: #f0fdf4;
+    --color-summary-holiday-border: #dcfce7;
+    --color-summary-holiday-text: #16a34a;
+
+    --color-summary-vacation-bg: #faf5ff;
+    --color-summary-vacation-border: #f3e8ff;
+    --color-summary-vacation-text: #9333ea;
+
+    /* Calendar Empty Cell */
+    --color-calendar-empty-bg: #f9fafb;
+
+    /* Chat Light Mode */
+    --color-chat-sent-bg: #dc2626;
+    /* red-600 */
+    --color-chat-sent-text: #ffffff;
+    --color-chat-received-bg: #f1f5f9;
+    /* slate-100 */
+    --color-chat-received-text: #1e293b;
+    /* slate-800 */
+    --color-chat-separator-bg: #e2e8f0;
+    /* slate-200 */
+    --color-chat-separator-text: #64748b;
+    /* slate-500 */
+    --color-chat-input-bg: #ffffff;
+    --color-chat-header-bg: rgba(255, 255, 255, 0.95);
+    --color-user-avatar-bg: #e5e7eb;
+    --color-user-avatar-border: #d1d5db;
 }
 
 /* ================================================================
@@ -219,7 +365,7 @@ html.light-mode #geometric-wrapper {
 
 .dashboard-card:hover {
     transform: translateY(-2px);
-    border-color: var(--color-accent-magenta);
+    border-color: var(--color-accent-magenta) !important;
     box-shadow: 0 4px 12px var(--color-shadow);
 }
 
@@ -290,7 +436,8 @@ html.light-mode #geometric-wrapper {
     background-color: var(--color-bg-secondary);
     padding: 0.25rem 0.75rem;
     border-radius: 9999px;
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--color-accent-magenta);
+    color: var(--color-accent-magenta);
 }
 
 /* ================================================================
@@ -331,9 +478,11 @@ html.light-mode #bottom-navbar {
     position: relative;
 }
 
-.nav-button:hover {
-    color: var(--color-text-primary);
-    background-color: var(--color-bg-tertiary);
+@media (hover: hover) and (pointer: fine) {
+    .nav-button:hover {
+        color: var(--color-text-primary);
+        background-color: var(--color-bg-tertiary);
+    }
 }
 
 .nav-button.active {
@@ -369,6 +518,41 @@ html.light-mode #bottom-navbar {
     box-shadow: 0 10px 25px var(--color-shadow);
     transform: scale(0.95);
     transition: transform 0.3s ease;
+}
+
+/* Estilos de detalle en Modales (Mantenimiento) */
+.modal-detail-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.modal-detail-value {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0.25rem;
+}
+
+.modal-detail-value.italic {
+    font-style: italic;
+    color: var(--color-text-secondary);
+}
+
+.modal-footer {
+    padding: 1rem;
+    border-top: 1px solid var(--color-border);
+    background-color: var(--color-bg-primary);
+    /* Slight contrast against secondary */
+    border-bottom-left-radius: 0.75rem;
+    border-bottom-right-radius: 0.75rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
 }
 
 /* ================================================================
@@ -413,7 +597,7 @@ html.light-mode #bottom-navbar {
 }
 
 .user-chat-card:hover {
-    border-color: var(--color-accent-magenta);
+    border-color: var(--color-accent-magenta) !important;
     transform: translateY(-1px);
     box-shadow: 0 2px 8px var(--color-shadow);
 }
@@ -449,35 +633,32 @@ html.light-mode #bottom-navbar {
     text-align: right;
 }
 
-/* ================================================================
-   ESTILOS ESPECIFICOS - MANTENIMIENTOS
-   ================================================================ */
 
-.maintenance-item {
-    background-color: var(--color-bg-primary);
-    border: 1px solid var(--color-border);
-    border-top: 1px solid var(--color-bg-secondary);
-    border-radius: 0.75rem;
-    padding: 1rem;
-    transition: all 0.2s;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    /* Para efecto de scroll */
-}
-
-.maintenance-item:hover {
-    border-color: var(--color-accent-magenta);
-    transform: translateY(-1px);
-}
 
 /* ================================================================
    ESTILOS ESPECIFICOS - CALENDARIO
    ================================================================ */
 
+/* Contenedor del calendario - asegurar que se ajuste verticalmente */
+#calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: 1fr;
+    gap: 0.25rem;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    /* Importante para que el grid respete el contenedor */
+    overflow: hidden;
+    /* Evitar que las celdas se salgan */
+}
+
 /* Estilos para dias del calendario (Card Style) */
 .calendar-day {
     width: 100%;
     height: 100%;
+    min-height: 0;
+    /* Permitir que se comprima verticalmente */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -485,7 +666,8 @@ html.light-mode #bottom-navbar {
     padding: 0.5rem;
     border-radius: 0.5rem;
     /* Rounded corners like image */
-    font-size: 1rem;
+    font-size: 0.875rem;
+    /* Reducido de 1rem a 0.875rem */
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -495,6 +677,10 @@ html.light-mode #bottom-navbar {
     /* Subtle border */
     position: relative;
     color: #ffffff;
+    box-sizing: border-box;
+    /* Incluir padding y border en el tamaño total */
+    overflow: hidden;
+    /* Evitar que el contenido se salga */
 }
 
 .calendar-day:hover:not(.empty) {
@@ -510,37 +696,150 @@ html.light-mode #bottom-navbar {
     cursor: default;
 }
 
-/* Event Specific Backgrounds - Con opacidad 0.7 y bordes visibles */
+/* Event Specific Backgrounds - Usando variables CSS */
 .calendar-day.day-overtime {
-    background-color: rgba(234, 88, 12, 0.7);
-    /* Orange with 0.7 opacity */
-    border: 2px solid #ea580c;
-    /* Solid border */
-    color: white;
+    background-color: var(--color-event-overtime-bg);
+    border: 2px solid var(--color-event-overtime-border);
+    color: var(--color-text-on-event);
 }
 
 .calendar-day.day-shift {
-    background-color: rgba(37, 99, 235, 0.7);
-    /* Blue with 0.7 opacity */
-    border: 2px solid #2563eb;
-    /* Solid border */
-    color: white;
+    background-color: var(--color-event-shift-bg);
+    border: 2px solid var(--color-event-shift-border);
+    color: var(--color-text-on-event);
 }
 
 .calendar-day.day-holiday {
-    background-color: rgba(22, 163, 74, 0.7);
-    /* Green with 0.7 opacity */
-    border: 2px solid #16a34a;
-    /* Solid border */
-    color: white;
+    background-color: var(--color-event-holiday-bg);
+    border: 2px solid var(--color-event-holiday-border);
+    color: var(--color-text-on-event);
 }
 
 .calendar-day.day-vacation {
-    background-color: rgba(147, 51, 234, 0.7);
-    /* Purple with 0.7 opacity */
-    border: 2px solid #9333ea;
-    /* Solid border */
-    color: white;
+    background-color: var(--color-event-vacation-bg);
+    border: 2px solid var(--color-event-vacation-border);
+    color: var(--color-text-on-event);
+}
+
+/* Clases para textos de eventos */
+.event-overtime-hours {
+    color: var(--color-event-overtime-text);
+}
+
+/* Clases para bordes de día actual según tipo de evento */
+.calendar-day.today-overtime {
+    border: 2px dashed var(--color-event-overtime-border) !important;
+}
+
+.calendar-day.today-shift {
+    border: 2px dashed var(--color-event-shift-border) !important;
+}
+
+.calendar-day.today-holiday {
+    border: 2px dashed var(--color-event-holiday-border) !important;
+}
+
+.calendar-day.today-vacation {
+    border: 2px dashed var(--color-event-vacation-border) !important;
+}
+
+.calendar-day.today-default {
+    border: 2px dashed var(--color-accent-magenta) !important;
+}
+
+/* Clase para días de fin de semana */
+.calendar-weekend-text {
+    color: var(--color-accent-magenta);
+}
+
+/* Clase para texto en eventos (siempre blanco) */
+.calendar-event-text {
+    color: var(--color-text-on-event);
+}
+
+/* ================================================================
+   BOTONES DE ACCIÓN (MODAL)
+   ================================================================ */
+
+.action-btn {
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 700;
+    width: 100%;
+    transition: all 0.2s ease;
+    border-width: 2px;
+    border-style: solid;
+    background-color: transparent;
+    cursor: pointer;
+}
+
+.action-btn:hover {
+    color: white !important;
+}
+
+.action-btn.btn-delete {
+    color: var(--color-accent-red);
+    border-color: var(--color-accent-red);
+}
+
+.action-btn.btn-delete:hover {
+    background-color: var(--color-accent-red);
+}
+
+.action-btn.btn-delete-disabled {
+    color: var(--color-text-secondary);
+    border-color: var(--color-border);
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.action-btn.btn-delete-disabled:hover {
+    background-color: transparent;
+    color: var(--color-text-secondary) !important;
+}
+
+.action-btn.btn-extra {
+    color: #ea580c;
+    /* Fallback */
+    color: var(--color-event-overtime-border);
+    border-color: var(--color-event-overtime-border);
+}
+
+.action-btn.btn-extra:hover {
+    background-color: var(--color-event-overtime-border);
+}
+
+.action-btn.btn-guardia {
+    color: #2563eb;
+    /* Fallback */
+    color: var(--color-event-shift-border);
+    border-color: var(--color-event-shift-border);
+}
+
+.action-btn.btn-guardia:hover {
+    background-color: var(--color-event-shift-border);
+}
+
+.action-btn.btn-festivo {
+    color: #16a34a;
+    /* Fallback */
+    color: var(--color-event-holiday-border);
+    border-color: var(--color-event-holiday-border);
+}
+
+.action-btn.btn-festivo:hover {
+    background-color: var(--color-event-holiday-border);
+}
+
+.action-btn.btn-vacaciones {
+    color: #9333ea;
+    /* Fallback */
+    color: var(--color-event-vacation-border);
+    border-color: var(--color-event-vacation-border);
+}
+
+.action-btn.btn-vacaciones:hover {
+    background-color: var(--color-event-vacation-border);
 }
 
 /* User ID Display */
@@ -557,4 +856,575 @@ html.light-mode #bottom-navbar {
 .user-id-display:hover {
     background-color: var(--color-accent-magenta);
     color: white;
+}
+
+/* ================================================================
+   RESPONSIVE DESIGN - MEDIA QUERIES
+   ================================================================ */
+
+/* Estilos base para las métricas del resumen - Prevenir desbordamiento */
+#summary-metrics-container>div {
+    overflow: hidden;
+}
+
+#summary-metrics-container span:first-child {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.2;
+    display: block;
+}
+
+#summary-metrics-container span:last-child {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Pantallas pequeñas (altura menor a 700px) */
+@media (max-height: 700px) {
+
+    /* Reducir padding del panel de resumen */
+    #summary-panel {
+        padding: 0.75rem !important;
+        margin-bottom: 0.75rem !important;
+    }
+
+    /* Reducir tamaño del título del mes */
+    #current-month-display {
+        font-size: 1.25rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    /* Reducir tamaño de las métricas del resumen */
+    #summary-metrics-container {
+        gap: 0.5rem !important;
+    }
+
+    #summary-metrics-container>div {
+        padding: 0.5rem !important;
+        height: auto !important;
+        min-height: 3.5rem;
+    }
+
+    #summary-metrics-container span:first-child {
+        font-size: 0.6rem !important;
+    }
+
+    #summary-metrics-container span:last-child {
+        font-size: 1.1rem !important;
+        margin-top: 0.25rem !important;
+    }
+
+    /* Reducir padding de las celdas del calendario */
+    .calendar-day {
+        padding: 0.25rem !important;
+        font-size: 0.75rem !important;
+    }
+
+    /* Reducir tamaño de los días de la semana */
+    #calendar-week-days {
+        font-size: 0.6rem !important;
+    }
+
+    #calendar-week-days>div {
+        padding-top: 0.375rem !important;
+        padding-bottom: 0.375rem !important;
+    }
+
+    /* Reducir gap del grid del calendario */
+    #calendar-grid {
+        gap: 0.125rem !important;
+    }
+
+    /* Ajustar título del calendario */
+    #calendar-view h2 {
+        font-size: 1.5rem !important;
+        margin-bottom: 0.75rem !important;
+    }
+}
+
+/* Pantallas muy pequeñas (altura menor a 600px) */
+@media (max-height: 600px) {
+
+    /* Reducir aún más el panel de resumen */
+    #summary-panel {
+        padding: 0.5rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    #current-month-display {
+        font-size: 1.1rem !important;
+        margin-bottom: 0.375rem !important;
+    }
+
+    #summary-metrics-container {
+        gap: 0.375rem !important;
+    }
+
+    #summary-metrics-container>div {
+        padding: 0.375rem !important;
+        min-height: 3rem;
+    }
+
+    #summary-metrics-container span:first-child {
+        font-size: 0.55rem !important;
+    }
+
+    #summary-metrics-container span:last-child {
+        font-size: 1rem !important;
+    }
+
+    /* Reducir aún más las celdas del calendario */
+    .calendar-day {
+        padding: 0.2rem !important;
+        font-size: 0.7rem !important;
+        border-radius: 0.375rem !important;
+    }
+
+    #calendar-week-days {
+        font-size: 0.55rem !important;
+    }
+
+    #calendar-week-days>div {
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.25rem !important;
+    }
+
+    /* Reducir título */
+    #calendar-view h2 {
+        font-size: 1.25rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    /* Reducir botones de navegación */
+    #prev-month-btn,
+    #next-month-btn {
+        padding: 0.375rem !important;
+    }
+
+    #prev-month-btn i,
+    #next-month-btn i {
+        font-size: 1.25rem !important;
+    }
+}
+
+/* Pantallas extremadamente pequeñas (altura menor a 500px) */
+@media (max-height: 500px) {
+
+    /* Minimizar el panel de resumen */
+    #summary-panel {
+        padding: 0.375rem !important;
+        margin-bottom: 0.375rem !important;
+    }
+
+    #current-month-display {
+        font-size: 1rem !important;
+        margin-bottom: 0.25rem !important;
+    }
+
+    #summary-metrics-container {
+        gap: 0.25rem !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    #summary-metrics-container>div {
+        padding: 0.25rem !important;
+        min-height: 2.5rem;
+    }
+
+    #summary-metrics-container span:first-child {
+        font-size: 0.5rem !important;
+    }
+
+    #summary-metrics-container span:last-child {
+        font-size: 0.9rem !important;
+    }
+
+    /* Minimizar celdas del calendario */
+    .calendar-day {
+        padding: 0.15rem !important;
+        font-size: 0.65rem !important;
+        border-width: 1px !important;
+    }
+}
+
+/* ================================================================
+   ESTILOS ADICIONALES PARA EL CALENDARIO Y RESUMEN
+   ================================================================ */
+
+/* Tarjetas de Resumen (Metrics) */
+.summary-card {
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid transparent;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 5rem;
+    transition: all 0.3s ease;
+}
+
+.summary-card-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+    letter-spacing: 0.025em;
+}
+
+.summary-card-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-top: 0.25rem;
+    line-height: 1;
+}
+
+/* Variantes de tarjetas de resumen */
+.summary-card.overtime {
+    background-color: var(--color-summary-overtime-bg);
+    border-color: var(--color-summary-overtime-border);
+}
+
+.summary-card.overtime .summary-card-value {
+    color: var(--color-summary-overtime-text);
+}
+
+.summary-card.shift {
+    background-color: var(--color-summary-shift-bg);
+    border-color: var(--color-summary-shift-border);
+}
+
+.summary-card.shift .summary-card-value {
+    color: var(--color-summary-shift-text);
+}
+
+.summary-card.holiday {
+    background-color: var(--color-summary-holiday-bg);
+    border-color: var(--color-summary-holiday-border);
+}
+
+.summary-card.holiday .summary-card-value {
+    color: var(--color-summary-holiday-text);
+}
+
+.summary-card.vacation {
+    background-color: var(--color-summary-vacation-bg);
+    border-color: var(--color-summary-vacation-border);
+}
+
+.summary-card.vacation .summary-card-value {
+    color: var(--color-summary-vacation-text);
+}
+
+/* Panel de Resumen (Contenedor) */
+.summary-panel {
+    background-color: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--color-border);
+}
+
+/* Envoltorio del Calendario */
+.calendar-wrapper {
+    background-color: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--color-border);
+}
+
+/* Cabecera de Días de la Semana */
+.week-days-header {
+    background-color: var(--color-bg-tertiary);
+    border-radius: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.week-day-item {
+    color: var(--color-text-secondary);
+}
+
+.week-day-item.weekend {
+    color: var(--color-accent-magenta);
+}
+
+/* Celda vacía del calendario */
+.calendar-day-empty {
+    width: 100%;
+    height: 100%;
+    background-color: var(--color-calendar-empty-bg);
+    border-radius: 0.5rem;
+}
+
+@media (max-height: 500px) {
+    #calendar-week-days {
+        font-size: 0.5rem !important;
+    }
+
+    #calendar-week-days>div {
+        padding-top: 0.2rem !important;
+        padding-bottom: 0.2rem !important;
+    }
+
+    #calendar-grid {
+        gap: 0.1rem !important;
+    }
+
+    /* Minimizar título y botones */
+    #calendar-view h2 {
+        font-size: 1.1rem !important;
+        margin-bottom: 0.375rem !important;
+    }
+
+    #calendar-view h2 i {
+        font-size: 1.1rem !important;
+    }
+
+    #prev-month-btn,
+    #next-month-btn {
+        padding: 0.25rem !important;
+    }
+
+    #prev-month-btn i,
+    #next-month-btn i {
+        font-size: 1rem !important;
+    }
+
+    /* Reducir padding del contenido de la tarjeta */
+    .card-inner-content {
+        padding: 1rem !important;
+    }
+}
+
+/* ================================================================
+   ESTILOS DEL CHAT
+   ================================================================ */
+
+.chat-modal-content {
+    background-color: var(--color-bg-secondary);
+}
+
+.chat-header {
+    background-color: var(--color-chat-header-bg);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.chat-messages-area {
+    background-color: var(--color-bg-primary);
+}
+
+.chat-input-area {
+    background-color: var(--color-chat-input-bg);
+    border-top: 1px solid var(--color-border);
+}
+
+.message-bubble {
+    color: var(--color-text-primary);
+}
+
+.message-bubble.sent {
+    background-color: var(--color-chat-sent-bg);
+    color: var(--color-chat-sent-text);
+}
+
+.message-bubble.received {
+    background-color: var(--color-chat-received-bg);
+    color: var(--color-chat-received-text);
+}
+
+.chat-date-separator span {
+    background-color: var(--color-chat-separator-bg);
+    color: var(--color-chat-separator-text);
+}
+
+.user-avatar-container {
+    background-color: var(--color-user-avatar-bg);
+    border: 1px solid var(--color-user-avatar-border);
+}
+
+.user-chat-item-name {
+    color: var(--color-text-primary);
+}
+
+/* ================================================================
+   ESTILOS DEL DASHBOARD
+   ================================================================ */
+
+.dashboard-icon-container {
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    transition: transform 0.2s;
+}
+
+.dashboard-card:hover .dashboard-icon-container {
+    transform: scale(1.1);
+}
+
+.dashboard-card-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+}
+
+.dashboard-card-desc {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+}
+
+/* Variantes de Iconos Dashboard */
+.dash-icon-maint {
+    background-color: var(--color-dash-maint-bg);
+    color: var(--color-dash-maint-text);
+}
+
+.dash-icon-hist {
+    background-color: var(--color-dash-hist-bg);
+    color: var(--color-dash-hist-text);
+}
+
+.dash-icon-shared {
+    background-color: var(--color-dash-shared-bg);
+    color: var(--color-dash-shared-text);
+}
+
+.dash-icon-bills {
+    background-color: var(--color-dash-bills-bg);
+    color: var(--color-dash-bills-text);
+}
+
+.dash-icon-notes {
+    background-color: var(--color-dash-notes-bg);
+    color: var(--color-dash-notes-text);
+}
+
+.dash-icon-profile {
+    background-color: var(--color-dash-profile-bg);
+    color: var(--color-dash-profile-text);
+}
+
+/* ================================================================
+   ESTILOS DE MANTENIMIENTO (PENDIENTES)
+   ================================================================ */
+
+.maint-summary-card {
+    background-color: var(--color-bg-secondary);
+    border-top: 1px solid var(--color-border-light);
+    border-bottom: 1px solid var(--color-bg-primary);
+    box-shadow: 0 2px 4px var(--color-shadow);
+}
+
+.maintenance-item {
+    background-color: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-top: 1px solid var(--color-bg-secondary);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    cursor: pointer;
+}
+
+.maintenance-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--color-shadow);
+    border-top-color: var(--color-accent-magenta) !important;
+    border-right-color: var(--color-accent-magenta) !important;
+    border-bottom-color: var(--color-accent-magenta) !important;
+}
+
+/* Bordes de Prioridad */
+.maintenance-item.priority-alta {
+    border-left: 4px solid var(--color-accent-red);
+}
+
+.maintenance-item.priority-media {
+    border-left: 4px solid var(--color-summary-overtime-text);
+    /* Orange */
+}
+
+.maintenance-item.priority-baja {
+    border-left: 4px solid var(--color-dash-bills-text);
+}
+
+/* Badges de Prioridad */
+.maintenance-priority-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    display: inline-block;
+}
+
+.maintenance-item.priority-alta .maintenance-priority-badge {
+    background-color: rgba(220, 38, 38, 0.1);
+    color: var(--color-accent-red);
+}
+
+.maintenance-item.priority-media .maintenance-priority-badge {
+    background-color: rgba(251, 146, 60, 0.1);
+    /* Orange background tint */
+    color: var(--color-summary-overtime-text);
+    /* Orange text */
+}
+
+.maintenance-item.priority-baja .maintenance-priority-badge {
+    background-color: rgba(22, 163, 74, 0.1);
+    color: var(--color-dash-bills-text);
+}
+
+/* Caja de Observaciones en Tarjetas */
+.maintenance-observation-box {
+    margin-bottom: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    background-color: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+}
+
+.maintenance-observation-box-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin-bottom: 0.25rem;
+    display: block;
+}
+
+.maintenance-observation-box-text {
+    font-size: 0.875rem;
+    color: var(--color-text-primary);
+    font-style: italic;
+    margin: 0;
+}
+
+/* ================================================================
+   GRID HELPERS (Calendario)
+   ================================================================ */
+
+.calendar-week-days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    width: 100%;
+}
+
+.calendar-days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: minmax(0, 1fr);
+    gap: 1px;
+    flex-grow: 1;
+    height: 100%;
+    width: 100%;
+}
+
+.week-day-item {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    color: var(--color-text-secondary);
+}
+
+.week-day-item.weekend {
+    color: var(--color-accent-magenta);
 }

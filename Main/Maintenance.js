@@ -177,29 +177,19 @@
     function createMaintenanceCard(item) {
         const div = document.createElement('div');
         // Usamos la clase maintenance-item definida en Main.css
-        div.className = 'maintenance-item group relative overflow-hidden';
+        div.className = 'maintenance-item relative overflow-hidden';
 
-        // Determinar color de borde según prioridad
-        let priorityColorClass = 'border-l-4 border-l-gray-400';
-        let priorityBadgeClass = 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300';
+        // Determinar clase de prioridad
+        let priorityClass = 'priority-media'; // Default
+        if (item.priority === 'Alta') priorityClass = 'priority-alta';
+        else if (item.priority === 'Baja') priorityClass = 'priority-baja';
 
-        if (item.priority === 'Alta') {
-            priorityColorClass = 'border-l-4 border-l-red-500';
-            priorityBadgeClass = 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
-        } else if (item.priority === 'Media') {
-            priorityColorClass = 'border-l-4 border-l-orange-500';
-            priorityBadgeClass = 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400';
-        } else {
-            priorityColorClass = 'border-l-4 border-l-green-500';
-            priorityBadgeClass = 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400';
-        }
-
-        div.classList.add(priorityColorClass.split(' ')[0], priorityColorClass.split(' ')[1]);
+        div.classList.add(priorityClass);
 
         div.innerHTML = `
             <div class="flex justify-between items-start mb-2">
                 <h3 class="font-bold text-lg leading-tight pr-8">${item.location}</h3>
-                <span class="text-xs font-bold px-2 py-1 rounded-full ${priorityBadgeClass}">${item.priority}</span>
+                <span class="maintenance-priority-badge">${item.priority}</span>
             </div>
             
             <div class="grid grid-cols-2 gap-2 text-sm text-gray-500 dark:text-gray-400 mb-3">
@@ -214,9 +204,16 @@
             </div>
 
             ${item.description ? `
-            <div class="mb-3 p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
-                <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Observaciones:</p>
-                <p class="text-sm text-gray-700 dark:text-gray-300 italic">${item.description}</p>
+            <div class="maintenance-observation-box">
+                <span class="maintenance-observation-box-title">Observaciones:</span>
+                <p class="maintenance-observation-box-text">${item.description}</p>
+            </div>
+            ` : ''}
+
+            ${item.breakdown ? `
+            <div class="maintenance-observation-box" style="border-left: 3px solid var(--color-accent-red);">
+                <span class="maintenance-observation-box-title text-red-500">Avería:</span>
+                <p class="maintenance-observation-box-text">${item.breakdown}</p>
             </div>
             ` : ''}
 
@@ -244,7 +241,7 @@
         window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
     }
 
-    async function executeCompleteMaintenance(id, keepObservations) {
+    async function executeCompleteMaintenance(id, breakdownRepaired) {
         try {
             let repair = null;
             if (isFirebaseReady) {
@@ -277,7 +274,7 @@
                 nextYear++;
             }
 
-            // Historial
+            // Historial (Siempre guarda todo)
             const historyRecord = {
                 ...repair,
                 completedDate: new Date().toISOString(),
@@ -287,19 +284,32 @@
             };
             delete historyRecord.id;
 
+            // Updates para el mantenimiento recurrente
+            const updates = {
+                maintenance_month: nextMonth,
+                maintenance_year: nextYear,
+                status: 'Pendiente', // Asegurar reset de estado
+                // Observaciones siempre se mantienen en el mantenimiento recurrente según instrucciones
+                description: repair.description || ''
+            };
+
+            // Lógica de Avería
+            if (breakdownRepaired) {
+                // Si se reparó, borramos la avería y bajamos prioridad
+                updates.breakdown = firebase.firestore.FieldValue.delete();
+                updates.priority = 'Baja';
+            } else {
+                // Si no se reparó, mantenemos la avería y la prioridad
+                // No need to add anything to updates, existing values persist
+            }
+
             // Update en Firebase
             if (isFirebaseReady) {
                 const batch = db.batch();
                 const repairRef = getRepairsCollectionRef().doc(id);
-                // NOTA: El historial se guarda en la raiz 'users/{userId}/history' según diseño previo
                 const historyRef = db.collection(`users/${userId}/history`).doc();
 
-                batch.update(repairRef, {
-                    maintenance_month: nextMonth,
-                    maintenance_year: nextYear,
-                    status: 'Pendiente', // Asegurar reset de estado
-                    description: keepObservations ? (repair.description || '') : '' // Lógica de observaciones
-                });
+                batch.update(repairRef, updates);
                 batch.set(historyRef, historyRecord);
 
                 await batch.commit();
@@ -319,47 +329,68 @@
         // Buscar el ítem en los datos cargados
         const item = currentMaintenanceData.find(i => i.id === id);
 
-        // Si no tiene observaciones, completar directamente
-        if (!item || !item.description || !item.description.trim()) {
-            executeCompleteMaintenance(id, false);
+        const obsModal = document.getElementById('observation-retention-modal');
+        if (!obsModal) {
+            if (confirm("¿Completar tarea?")) executeCompleteMaintenance(id, true);
             return;
         }
 
-        // Si tiene observaciones, mostrar modal de decisión
-        const obsModal = document.getElementById('observation-retention-modal');
-        if (obsModal) {
-            obsModal.classList.remove('hidden');
-            obsModal.classList.add('flex');
+        const title = obsModal.querySelector('h3');
+        const desc = obsModal.querySelector('p');
+        const btnYes = document.getElementById('btn-keep-obs');
+        const btnNo = document.getElementById('btn-delete-obs');
 
-            const btnKeep = document.getElementById('btn-keep-obs');
-            const btnDelete = document.getElementById('btn-delete-obs');
+        // Clonar botones para limpiar listeners anteriores
+        const newBtnYes = btnYes.cloneNode(true);
+        btnYes.parentNode.replaceChild(newBtnYes, btnYes);
+        const newBtnNo = btnNo.cloneNode(true);
+        btnNo.parentNode.replaceChild(newBtnNo, btnNo);
 
-            // Reemplazar botones para eliminar listeners viejos
-            if (btnKeep) {
-                const newBtn = btnKeep.cloneNode(true);
-                btnKeep.parentNode.replaceChild(newBtn, btnKeep);
-                newBtn.onclick = () => {
-                    obsModal.classList.add('hidden');
-                    obsModal.classList.remove('flex');
-                    executeCompleteMaintenance(id, true);
-                };
-            }
+        // CASE 1: Mantenimiento con AVERÍA
+        if (item && item.breakdown && item.breakdown.trim()) {
+            if (title) title.textContent = "¿Avería Reparada?";
+            if (desc) desc.textContent = "El mantenimiento tiene una avería registrada. ¿Se ha solucionado?";
 
-            if (btnDelete) {
-                const newBtn = btnDelete.cloneNode(true);
-                btnDelete.parentNode.replaceChild(newBtn, btnDelete);
-                newBtn.onclick = () => {
-                    obsModal.classList.add('hidden');
-                    obsModal.classList.remove('flex');
-                    executeCompleteMaintenance(id, false);
-                };
-            }
+            newBtnYes.innerHTML = '<i class="ph ph-check"></i> Sí, Completar';
+            newBtnYes.onclick = () => {
+                obsModal.classList.add('hidden');
+                obsModal.classList.remove('flex');
+                executeCompleteMaintenance(id, true); // Sí reparado (Clean breakdown)
+            };
+            newBtnYes.classList.remove('hidden');
+
+            newBtnNo.innerHTML = '<i class="ph ph-x"></i> No, Completar';
+            newBtnNo.onclick = () => {
+                obsModal.classList.add('hidden');
+                obsModal.classList.remove('flex');
+                executeCompleteMaintenance(id, false); // No reparado (Keep breakdown)
+            };
+            newBtnNo.classList.remove('hidden');
+
         } else {
-            // Fallback
-            if (confirm("¿Completar tarea?")) {
-                executeCompleteMaintenance(id, false);
-            }
+            // CASE 2: Mantenimiento NORMAL
+            if (title) title.textContent = "¿Mantenimiento Completado?";
+            // if (desc) desc.textContent = "Se registrará como completado y se actualizará la fecha.";
+            if (desc) desc.textContent = "";
+
+            newBtnYes.innerHTML = '<i class="ph ph-check"></i> Completar';
+            newBtnYes.onclick = () => {
+                obsModal.classList.add('hidden');
+                obsModal.classList.remove('flex');
+                executeCompleteMaintenance(id, true);
+            };
+            newBtnYes.classList.remove('hidden');
+
+            newBtnNo.innerHTML = 'Cancelar';
+            newBtnNo.onclick = () => {
+                obsModal.classList.add('hidden');
+                obsModal.classList.remove('flex');
+            };
+            newBtnNo.classList.remove('hidden');
         }
+
+        obsModal.classList.remove('hidden');
+        obsModal.classList.add('flex');
     }
 
     window.toggleMaintenanceSearch = function () {
@@ -444,19 +475,19 @@
         const maintenanceDate = getFormattedDate(item.maintenance_month, item.maintenance_year);
         const contact = item.contact || {};
 
-        // Helper para inputs (MODIFICADO: Texto estático si es readOnly)
+        // Helper para inputs (MODIFICADO: Usando clases CSS)
         const baseInput = (id, label, value, readOnly = true, type = 'text', customClass = 'minimal-input') => {
             if (readOnly) {
                 return `
                 <div class="space-y-1">
-                    <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">${label}</span>
-                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-1">${value || '---'}</p>
+                    <span class="modal-detail-label">${label}</span>
+                    <p class="modal-detail-value">${value || '---'}</p>
                 </div>
                 `;
             }
             return `
             <div class="space-y-1">
-                <label for="${id}" class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">${label}</label>
+                <label for="${id}" class="modal-detail-label">${label}</label>
                 <input id="${id}" type="${type}" value="${value || ''}" 
                         class="${customClass} w-full border-accent-magenta">
             </div>
@@ -467,14 +498,14 @@
             if (readOnly) {
                 return `
                 <div class="space-y-1">
-                    <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">${label}</span>
-                    <p class="text-sm text-gray-300 dark:text-gray-300 italic whitespace-pre-wrap border-b border-gray-200 dark:border-gray-700 pb-1">${value || '---'}</p>
+                    <span class="modal-detail-label">${label}</span>
+                    <p class="modal-detail-value italic whitespace-pre-wrap">${value || '---'}</p>
                 </div>
                 `;
             }
             return `
             <div class="space-y-1">
-                <label for="${id}" class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">${label}</label>
+                <label for="${id}" class="modal-detail-label">${label}</label>
                 <textarea id="${id}" rows="${rows}" 
                         class="${customClass} w-full resize-none border-accent-magenta">${value || ''}</textarea>
             </div>
@@ -485,8 +516,8 @@
             if (readOnly) {
                 return `
                 <div class="space-y-1">
-                    <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Prioridad</span>
-                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-1">${priorityValue}</p>
+                    <span class="modal-detail-label">Prioridad</span>
+                    <p class="modal-detail-value">${priorityValue}</p>
                 </div>
                 `;
             }
@@ -496,7 +527,7 @@
             ).join('');
             return `
             <div class="space-y-1">
-                <label for="edit-priority" class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Prioridad</label>
+                <label for="edit-priority" class="modal-detail-label">Prioridad</label>
                 <select id="edit-priority" class="minimal-input w-full border-accent-magenta">
                     ${optionHtml}
                 </select>
@@ -508,8 +539,8 @@
             if (readOnly) {
                 return `
                 <div class="space-y-1">
-                    <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Contrato</span>
-                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-1">${contractValue}</p>
+                    <span class="modal-detail-label">Contrato</span>
+                    <p class="modal-detail-value">${contractValue}</p>
                 </div>
                 `;
             }
@@ -520,7 +551,7 @@
 
             return `
                 <div class="space-y-1">
-                    <label for="edit-contract" class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Contrato</label>
+                    <label for="edit-contract" class="modal-detail-label">Contrato</label>
                     <select id="edit-contract" class="minimal-input w-full border-accent-magenta">
                         ${optionHtml}
                     </select>
@@ -535,17 +566,17 @@
             <div class="p-6 space-y-4 relative">
                 <!-- Botones Superiores -->
                 <div class="flex justify-between items-center mb-2">
-                    <button id="close-maintenance-modal-btn" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors border border-gray-300 dark:border-gray-600 rounded-full p-1 hover:border-gray-400 dark:hover:border-gray-500">
-                        <i class="ph ph-x text-2xl"></i>
+                    <button id="close-maintenance-modal-btn" class="secondary-icon-btn p-2 rounded-full">
+                        <i class="ph ph-x text-xl"></i>
                     </button>
                     <button id="edit-toggle-btn" class="text-accent-magenta hover:text-accent-magenta/80 transition-colors p-2 rounded-full hover:bg-accent-magenta/10 border border-accent-magenta/30 hover:border-accent-magenta">
-                        <i class="ph ph-pencil-simple text-2xl"></i>
+                        <i class="ph ph-pencil-simple text-xl"></i>
                     </button>
                 </div>
 
                 <div class="flex justify-between items-start">
                     <h3 class="text-xl font-bold text-accent-magenta">${item.location}</h3>
-                    <span class="px-2 py-1 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300">${status}</span>
+                    <span class="px-2 py-1 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800">${status}</span>
                 </div>
                 
                 <div class="grid grid-cols-2 gap-4 text-sm mt-4">
@@ -557,11 +588,18 @@
                     ${baseInput('view-status', 'Estado', status)}
                 </div>
     
-                ${baseTextarea('view-desc', 'Observaciones', item.description)}
+                ${item.description ? baseTextarea('view-desc', 'Observaciones', item.description) : ''}
+                
+                ${item.breakdown ? `
+                    <div class="space-y-1">
+                        <span class="modal-detail-label text-red-400">Avería</span>
+                        <p class="modal-detail-value italic whitespace-pre-wrap text-red-300 border-l-2 border-red-500 pl-2">${item.breakdown}</p>
+                    </div>
+                ` : ''}
     
                 ${(contact.name || contact.phone) ? `
-                    <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <h4 class="text-sm font-bold mb-2 text-gray-500 uppercase">Contacto</h4>
+                    <div class="pt-4 border-t" style="border-color: var(--color-border);">
+                        <h4 class="text-sm font-bold mb-2 uppercase" style="color: var(--color-text-secondary);">Contacto</h4>
                         <div class="grid grid-cols-2 gap-4">
                             ${baseInput('view-contact-name', 'Nombre', contact.name)}
                             ${baseInput('view-contact-phone', 'Teléfono', contact.phone)}
@@ -574,7 +612,7 @@
             // MODO EDICION
             bodyContent = `
             <div class="p-6 space-y-4">
-                <h3 class="text-xl font-bold mb-4">Editar Mantenimiento</h3>
+                <h3 class="text-xl font-bold mb-4" style="color: var(--color-text-primary);">Editar Mantenimiento</h3>
                 
                 ${baseInput('edit-location', 'Ubicación', item.location, false)}
                 
@@ -586,9 +624,10 @@
                 </div>
     
                 ${baseTextarea('edit-desc', 'Observaciones', item.description, false, 3)}
+                ${baseTextarea('edit-breakdown', 'Avería', item.breakdown, false, 3)}
     
-                <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <h4 class="text-sm font-bold mb-2 text-gray-500 uppercase">Contacto</h4>
+                <div class="pt-4 border-t" style="border-color: var(--color-border);">
+                    <h4 class="text-sm font-bold mb-2 uppercase" style="color: var(--color-text-secondary);">Contacto</h4>
                     <div class="grid grid-cols-2 gap-4">
                         ${baseInput('edit-contact-name', 'Nombre', contact.name, false)}
                         ${baseInput('edit-contact-phone', 'Teléfono', contact.phone, false)}
@@ -600,7 +639,7 @@
 
         // Footer con botones
         const footerContent = `
-            <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800/50 rounded-b-xl">
+            <div class="modal-footer">
                 ${!isEditMode ? `
                     <button onclick="window.confirmCompleteMaintenance('${item.id}')" class="primary-btn w-full py-3 rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-accent-magenta/20">
                         <i class="ph ph-check-circle text-xl"></i> 
@@ -670,6 +709,7 @@
             key_id: document.getElementById('edit-key').value.trim() || null,
             priority: document.getElementById('edit-priority').value,
             description: document.getElementById('edit-desc').value.trim(),
+            breakdown: document.getElementById('edit-breakdown').value.trim(),
             contact: (contactName || contactPhone) ? {
                 name: contactName,
                 phone: contactPhone

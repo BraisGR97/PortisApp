@@ -118,12 +118,16 @@
     }
 
     function updateNavButtons(targetViewId) {
+        // Limpiar estado activo de todos los botones primero
         document.querySelectorAll('.nav-button').forEach(btn => {
             btn.classList.remove('active');
-            if (btn.dataset.target === targetViewId) {
-                btn.classList.add('active');
-            }
         });
+
+        // Activar el boton correspondiente
+        const targetBtn = document.querySelector(`.nav-button[data-target="${targetViewId}"]`);
+        if (targetBtn) {
+            targetBtn.classList.add('active');
+        }
     }
 
     function setPositionByIndex() {

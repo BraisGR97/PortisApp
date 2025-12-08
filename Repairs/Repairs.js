@@ -156,7 +156,14 @@ async function saveRepair(e) {
     const contract = document.getElementById('contract').value;
     const month = parseInt(document.getElementById('month').value);
     const year = parseInt(document.getElementById('year').value);
-    const priority = document.getElementById('priority').value;
+    let priority = document.getElementById('priority').value;
+    const description = document.getElementById('description').value.trim();
+    const breakdown = document.getElementById('breakdown').value.trim();
+
+    // Lógica de seguridad: si hay avería, forzar prioridad Alta
+    if (breakdown) {
+        priority = 'Alta';
+    }
 
     if (!location || !contract || !month || !year) return;
 
@@ -176,10 +183,11 @@ async function saveRepair(e) {
         location,
         model,
         key_id,
-        contract,
         maintenance_month: month,
         maintenance_year: year,
         priority,
+        description,
+        breakdown,
         status: 'Pendiente',
         ...contactData,
         userId: userId,
@@ -199,6 +207,8 @@ async function saveRepair(e) {
                 maintenance_month: month,
                 maintenance_year: year,
                 priority,
+                description,
+                breakdown,
                 ...contactData,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
@@ -275,6 +285,8 @@ window.editRepair = function (id) {
     document.getElementById('month').value = repair.maintenance_month;
     document.getElementById('year').value = repair.maintenance_year;
     document.getElementById('priority').value = repair.priority || 'Media';
+    document.getElementById('description').value = repair.description || '';
+    document.getElementById('breakdown').value = repair.breakdown || '';
 
     // Rellenar datos de contacto si existen
     const contactCheckbox = document.getElementById('contact_checkbox');
@@ -321,6 +333,8 @@ function resetForm() {
     const form = document.getElementById('new-repair-form');
     form.reset();
     document.getElementById('repair-id').value = '';
+    document.getElementById('description').value = '';
+    document.getElementById('breakdown').value = '';
 
     // Establecer prioridad por defecto en Baja
     document.getElementById('priority').value = 'Baja';
@@ -418,7 +432,7 @@ function renderRepairs(repairs, updateCache = true) {
 
     if (filteredRepairs.length === 0) {
         listContainer.innerHTML = `
-            <div class="p-4 text-center rounded-lg" style="background-color: var(--color-bg-secondary); color: var(--color-text-secondary);">
+            <div class="no-repairs-message">
                 ${searchTerm ? 'No se encontraron mantenimientos.' : 'No hay mantenimientos reportados.'}
             </div>
         `;
@@ -446,30 +460,63 @@ function renderRepairs(repairs, updateCache = true) {
                 <div class="repair-title-container">
                     <h3 class="font-bold text-xl truncate repair-card-title" title="${repair.location}">${repair.location}</h3>
                 </div>
-                <span class="text-xs font-medium px-2 py-1 rounded-full repair-card-date bg-gray-100 dark:bg-gray-800 repair-date-badge">
-                    ${formattedDate}
-                </span>
             </div>
             
-            <div class="text-sm mb-2 repair-card-content">
-                ${repair.model ? `<p><strong>Modelo:</strong> ${repair.model}</p>` : ''}
-                ${repair.key_id ? `<p><strong>Llave/TAG:</strong> ${repair.key_id}</p>` : ''}
-                <p><strong>Contrato:</strong> ${repair.contract}</p>
-                <p><strong>Estado:</strong> <span class="${statusClass}">${repair.status}</span></p>
-                <p><strong>Prioridad:</strong> ${repair.priority}</p>
+            <div class="repair-details-grid">
+                <div class="repair-detail-item">
+                    <span class="repair-detail-label">Contrato</span>
+                    <span class="repair-detail-value">${repair.contract}</span>
+                </div>
+                <div class="repair-detail-item">
+                     <span class="repair-detail-label">Prioridad</span>
+                     <span class="repair-detail-value">${repair.priority}</span>
+                </div>
+                ${repair.model ? `
+                <div class="repair-detail-item">
+                    <span class="repair-detail-label">Modelo</span>
+                    <span class="repair-detail-value">${repair.model}</span>
+                </div>` : ''}
+                ${repair.key_id ? `
+                <div class="repair-detail-item">
+                    <span class="repair-detail-label">Llave/TAG</span>
+                    <span class="repair-detail-value">${repair.key_id}</span>
+                </div>` : ''}
+                 <div class="repair-detail-item">
+                     <span class="repair-detail-label">Estado</span>
+                     <span class="${statusClass}" style="font-size: 0.85rem;">${repair.status}</span>
+                </div>
             </div>
 
-            <div class="flex justify-end items-center pt-3 border-t gap-2 mt-auto" style="border-color: var(--color-border);">
-                <button data-action="edit" data-id="${repair.id}"
-                    class="action-btn edit-btn p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-blue-500" 
-                    title="Editar mantenimiento">
-                    <i class="ph ph-pencil-simple text-lg pointer-events-none"></i>
-                </button>
-                <button data-action="delete" data-id="${repair.id}"
-                    class="action-btn delete-btn p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-500" 
-                    title="Eliminar mantenimiento">
-                    <i class="ph ph-trash text-lg pointer-events-none"></i>
-                </button>
+            ${repair.description ? `
+            <div class="repair-observation-box">
+                <span class="repair-observation-box-title">Observaciones:</span>
+                <p class="repair-observation-box-text">${repair.description}</p>
+            </div>
+            ` : ''}
+
+            ${repair.breakdown ? `
+            <div class="repair-observation-box" style="border-left: 3px solid var(--color-accent-red);">
+                <span class="repair-observation-box-title text-red-400">Avería:</span>
+                <p class="repair-observation-box-text">${repair.breakdown}</p>
+            </div>
+            ` : ''}
+
+            <div class="repair-footer flex justify-between items-center mt-3 pt-3">
+                <span class="text-xs font-medium px-2 py-1 rounded-full repair-date-badge">
+                    ${formattedDate}
+                </span>
+                <div class="repair-actions flex gap-2">
+                    <button data-action="edit" data-id="${repair.id}"
+                        class="action-btn edit-btn p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-blue-500" 
+                        title="Editar mantenimiento">
+                        <i class="ph ph-pencil-simple text-lg pointer-events-none"></i>
+                    </button>
+                    <button data-action="delete" data-id="${repair.id}"
+                        class="action-btn delete-btn p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-500" 
+                        title="Eliminar mantenimiento">
+                        <i class="ph ph-trash text-lg pointer-events-none"></i>
+                    </button>
+                </div>
             </div>
         `;
 
@@ -537,13 +584,17 @@ window.toggleNewRepairForm = function () {
 
     const isHidden = card.classList.contains('hidden');
 
+    const listContainer = document.getElementById('repairs-list-container');
+
     if (isHidden) {
         card.classList.remove('hidden');
+        if (listContainer) listContainer.classList.add('hidden'); // Hide list
         fab.classList.add('rotate-45');
         fab.querySelector('i').classList.replace('ph-plus', 'ph-x');
-        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // No need to scroll if we are hiding the other container, it takes its place
     } else {
         card.classList.add('hidden');
+        if (listContainer) listContainer.classList.remove('hidden'); // Show list
         fab.classList.remove('rotate-45');
         fab.querySelector('i').classList.replace('ph-x', 'ph-plus');
 
@@ -594,11 +645,18 @@ window.addEventListener('load', () => {
             }
         });
     }
+
+    // Logic for auto-priority on breakdown input
+    const breakdownInput = document.getElementById('breakdown');
+    if (breakdownInput) {
+        breakdownInput.addEventListener('input', (e) => {
+            if (e.target.value.trim().length > 0) {
+                document.getElementById('priority').value = 'Alta';
+            }
+        });
+    }
 });
 
-// ================================================================
-// BORDE ANIMADO EN SCROLL
-// ================================================================
 // ================================================================
 // BORDE ANIMADO EN SCROLL
 // ================================================================
@@ -607,16 +665,13 @@ window.addEventListener('load', () => {
  * Actualiza la opacidad del borde superior de las tarjetas.
  */
 function updateCardBorderOpacity() {
+    // Obtener color base dinámico desde CSS
+    const rgbBase = getComputedStyle(document.documentElement).getPropertyValue('--rgb-border-dynamic').trim() || '255, 255, 255';
+
     // 1. Contenedores
-    const innerContents = document.querySelectorAll('.card-inner-content');
-    innerContents.forEach(inner => {
-        const container = inner.closest('.card-container');
-        if (container) {
-            const scrollTop = inner.scrollTop;
-            const opacity = Math.min(scrollTop / 50, 1);
-            container.style.borderTopColor = `rgba(255, 255, 255, ${0.1 + (opacity * 0.9)})`;
-        }
-    });
+    // REMOVED LOGIC: Containers now have static white border as requested.
+    // const innerContents = document.querySelectorAll('.card-inner-content');
+    // innerContents.forEach(inner => { ... });
 
     // 2. Tarjetas de Reparación
     const elements = document.querySelectorAll('.repair-card');
@@ -633,7 +688,7 @@ function updateCardBorderOpacity() {
             opacity = 1 - normalizedPosition;
             opacity = 0.2 + (opacity * 0.8);
         }
-        element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
+        element.style.borderTopColor = `rgba(${rgbBase}, ${opacity})`;
     });
 }
 

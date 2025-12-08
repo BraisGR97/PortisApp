@@ -269,6 +269,14 @@
         currentRecipientId = recipientId;
         lastRenderedDate = null; // Resetear fecha al abrir chat
 
+        // 🔑 MARCAR COMO LEÍDO AL ABRIR
+        const chatId = getChatId(recipientId);
+        localStorage.setItem(`lastRead_${chatId}`, Date.now().toString());
+        // Actualizar badge (restar o recalcular) - Para simplicidad recargamos usuarios/badges
+        // Idealmente sería más óptimo, pero loadUsers() ya tiene la lógica.
+        // Pero loadUsers es async y hace un fetch. Mejor solo ocultar el badge de este user visualmente si pudiéramos.
+        // Por ahora, aceptamos que se actualice en la próxima carga o polling.
+
         const recipientNameEl = document.getElementById('chat-recipient-name');
         const messagesContainer = document.getElementById('chat-messages-container');
 
@@ -351,7 +359,7 @@
                         users.push({
                             id: doc.id,
                             name: data.username || data.displayName || `Usuario ${doc.id.substring(0, 6)}`,
-                            photoURL: data.photoURL // << ADD THIS LINE
+                            photoURL: data.photoURL
                         });
                     }
                 });
@@ -361,30 +369,91 @@
             }
         }
 
-        userListContainer.innerHTML = users.map(user => `
-            <div class="user-chat-card flex items-center p-3 rounded-xl cursor-pointer transition" 
+        // Renderizado inicial de usuarios (sin indicadores aún)
+        renderUserList(users, {});
+
+        // Comprobar mensajes no leídos para cada usuario
+        checkUnreadMessages(users);
+    }
+
+    function renderUserList(users, unreadStatusMap) {
+        const userListContainer = document.getElementById('user-list-container');
+        if (!userListContainer) return;
+
+        userListContainer.innerHTML = users.map(user => {
+            const hasUnread = unreadStatusMap[user.id];
+            const unreadIndicator = hasUnread ?
+                `<span class="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-800"></span>` : '';
+
+            return `
+            <div class="user-chat-card flex items-center p-3 rounded-xl cursor-pointer transition relative" 
                  onclick="openChatModal('${user.id}', '${user.name}')">
                 
-                <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold mr-4 overflow-hidden border border-gray-300 dark:border-gray-600">
+                <div class="relative w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold mr-4 overflow-hidden border border-gray-300 dark:border-gray-600">
                     <img src="${user.photoURL || profileImagePath}" alt="${user.name.charAt(0)}" class="w-full h-full object-cover">
+                    ${unreadIndicator}
                 </div>
                 
                 <p class="font-semibold user-chat-item-name">${user.name}</p>
-                </div>
-        `).join('');
+            </div>
+        `}).join('');
+    }
 
-        // Actualizar badge de mensajes sin leer
-        updateUnreadBadge();
+    async function checkUnreadMessages(users) {
+        if (!db || !userId) return;
+
+        let totalUnread = 0;
+        const unreadStatusMap = {};
+
+        for (const user of users) {
+            const chatId = getChatId(user.id);
+            try {
+                // Obtener el último mensaje del chat
+                const snapshot = await db.collection('chats').doc(chatId).collection('messages')
+                    .orderBy('timestamp', 'desc')
+                    .limit(1)
+                    .get();
+
+                if (!snapshot.empty) {
+                    const lastMsg = snapshot.docs[0].data();
+                    // Si el último mensaje NO es mío
+                    if (lastMsg.senderId !== userId) {
+                        const lastReadTime = localStorage.getItem(`lastRead_${chatId}`);
+                        let msgTime = 0;
+
+                        if (lastMsg.timestamp && lastMsg.timestamp.toDate) {
+                            msgTime = lastMsg.timestamp.toDate().getTime();
+                        } else if (lastMsg.clientTimestamp) {
+                            msgTime = new Date(lastMsg.clientTimestamp).getTime();
+                        }
+
+                        // Si no hay fecha de lectura o el mensaje es más reciente
+                        if (!lastReadTime || msgTime > parseInt(lastReadTime)) {
+                            unreadStatusMap[user.id] = true;
+                            totalUnread++;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Error checking unread for", user.id, e);
+            }
+        }
+
+        renderUserList(users, unreadStatusMap);
+        updateUnreadBadge(totalUnread);
     }
 
     // Función para actualizar el badge de mensajes sin leer
-    function updateUnreadBadge() {
+    function updateUnreadBadge(count = 0) {
         const badge = document.getElementById('unread-badge');
         if (!badge) return;
 
-        // Por ahora, ocultar el badge (se mostrará cuando haya mensajes sin leer)
-        // TODO: Implementar lógica para detectar mensajes sin leer
-        badge.classList.add('hidden');
+        if (count > 0) {
+            badge.classList.remove('hidden');
+            // badge.textContent = count > 9 ? '9+' : count; // Si quisiéramos mostrar número
+        } else {
+            badge.classList.add('hidden');
+        }
     }
 
 
