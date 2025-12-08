@@ -185,7 +185,7 @@ html.light-mode body {
     box-shadow: 0 4px 6px var(--color-shadow);
     border: 1px solid var(--color-border);
     border-bottom: 1px solid var(--color-bg-secondary);
-    height: calc(100vh - 6rem);
+    height: calc(100vh - 8rem);
     /* Aligning height with new repair form */
     overflow: hidden;
     display: flex;
@@ -579,7 +579,7 @@ html.light-mode body {
    NEW REPAIR FORM CONTAINER (Updated)
    ================================================================ */
 #new-repair-card.card-container {
-    height: calc(100vh - 6rem);
+    height: calc(100vh - 8rem);
     /* Full height minus navbar/margins */
     max-height: none;
     overflow: hidden;

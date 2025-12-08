@@ -183,6 +183,7 @@ async function saveRepair(e) {
         location,
         model,
         key_id,
+        contract,
         maintenance_month: month,
         maintenance_year: year,
         priority,

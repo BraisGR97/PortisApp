@@ -87,8 +87,8 @@ function getRepairsCollectionRef() {
 
 function getHistoryCollectionRef() {
     if (!db || !userId) return null;
-    // Colección raíz 'history', filtrada por userId
-    return db.collection('history');
+    // Colección 'history' específica del usuario
+    return db.collection(`users/${userId}/history`);
 }
 
 async function loadMaintenances() {
@@ -134,7 +134,6 @@ async function loadRecords(maintenanceId, location) {
         if (!historyRef) return;
 
         const snapshot = await historyRef
-            .where('userId', '==', userId)
             .where('location', '==', location)
             .orderBy('completedAt', 'desc')
             .get();

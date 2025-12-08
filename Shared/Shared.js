@@ -132,8 +132,7 @@ function setupSharedListener() {
 
 
     try {
-        db.collection('shared') // Corregido: shared_maintenance -> shared
-            .where('recipientId', '==', userId) // Corregido: receiverId -> recipientId
+        db.collection(`users/${userId}/shared`)
             .onSnapshot((snapshot) => {
                 const received = [];
                 const now = Date.now();
@@ -144,7 +143,7 @@ function setupSharedListener() {
 
                     if (expiresAt <= now) {
                         // Si ha expirado, borrarlo de la BD
-                        db.collection('shared').doc(doc.id).delete().catch(err => {
+                        db.collection(`users/${userId}/shared`).doc(doc.id).delete().catch(err => {
                             console.warn(`[SHARED] No se pudo eliminar expirado: ${err.message}`);
                         });
                     } else {
@@ -446,17 +445,7 @@ window.shareRepair = async function (repairId) {
     // Incluir registros si está marcado
     if (includeRecords) {
         try {
-            // NOTA: Según las reglas, history está en la raíz, no en users/{userId}/history
-            // Pero el código original usaba users/{userId}/history. 
-            // Si las reglas dicen match /history/{historyId}, entonces debería ser db.collection('history').
-            // Sin embargo, voy a respetar la estructura actual de Shared.js para history por ahora
-            // y solo corregir 'shared', a menos que history también falle aquí.
-            // Las reglas dicen: match /history/{historyId}.
-            // Entonces users/${userId}/history NO funcionará si no está definido en users.
-            // Voy a corregir history también aquí para prevenir errores.
-
-            const historyRef = db.collection('history')
-                .where('userId', '==', userId)
+            const historyRef = db.collection(`users/${userId}/history`)
                 .where('location', '==', repair.location);
 
             const snapshot = await historyRef.get();
@@ -473,25 +462,25 @@ window.shareRepair = async function (repairId) {
     try {
         if (!db) return;
 
-        // Buscar si ya existe un compartido activo para este usuario y reparación
-        const existingQuery = await db.collection('shared')
+        // Buscar si ya existe un compartido activo para este usuario y reparación en la INBOX del destinatario
+        const existingQuery = await db.collection(`users/${recipientId}/shared`)
             .where('senderId', '==', userId)
-            .where('recipientId', '==', recipientId)
+            // .where('recipientId', '==', recipientId) // Redundante en subcolección
             .where('repairData.id', '==', repair.id)
             .get();
 
         if (!existingQuery.empty) {
             // Actualizar existente
             const docId = existingQuery.docs[0].id;
-            await db.collection('shared').doc(docId).update({
+            await db.collection(`users/${recipientId}/shared`).doc(docId).update({
                 expiresAt: new Date(sharedData.expiresAt),
                 sharedAt: sharedData.sharedAt,
                 includeRecords: includeRecords,
                 records: sharedData.records || []
             });
         } else {
-            // Crear nuevo
-            await db.collection('shared').add({
+            // Crear nuevo en la INBOX del destinatario
+            await db.collection(`users/${recipientId}/shared`).add({
                 ...sharedData,
                 expiresAt: new Date(sharedData.expiresAt)
             });
