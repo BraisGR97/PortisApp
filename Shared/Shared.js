@@ -133,7 +133,7 @@ function setupSharedListener() {
 
     try {
         // Escuchar Bandeja de Entrada (INBOX)
-        db.collection(`users/${userId}/shared/inbox`)
+        db.collection(`users/${userId}/shared_inbox`)
             .onSnapshot((snapshot) => {
                 const received = [];
                 const now = Date.now();
@@ -144,7 +144,7 @@ function setupSharedListener() {
 
                     if (expiresAt <= now) {
                         // Limpieza automática (Inbox)
-                        db.collection(`users/${userId}/shared/inbox`).doc(doc.id).delete().catch(console.warn);
+                        db.collection(`users/${userId}/shared_inbox`).doc(doc.id).delete().catch(console.warn);
                     } else {
                         received.push({ id: doc.id, ...data });
                     }
@@ -158,7 +158,7 @@ function setupSharedListener() {
 
         // (Opcional) Listener para limpiar Outbox expirados
         // Lo ideal sería una Cloud Function, pero aquí hacemos limpieza "lazy" cuando el usuario abre la app
-        db.collection(`users/${userId}/shared/outbox`).get().then(snapshot => {
+        db.collection(`users/${userId}/shared_outbox`).get().then(snapshot => {
             snapshot.forEach(doc => {
                 const data = doc.data();
                 const expiresAt = data.expiresAt ? (data.expiresAt.toDate ? data.expiresAt.toDate().getTime() : new Date(data.expiresAt).getTime()) : 0;
