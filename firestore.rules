@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isChatParticipant(chatId) {
+      let uids = chatId.split('_'); 
+      return request.auth.uid == uids[0] || request.auth.uid == uids[1];
+    }
+    
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == userId;
+
+      match /repairs/{repairId} { allow read, write: if request.auth != null && request.auth.uid == userId; }
+      match /bills/{billId} { allow read, write: if request.auth != null && request.auth.uid == userId; }
+      match /calendar/{documentId} { allow read, write: if request.auth != null && request.auth.uid == userId; }
+      match /settings/{documentId} { allow read, write: if request.auth != null && request.auth.uid == userId; }
+      match /notes/{noteId} { allow read, write: if request.auth != null && request.auth.uid == userId; }
+      match /history/{historyId} { allow read, write: if request.auth != null && request.auth.uid == userId; }
+
+      // =====================================
+      // NUEVA ESTRUCTURA SHARED ORGANIZADA
+      // =====================================
+      
+      // 1. Bandeja de Entrada (INBOX - Received)
+      // El dueño lee y borra. Otros (autenticados) pueden CREAR documentos aquí.
+      match /shared/inbox/{documentId} {
+         allow read, delete: if request.auth != null && request.auth.uid == userId;
+         allow create: if request.auth != null && request.resource.data.senderId == request.auth.uid;
+         allow update: if request.auth != null && request.resource.data.senderId == request.auth.uid;
+      }
+
+      // 2. Bandeja de Salida (OUTBOX - Sent)
+      // Solo el dueño puede ver y gestionar lo que ha enviado (copia temporal)
+      match /shared/outbox/{documentId} {
+         allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // 3. Estadísticas (STATS)
+      // El dueño lee. Cualquiera puede INCREMENTAR contadores (para sumar +1 al enviar)
+      match /shared/stats {
+         allow read: if request.auth != null && request.auth.uid == userId;
+         // Permitimos update si es un incremento de campos numéricos (seguridad básica)
+         allow update: if request.auth != null; 
+         // En producción idealmente validaríamos con: request.resource.data.receivedCount == resource.data.receivedCount + 1
+         allow create: if request.auth != null; // Para crear el doc si no existe
+      }
+    }
+
+    match /chats/{chatId} {
+      match /messages/{messageId} {
+        allow read, write: if request.auth != null && isChatParticipant(chatId);
+      }
+      allow read: if request.auth != null && isChatParticipant(chatId);
+    }
+  }
+}

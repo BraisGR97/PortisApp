@@ -88,9 +88,7 @@ async function initializeAppAndAuth() {
  */
 function getNotesCollectionRef() {
     if (!db || !userId) return null;
-    const path = `users/${userId}/notes`;
-    console.log("📍 [Notes.js] Intentando acceder a:", path);
-    return db.collection(path);
+    return db.collection(`users/${userId}/notes`);
 }
 
 /**

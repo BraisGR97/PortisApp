@@ -111,9 +111,7 @@ async function initializeAppAndAuth() {
  */
 function getRepairsCollectionRef() {
     if (!db || !userId) return null;
-    const path = `users/${userId}/repairs`;
-    console.log("📍 [Repairs.js] Intentando acceder a:", path);
-    return db.collection(path);
+    return db.collection(`users/${userId}/repairs`);
 }
 
 /**

@@ -132,7 +132,8 @@ function setupSharedListener() {
 
 
     try {
-        db.collection(`users/${userId}/shared`)
+        // Escuchar Bandeja de Entrada (INBOX)
+        db.collection(`users/${userId}/shared/inbox`)
             .onSnapshot((snapshot) => {
                 const received = [];
                 const now = Date.now();
@@ -142,10 +143,8 @@ function setupSharedListener() {
                     const expiresAt = data.expiresAt ? (data.expiresAt.toDate ? data.expiresAt.toDate().getTime() : new Date(data.expiresAt).getTime()) : 0;
 
                     if (expiresAt <= now) {
-                        // Si ha expirado, borrarlo de la BD
-                        db.collection(`users/${userId}/shared`).doc(doc.id).delete().catch(err => {
-                            console.warn(`[SHARED] No se pudo eliminar expirado: ${err.message}`);
-                        });
+                        // Limpieza automática (Inbox)
+                        db.collection(`users/${userId}/shared/inbox`).doc(doc.id).delete().catch(console.warn);
                     } else {
                         received.push({ id: doc.id, ...data });
                     }
@@ -154,10 +153,23 @@ function setupSharedListener() {
                 sharedReceived = received;
                 renderReceivedList(received);
             }, (error) => {
-                console.error("[SHARED] Error al escuchar recibidos:", error);
+                console.error("[SHARED] Error listener inbox:", error);
             });
+
+        // (Opcional) Listener para limpiar Outbox expirados
+        // Lo ideal sería una Cloud Function, pero aquí hacemos limpieza "lazy" cuando el usuario abre la app
+        db.collection(`users/${userId}/shared/outbox`).get().then(snapshot => {
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const expiresAt = data.expiresAt ? (data.expiresAt.toDate ? data.expiresAt.toDate().getTime() : new Date(data.expiresAt).getTime()) : 0;
+                if (expiresAt <= Date.now()) {
+                    doc.ref.delete();
+                }
+            });
+        });
+
     } catch (error) {
-        console.error("[SHARED] Excepción al configurar listener:", error);
+        console.error("[SHARED] Excepción setupSharedListener:", error);
     }
 }
 

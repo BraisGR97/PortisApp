@@ -211,16 +211,15 @@ async function loadAndCalculateStats() {
     try {
         console.log('[PROFILE] Iniciando carga de datos para userId:', userId);
 
-        // Fetch all collections in parallel using allSettled to prevent total failure
         const results = await Promise.allSettled([
             db.collection(`users/${userId}/repairs`).get(),
             db.collection(`users/${userId}/bills`).get(),
-            db.collection('history').where('userId', '==', userId).get(),
-            db.collection('shared').where('senderId', '==', userId).get(),
-            db.collection('shared').where('recipientId', '==', userId).get()
+            db.collection(`users/${userId}/history`).get(),
+            // Cargar contadores de compartidos en lugar de solo inbox
+            db.collection(`users/${userId}/shared`).doc('stats').get()
         ]);
 
-        const [repairsResult, billsResult, historyResult, sentResult, receivedResult] = results;
+        const [repairsResult, billsResult, historyResult, statsResult] = results;
 
         if (repairsResult.status === 'fulfilled') repairsResult.value.forEach(doc => repairs.push(doc.data()));
         else console.error('[PROFILE] Error cargando repairs:', repairsResult.reason);
@@ -231,23 +230,32 @@ async function loadAndCalculateStats() {
         if (historyResult.status === 'fulfilled') historyResult.value.forEach(doc => history.push(doc.data()));
         else console.error('[PROFILE] Error cargando history:', historyResult.reason);
 
-        if (sentResult.status === 'fulfilled') sentResult.value.forEach(doc => sharedSent.push(doc.data()));
-        else console.error('[PROFILE] Error cargando sharedSent:', sentResult.reason);
+        let statsData = { sentCount: 0, receivedCount: 0 };
+        if (statsResult.status === 'fulfilled' && statsResult.value.exists) {
+            statsData = statsResult.value.data();
+        }
 
-        if (receivedResult.status === 'fulfilled') receivedResult.value.forEach(doc => sharedReceived.push(doc.data()));
-        else console.error('[PROFILE] Error cargando sharedReceived:', receivedResult.reason);
+        // Asignar variables globales de estadísticas
+        const finalSentCount = statsData.sentCount || 0;
+        const finalReceivedCount = statsData.receivedCount || 0;
+
+        // Logica antigua de arrays (para otros calcs si fuera necesario)
+        // const receivedCount = sharedReceived.length; 
+
+        // Actualizar UI directamente aquí o pasar valores
+        updateProfileStatsUI(repairs, bills, history, finalSentCount, finalReceivedCount);
 
     } catch (error) {
         console.error("[PROFILE] Error cargando datos:", error);
         return;
     }
+}
 
+function updateProfileStatsUI(repairs, bills, history, sentCount, receivedCount) {
     // Cálculos
     const repairsCount = repairs.length;
     const billsCount = bills.length;
     const historyCount = history.length;
-    const sentCount = sharedSent.length;
-    const receivedCount = sharedReceived.length;
     const totalShared = sentCount + receivedCount;
 
     let totalCost = 0;
@@ -291,13 +299,12 @@ async function loadAndCalculateStats() {
     updateStat('stat-total-cost', `${totalCost.toFixed(2)} €`);
     updateStat('stat-paid-cost', `${totalPaid.toFixed(2)} €`);
 
-
-
     // Renderizar Gráficos
     renderWorkloadChart(currentMonthWorkload, repairsCount);
     renderSharedChart(sentCount, receivedCount);
     renderExpensesChart(totalPaid, totalCost - totalPaid);
 }
+
 
 function updateStat(id, value) {
     const el = document.getElementById(id);
@@ -357,8 +364,7 @@ function renderSharedChart(sent, received) {
             data: {
                 labels: ['Enviados', 'Recibidos'],
                 datasets: [{
-                    data: [sent, received],
-                    data: [sent, received],
+                    data: [0, received],
                     backgroundColor: ['#E040FB', '#00B0FF'], // Colores más vivos
                     borderWidth: 0
                 }]

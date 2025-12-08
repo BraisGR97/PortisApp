@@ -50,9 +50,7 @@
     // Obtiene la referencia a la colección 'repairs' con la ruta users/{userId}/repairs
     function getRepairsCollectionRef() {
         if (!isFirebaseReady || !userId) return null;
-        const path = `users/${userId}/repairs`;
-        console.log("📍 [Maintenance.js] Intentando acceder a:", path);
-        return db.collection(path);
+        return db.collection(`users/${userId}/repairs`);
     }
 
     // ====================================
