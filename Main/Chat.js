@@ -238,7 +238,7 @@
     // FUNCIONES DEL MENÚ CONTEXTUAL (LONG PRESS)
     // ===============================================
 
-    function showContextMenu(messageId, text) {
+    function showContextMenu(messageId, text, isCurrentUser) {
         // Haptic feedback
         if (navigator.vibrate) navigator.vibrate(50);
 
@@ -262,13 +262,20 @@
         }
 
         if (btnDelete) {
-            const newBtn = btnDelete.cloneNode(true);
-            btnDelete.parentNode.replaceChild(newBtn, btnDelete);
+            // Mostrar botón borrar solo si es el usuario actual
+            if (isCurrentUser) {
+                btnDelete.style.display = 'flex'; // o 'block' si no usas flex classes inline
 
-            newBtn.addEventListener('click', () => {
-                deleteMessage(messageId);
-                if (typeof window.closeModal === 'function') window.closeModal('chat-context-menu-modal');
-            });
+                const newBtn = btnDelete.cloneNode(true);
+                btnDelete.parentNode.replaceChild(newBtn, btnDelete);
+
+                newBtn.addEventListener('click', () => {
+                    deleteMessage(messageId);
+                    if (typeof window.closeModal === 'function') window.closeModal('chat-context-menu-modal');
+                });
+            } else {
+                btnDelete.style.display = 'none';
+            }
         }
 
         if (typeof window.showModal === 'function') window.showModal('chat-context-menu-modal');
@@ -358,14 +365,14 @@
         const messageEl = document.getElementById(domId);
         if (messageEl) {
             let pressTimer;
-            const LONG_PRESS_DURATION = 2000; // 2 segundos
+            const LONG_PRESS_DURATION = 1000; // 1 segundo (reducido de 2s)
 
             const startPress = (e) => {
                 // Si es clic izquierdo o toque
                 if (e.type === 'mousedown' && e.button !== 0) return;
 
                 pressTimer = setTimeout(() => {
-                    showContextMenu(messageId, text);
+                    showContextMenu(messageId, text, isCurrentUser);
                 }, LONG_PRESS_DURATION);
             };
 
