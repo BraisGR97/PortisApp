@@ -244,25 +244,40 @@ async function loadAndCalculateStats() {
         else console.error('[PROFILE] Error cargando bills:', billsResult.reason);
 
         if (historyResult.status === 'fulfilled') historyResult.value.forEach(doc => history.push(doc.data()));
-        else console.error('[PROFILE] Error cargando history:', historyResult.reason);
+        else {
+            // Silent catch
+        }
 
         if (calendarResult.status === 'fulfilled') calendarResult.value.forEach(doc => calendar.push(doc.data()));
-        else console.error('[PROFILE] Error cargando calendar:', calendarResult.reason);
+        else { /* Silent catch */ }
 
-        // Stats removed as requested (calculating differently in future)
+        // Calculos previos para pasar a UI
+        let pendingRepairs = 0;
+        let inProgressRepairs = 0;
+
+        repairs.forEach(repair => {
+            // Asumimos 'Pendiente' con mayúscula inicial, o minúscula. Normalizamos.
+            const s = repair.status || 'Pendiente';
+            if (s === 'Pendiente') {
+                pendingRepairs++;
+            } else {
+                inProgressRepairs++;
+            }
+        });
+
+        // Stats "removed" but we need counts for shared chart
         const finalSentCount = 0;
         const finalReceivedCount = 0;
 
-        // Actualizar UI directamente aquí o pasar valores
-        updateProfileStatsUI(repairs, bills, history, calendar, finalSentCount, finalReceivedCount);
+        // Actualizar UI
+        updateProfileStatsUI(repairs, bills, history, calendar, finalSentCount, finalReceivedCount, pendingRepairs, inProgressRepairs);
 
     } catch (error) {
-        console.error("[PROFILE] Error cargando datos:", error);
-        return;
+        // Silent catch
     }
 }
 
-function updateProfileStatsUI(repairs, bills, history, calendar, sentCount, receivedCount) {
+function updateProfileStatsUI(repairs, bills, history, calendar, sentCount, receivedCount, pendingRepairs, inProgressRepairs) {
     // Cálculos Generales
     const repairsCount = repairs.length;
     const billsCount = bills.length;
@@ -315,9 +330,9 @@ function updateProfileStatsUI(repairs, bills, history, calendar, sentCount, rece
     updateStat('stat-repairs-count', repairsCount);
 
     // Renderizar Textos - Calendario
-    updateStat('stat-vacation-days', vacationDays);
-    updateStat('stat-overtime-hours', overtimeHours.toFixed(1));
-    updateStat('stat-shifts-count', totalShifts);
+    updateStat('stat-vacation-days', `${vacationDays} días`);
+    updateStat('stat-overtime-hours', `${overtimeHours.toFixed(1)} h.`);
+    updateStat('stat-shifts-count', `${totalShifts} guardias`);
 
     // Renderizar Textos - Compartidos
     updateStat('stat-shared-total', totalShared);
@@ -329,8 +344,8 @@ function updateProfileStatsUI(repairs, bills, history, calendar, sentCount, rece
     updateStat('stat-paid-cost', `${totalPaid.toFixed(2)} €`);
 
     // Renderizar Gráficos
-    // Grafico 1: Carga de Trabajo (Pendientes vs Historial)
-    renderWorkloadChart(repairsCount, historyCount);
+    // Grafico 1: Carga de Trabajo (Pendientes vs En Progreso)
+    renderWorkloadChart(pendingRepairs, inProgressRepairs);
 
     // Grafico 2: Desglose por Prioridad (Alta/Media/Baja)
     renderPriorityChart(highPriority, mediumPriority, lowPriority);
@@ -349,7 +364,7 @@ function updateStat(id, value) {
 // workloadChartInstance se declara al inicio del archivo
 // priorityChartInstance también
 
-function renderWorkloadChart(pending, completed) {
+function renderWorkloadChart(pending, inProgress) {
     try {
         const canvas = document.getElementById('workloadChart');
         if (!canvas) return;
@@ -360,10 +375,10 @@ function renderWorkloadChart(pending, completed) {
         workloadChartInstance = new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: ['Pendientes', 'Completados'],
+                labels: ['Pendientes', 'En Progreso'],
                 datasets: [{
-                    data: [pending, completed],
-                    backgroundColor: ['#FFAB40', '#00E676'], // Naranja, Verde
+                    data: [pending, inProgress],
+                    backgroundColor: ['#FFAB40', '#2979FF'], // Naranja, Azul
                     borderWidth: 0,
                     hoverOffset: 4
                 }]
@@ -654,32 +669,48 @@ async function deleteProfilePhoto() {
 }
 
 // ================================================================
-// BORDE ANIMADO EN SCROLL (Corregido)
+// BORDE ANIMADO EN SCROLL (Estilo Bills.js)
 // ================================================================
-document.addEventListener('DOMContentLoaded', function () {
-    const cardInnerContents = document.querySelectorAll('.card-inner-content');
+function updateCardBorderOpacity() {
+    const elements = document.querySelectorAll('.card-container');
+    // En Profile.html el elemento con scroll es #app-content
+    const scrollContainer = document.getElementById('app-content');
+    const viewportHeight = window.innerHeight; // Usamos viewport completo para referencia visual
 
-    function updateBorder(e) {
-        const innerContent = e.target;
-        const container = innerContent.closest('.card-container');
+    elements.forEach(element => {
+        const rect = element.getBoundingClientRect();
+        const elementTop = rect.top;
+        const elementHeight = rect.height;
 
-        if (container) {
-            const scrollTop = innerContent.scrollTop;
-            if (scrollTop <= 10) {
-                container.style.borderTopColor = 'transparent';
-                return;
-            }
-            // Aumentar sensibilidad: opacity llega a 1 cuando scroll llega a 100px (ajustado)
-            const opacity = Math.min(scrollTop / 100, 1);
+        let opacity = 0.1; // Base opacity
 
-            // Interpolar para que sea visible
-            container.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
+        // Logica simplificada: Cuanto mas arriba, mas opaco.
+        // Si elementTop es cerca de 0 (top de pantalla) o negativo, opacity -> 1.
+        // Si elementTop es abajo (viewportHeight), opacity -> 0.1.
+
+        // Bills logic: 
+        // normalized = elementTop / (viewportHeight * 0.7)
+        // opacity = 1 - normalized
+
+        if (elementTop < viewportHeight) {
+            const factor = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.6)));
+            // Si factor es 0 (arriba), opacity = 1. Si factor 1 (abajo), opacity = 0.
+            const calculatedOpacity = 1 - factor;
+            // Ajustar rango: 0.1 a 1.0
+            opacity = 0.1 + (calculatedOpacity * 0.9);
         }
-    }
 
-    cardInnerContents.forEach(innerContent => {
-        innerContent.addEventListener('scroll', updateBorder, { passive: true });
-        // Initial check
-        updateBorder({ target: innerContent });
+        element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
     });
+}
+
+// Inicializar listener de scroll
+window.addEventListener('load', () => {
+    const scrollContainer = document.getElementById('app-content');
+    if (scrollContainer) {
+        scrollContainer.addEventListener('scroll', updateCardBorderOpacity);
+    }
+    window.addEventListener('resize', updateCardBorderOpacity);
+    // Llamada inicial
+    setTimeout(updateCardBorderOpacity, 100);
 });
