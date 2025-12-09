@@ -22,27 +22,17 @@ service cloud.firestore {
       // NUEVA ESTRUCTURA SHARED ORGANIZADA (FLAT)
       // =====================================
       
-      // 1. Bandeja de Entrada (INBOX)
-      // users/{userId}/shared_inbox/{docId}
-      match /shared_inbox/{documentId} {
-         allow read, delete: if request.auth != null && request.auth.uid == userId;
-         allow create: if request.auth != null; // Simplificado para depurar
-         allow update: if request.auth != null; // Simplificado para depurar
-      }
-
       // 2. Bandeja de Salida (OUTBOX)
       // users/{userId}/shared_outbox/{docId}
       match /shared_outbox/{documentId} {
          allow read, write: if request.auth != null && request.auth.uid == userId;
       }
+    }
 
-      // 3. Estadísticas (STATS)
-      // users/{userId}/shared_stats/general
-      match /shared_stats/{statId} {
-         allow read: if request.auth != null && request.auth.uid == userId;
-         allow update: if request.auth != null; 
-         allow create: if request.auth != null;
-      }
+    // Regla global para collectionGroup 'shared_outbox'
+    // Permite buscar en TODAS las outboxes documentos dirigidos al usuario actual
+    match /{path=**}/shared_outbox/{documentId} {
+      allow read: if request.auth != null && resource.data.recipientId == request.auth.uid;
     }
 
     match /chats/{chatId} {

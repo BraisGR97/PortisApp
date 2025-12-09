@@ -113,7 +113,6 @@ async function initializeAppAndAuth() {
 
     } catch (error) {
         console.error("Error init:", error);
-        if (displayElement) displayElement.textContent = `Error`;
     }
 }
 
@@ -205,8 +204,7 @@ async function handleProfileEdit() {
 // ====================================================================
 
 async function loadAndCalculateStats() {
-    let repairs = [], bills = [], history = [];
-    let sharedSent = [], sharedReceived = [];
+    let repairs = [], bills = [], history = [], calendar = [];
 
     try {
         console.log('[PROFILE] Iniciando carga de datos para userId:', userId);
@@ -214,10 +212,11 @@ async function loadAndCalculateStats() {
         const results = await Promise.allSettled([
             db.collection(`users/${userId}/repairs`).get(),
             db.collection(`users/${userId}/bills`).get(),
-            db.collection(`users/${userId}/history`).get()
+            db.collection(`users/${userId}/history`).get(),
+            db.collection(`users/${userId}/calendar`).get()
         ]);
 
-        const [repairsResult, billsResult, historyResult] = results;
+        const [repairsResult, billsResult, historyResult, calendarResult] = results;
 
         if (repairsResult.status === 'fulfilled') repairsResult.value.forEach(doc => repairs.push(doc.data()));
         else console.error('[PROFILE] Error cargando repairs:', repairsResult.reason);
@@ -228,12 +227,15 @@ async function loadAndCalculateStats() {
         if (historyResult.status === 'fulfilled') historyResult.value.forEach(doc => history.push(doc.data()));
         else console.error('[PROFILE] Error cargando history:', historyResult.reason);
 
+        if (calendarResult.status === 'fulfilled') calendarResult.value.forEach(doc => calendar.push(doc.data()));
+        else console.error('[PROFILE] Error cargando calendar:', calendarResult.reason);
+
         // Stats removed as requested (calculating differently in future)
         const finalSentCount = 0;
         const finalReceivedCount = 0;
 
         // Actualizar UI directamente aquí o pasar valores
-        updateProfileStatsUI(repairs, bills, history, finalSentCount, finalReceivedCount);
+        updateProfileStatsUI(repairs, bills, history, calendar, finalSentCount, finalReceivedCount);
 
     } catch (error) {
         console.error("[PROFILE] Error cargando datos:", error);
@@ -241,22 +243,16 @@ async function loadAndCalculateStats() {
     }
 }
 
-function updateProfileStatsUI(repairs, bills, history, sentCount, receivedCount) {
-    // Cálculos
+function updateProfileStatsUI(repairs, bills, history, calendar, sentCount, receivedCount) {
+    // Cálculos Generales
     const repairsCount = repairs.length;
     const billsCount = bills.length;
     const historyCount = history.length;
     const totalShared = sentCount + receivedCount;
 
+    // Cálculos Finanzas
     let totalCost = 0;
     let totalPaid = 0;
-    let highPriorityCount = 0;
-    let currentMonthWorkload = 0;
-
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
     bills.forEach(bill => {
         const cost = parseFloat(bill.cost || 0);
         if (!isNaN(cost)) {
@@ -265,32 +261,57 @@ function updateProfileStatsUI(repairs, bills, history, sentCount, receivedCount)
         }
     });
 
+    // Cálculos Actividad (Prioridad)
+    let highPriority = 0;
+    let mediumPriority = 0;
+    let lowPriority = 0;
+
     repairs.forEach(repair => {
-        if (repair.priority === 'Alta') highPriorityCount++;
+        const p = (repair.priority || 'Media').toLowerCase();
+        if (p === 'alta') highPriority++;
+        else if (p === 'media') mediumPriority++;
+        else lowPriority++;
+    });
 
-        // Usar maintenance_month y maintenance_year en lugar de date
-        if (repair.maintenance_month && repair.maintenance_year) {
-            const repairMonth = parseInt(repair.maintenance_month) - 1; // Los meses en JS son 0-indexed
-            const repairYear = parseInt(repair.maintenance_year);
+    // Cálculos Calendario (Año Actual)
+    const currentYear = new Date().getFullYear();
+    let vacationDays = 0;
+    let overtimeHours = 0;
 
-            if (repairMonth === currentMonth && repairYear === currentYear) {
-                currentMonthWorkload++;
+    calendar.forEach(event => {
+        // Formato esperado de fecha: YYYY-MM-DD
+        const eventDate = new Date(event.date);
+        if (eventDate.getFullYear() === currentYear) {
+            if (event.type === 'Vacaciones') {
+                vacationDays++;
+            } else if (event.type === 'Extra' && event.hours) {
+                overtimeHours += parseFloat(event.hours);
             }
         }
     });
 
-    // Renderizar Textos
-    updateStat('stat-repairs-count', repairsCount);
+    // Renderizar Textos - Generales/Fijos
+    updateStat('stat-registration-date', '01/01/2024');
     updateStat('stat-history-count', historyCount);
-    updateStat('stat-high-priority', highPriorityCount);
+
+    // Renderizar Textos - Actividad
+    updateStat('stat-repairs-count', repairsCount);
+
+    // Renderizar Textos - Calendario
+    updateStat('stat-vacation-days', vacationDays);
+    updateStat('stat-overtime-hours', overtimeHours.toFixed(1));
+
+    // Renderizar Textos - Compartidos
     updateStat('stat-shared-total', totalShared);
     updateStat('stat-shared-split', `${sentCount} Env / ${receivedCount} Rec`);
+
+    // Renderizar Textos - Finanzas
     updateStat('stat-bills-count', billsCount);
     updateStat('stat-total-cost', `${totalCost.toFixed(2)} €`);
     updateStat('stat-paid-cost', `${totalPaid.toFixed(2)} €`);
 
     // Renderizar Gráficos
-    renderWorkloadChart(currentMonthWorkload, repairsCount);
+    renderPriorityChart(highPriority, mediumPriority, lowPriority);
     renderSharedChart(sentCount, receivedCount);
     renderExpensesChart(totalPaid, totalCost - totalPaid);
 }
@@ -303,23 +324,28 @@ function updateStat(id, value) {
 
 // --- GRÁFICOS CHART.JS ---
 
-function renderWorkloadChart(currentMonth, total) {
+function renderPriorityChart(high, medium, low) {
     try {
-        const canvas = document.getElementById('workloadChart');
+        // Reutilizamos el ID del canvas 'workloadChart' pero le cambiamos la lógica
+        // O si ya lo cambié en HTML, uso el nuevo. Asumimos que Profile.html se actualizará para usar 'priorityChart'
+        let canvas = document.getElementById('priorityChart');
+        if (!canvas) canvas = document.getElementById('workloadChart'); // Fallback
+
         if (!canvas) {
-            console.error('[PROFILE] Canvas workloadChart no encontrado');
+            console.error('[PROFILE] Canvas para priorityChart no encontrado');
             return;
         }
+
         const ctx = canvas.getContext('2d');
         if (workloadChartInstance) workloadChartInstance.destroy();
 
         workloadChartInstance = new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: ['Este Mes', 'Resto'],
+                labels: ['Alta', 'Media', 'Baja'],
                 datasets: [{
-                    data: [currentMonth, Math.max(0, total - currentMonth)],
-                    backgroundColor: ['#FF4081', '#3F51B5'], // Colores más vivos
+                    data: [high, medium, low],
+                    backgroundColor: ['#ef4444', '#f59e0b', '#10b981'], // Colores semánticos
                     borderWidth: 0,
                     hoverOffset: 4
                 }]
@@ -333,9 +359,9 @@ function renderWorkloadChart(currentMonth, total) {
                 cutout: '70%'
             }
         });
-        console.log('[PROFILE] Gráfico de carga de trabajo renderizado');
+        console.log('[PROFILE] Gráfico de prioridades renderizado');
     } catch (error) {
-        console.error('[PROFILE] Error renderizando workloadChart:', error);
+        console.error('[PROFILE] Error renderizando priorityChart:', error);
     }
 }
 
@@ -349,13 +375,18 @@ function renderSharedChart(sent, received) {
         const ctx = canvas.getContext('2d');
         if (sharedChartInstance) sharedChartInstance.destroy();
 
+        // Evitar gráfico vacío
+        const data = (sent === 0 && received === 0) ? [1] : [sent, received];
+        const colors = (sent === 0 && received === 0) ? ['#2a2a3e'] : ['#E040FB', '#00B0FF'];
+        const labels = (sent === 0 && received === 0) ? ['Sin Datos'] : ['Enviados', 'Recibidos'];
+
         sharedChartInstance = new Chart(ctx, {
             type: 'pie',
             data: {
-                labels: ['Enviados', 'Recibidos'],
+                labels: labels,
                 datasets: [{
-                    data: [0, received],
-                    backgroundColor: ['#E040FB', '#00B0FF'], // Colores más vivos
+                    data: data,
+                    backgroundColor: colors,
                     borderWidth: 0
                 }]
             },
@@ -511,7 +542,8 @@ async function handleProfilePhotoChange(e) {
 
         const updateData = { photoURL: imageUrl, lastUpdate: firebase.firestore.FieldValue.serverTimestamp() };
         await db.doc(`artifacts/${appId}/users/${userId}/profileData/userMetadata`).set(updateData, { merge: true });
-        await db.collection('users').doc(userId).set(updateData, { merge: true });
+        // Asegurar actualización en la colección principal para que Chat lo vea
+        await db.collection('users').doc(userId).set({ photoURL: imageUrl }, { merge: true });
 
         photoElement.src = imageUrl;
     } catch (error) {
@@ -543,7 +575,7 @@ async function uploadImageToCloudinary(file) {
 }
 
 async function deleteProfilePhoto() {
-    if (!confirm('¿Eliminar foto?')) return;
+    if (!confirm('¿Eliminar foto y volver a la imagen por defecto?')) return;
     closePhotoOptionsModal();
 
     const photoElement = document.getElementById('profile-photo');
@@ -551,15 +583,18 @@ async function deleteProfilePhoto() {
 
     try {
         const user = auth.currentUser;
-        await user.updateProfile({ photoURL: null });
+        // No pasamos null si da error, probamos string vacío
+        await user.updateProfile({ photoURL: "" });
 
-        const updateData = { photoURL: null, lastUpdate: firebase.firestore.FieldValue.serverTimestamp() };
-        await db.doc(`artifacts/${appId}/users/${userId}/profileData/userMetadata`).set(updateData, { merge: true });
-        await db.collection('users').doc(userId).set(updateData, { merge: true });
+        const updateData = { photoURL: firebase.firestore.FieldValue.delete(), lastUpdate: firebase.firestore.FieldValue.serverTimestamp() };
+        await db.doc(`artifacts/${appId}/users/${userId}/profileData/userMetadata`).update(updateData);
+        await db.collection('users').doc(userId).update({ photoURL: firebase.firestore.FieldValue.delete() });
 
         photoElement.src = '../assets/logo.png';
     } catch (error) {
-        alert('Error al eliminar foto.');
+        console.warn('Error al eliminar foto (puede ser normal si ya no existía campo):', error);
+        // Aun así reseteamos visualmente
+        photoElement.src = '../assets/logo.png';
     } finally {
         photoElement.style.opacity = '1';
     }

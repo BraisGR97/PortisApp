@@ -349,3 +349,16 @@ input:checked+.slider:before {
         padding: 0.75rem 0;
     }
 }
+
+/* Utilities for cleanup */
+.text-accent-red {
+    color: var(--color-accent-red);
+}
+
+.bg-gradient-danger {
+    background-image: linear-gradient(135deg, #FF5722, #C62828) !important;
+}
+
+.bg-gradient-danger-dark {
+    background-image: linear-gradient(135deg, #C62828, #E91E63) !important;
+}

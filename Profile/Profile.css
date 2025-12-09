@@ -261,7 +261,8 @@ html.light-mode body {
     position: relative;
 }
 
-.chart-container.shared-chart {
+.chart-container.shared-chart,
+.chart-container.priority-chart-container {
     height: 200px;
 }
 
