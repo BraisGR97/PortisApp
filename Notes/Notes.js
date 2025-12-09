@@ -557,6 +557,7 @@ window.toggleSearch = function () {
  */
 window.toggleNewNoteForm = function () {
     const card = document.getElementById('new-note-card');
+    const listContainer = document.getElementById('notes-list-container');
     const fab = document.getElementById('show-note-form-fab');
 
     if (!card || !fab) return;
@@ -565,11 +566,15 @@ window.toggleNewNoteForm = function () {
 
     if (isHidden) {
         card.classList.remove('hidden');
+        if (listContainer) listContainer.classList.add('hidden'); // Hide list
+
         fab.classList.add('rotate-45');
         fab.querySelector('i').classList.replace('ph-plus', 'ph-x');
-        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // card.scrollIntoView({ behavior: 'smooth', block: 'start' }); // No scroll needed
     } else {
         card.classList.add('hidden');
+        if (listContainer) listContainer.classList.remove('hidden'); // Show list
+
         fab.classList.remove('rotate-45');
         fab.querySelector('i').classList.replace('ph-x', 'ph-plus');
 

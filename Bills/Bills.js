@@ -247,10 +247,15 @@ function finishSave(form, submitButton, originalButtonText) {
     submitButton.innerHTML = originalButtonText;
 
     const newBillCard = document.getElementById('new-bill-card');
+    const listContainer = document.getElementById('bills-list-container');
     const fab = document.getElementById('show-bill-form-fab');
+    const fabIcon = fab.querySelector('i');
 
     newBillCard.classList.add('hidden');
+    listContainer.classList.remove('hidden');
+
     fab.classList.remove('rotate-45');
+    if (fabIcon) fabIcon.classList.replace('ph-x', 'ph-plus');
 }
 
 // ====================================================================
@@ -422,12 +427,20 @@ window.toggleSearch = function () {
 
 window.toggleNewBillForm = function () {
     const newBillCard = document.getElementById('new-bill-card');
+    const listContainer = document.getElementById('bills-list-container');
     const fab = document.getElementById('show-bill-form-fab');
     const isHidden = newBillCard.classList.contains('hidden');
+    const fabIcon = fab.querySelector('i');
 
     if (isHidden) {
         newBillCard.classList.remove('hidden');
+        listContainer.classList.add('hidden'); // Hide list
+
         fab.classList.add('rotate-45');
+        // Optional: Change icon class if you want exactly like Repairs, but rotation is usually enough.
+        // If we want exact match: 
+        if (fabIcon) fabIcon.classList.replace('ph-plus', 'ph-x');
+
         window.clearImage();
         document.getElementById('new-bill-form').reset();
 
@@ -438,12 +451,13 @@ window.toggleNewBillForm = function () {
             dateInput.value = today;
         }
 
-        setTimeout(() => {
-            newBillCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
+        // No scroll needed as it replaces the view
     } else {
         newBillCard.classList.add('hidden');
+        listContainer.classList.remove('hidden'); // Show list
+
         fab.classList.remove('rotate-45');
+        if (fabIcon) fabIcon.classList.replace('ph-x', 'ph-plus');
     }
 };
 

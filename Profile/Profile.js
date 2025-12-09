@@ -214,12 +214,10 @@ async function loadAndCalculateStats() {
         const results = await Promise.allSettled([
             db.collection(`users/${userId}/repairs`).get(),
             db.collection(`users/${userId}/bills`).get(),
-            db.collection(`users/${userId}/history`).get(),
-            // Cargar contadores de compartidos desde colección plana
-            db.collection(`users/${userId}/shared_stats`).doc('general').get()
+            db.collection(`users/${userId}/history`).get()
         ]);
 
-        const [repairsResult, billsResult, historyResult, statsResult] = results;
+        const [repairsResult, billsResult, historyResult] = results;
 
         if (repairsResult.status === 'fulfilled') repairsResult.value.forEach(doc => repairs.push(doc.data()));
         else console.error('[PROFILE] Error cargando repairs:', repairsResult.reason);
@@ -230,17 +228,9 @@ async function loadAndCalculateStats() {
         if (historyResult.status === 'fulfilled') historyResult.value.forEach(doc => history.push(doc.data()));
         else console.error('[PROFILE] Error cargando history:', historyResult.reason);
 
-        let statsData = { sentCount: 0, receivedCount: 0 };
-        if (statsResult.status === 'fulfilled' && statsResult.value.exists) {
-            statsData = statsResult.value.data();
-        }
-
-        // Asignar variables globales de estadísticas
-        const finalSentCount = statsData.sentCount || 0;
-        const finalReceivedCount = statsData.receivedCount || 0;
-
-        // Logica antigua de arrays (para otros calcs si fuera necesario)
-        // const receivedCount = sharedReceived.length; 
+        // Stats removed as requested (calculating differently in future)
+        const finalSentCount = 0;
+        const finalReceivedCount = 0;
 
         // Actualizar UI directamente aquí o pasar valores
         updateProfileStatsUI(repairs, bills, history, finalSentCount, finalReceivedCount);

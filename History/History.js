@@ -499,28 +499,58 @@ window.closeRecordModal = function () {
     document.getElementById('record-detail-modal').classList.add('hidden');
 };
 
-window.deleteRecord = async function (recordId) {
-    if (!confirm('¿Estás seguro de que deseas eliminar este registro del historial?')) {
-        return;
-    }
+// Variables para eliminación
+let recordToDeleteId = null;
 
-    closeRecordModal();
-
-    try {
-        const historyRef = getHistoryCollectionRef();
-        if (!historyRef) return;
-
-        await historyRef.doc(recordId).delete();
-
-        // Recargar la vista actual
-        if (currentMaintenanceLocation) {
-            loadRecords(currentMaintenanceId, currentMaintenanceLocation);
-        }
-    } catch (error) {
-        console.error("Error al eliminar el registro:", error);
-        alert("Error al eliminar el registro. Por favor, inténtalo de nuevo.");
+window.deleteRecord = function (recordId) {
+    recordToDeleteId = recordId;
+    const modal = document.getElementById('delete-confirmation-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        // Asegurar que el modal de detalles se cierre o permanezca abajo (z-index maneja esto, pero podemos cerrar detalles)
+        // closeRecordModal(); // Opcional: Cerrar el de detalles primero o dejarlo abierto detras.
+        // El usuario pidió "confirm dialog", mejor no cerrar el de detalles hasta que confirme, o cerrarlo antes.
+        // Vamos a mantener detalles abierto detrás si el z-index lo permite, o cerrar.
+        // Por simplicidad y limpieza, cerramos el de detalles al confirmar.
     }
 };
+
+// Setup Listeners for Delete Modal
+document.addEventListener('DOMContentLoaded', () => {
+    const cancelBtn = document.getElementById('btn-cancel-delete');
+    const confirmBtn = document.getElementById('btn-confirm-delete');
+    const modal = document.getElementById('delete-confirmation-modal');
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+            recordToDeleteId = null;
+        });
+    }
+
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', async () => {
+            if (recordToDeleteId) {
+                modal.classList.add('hidden');
+                closeRecordModal(); // Cierra el modal de detalles
+
+                try {
+                    const historyRef = getHistoryCollectionRef();
+                    if (historyRef) {
+                        await historyRef.doc(recordToDeleteId).delete();
+                        if (currentMaintenanceLocation) {
+                            loadRecords(currentMaintenanceId, currentMaintenanceLocation);
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error al eliminar:", error);
+                    alert("Error al eliminar registro.");
+                }
+                recordToDeleteId = null;
+            }
+        });
+    }
+});
 
 // -----------------------------------------------------------------
 // 7. BÚSQUEDA
@@ -597,8 +627,37 @@ window.addEventListener('load', () => {
     setupSearch();
 
     // Efectos visuales
-
+    setupScrollEffects();
 });
+
+function setupScrollEffects() {
+    // Aplicar efecto de borde dinámico a todas las vistas que tengan lista
+    const scrollContainers = document.querySelectorAll('.card-inner-content');
+
+    scrollContainers.forEach(container => {
+        container.addEventListener('scroll', () => {
+            const cards = container.querySelectorAll('.repair-card');
+            const containerTop = container.getBoundingClientRect().top;
+
+            cards.forEach(card => {
+                const rect = card.getBoundingClientRect();
+                const distanceToTop = rect.top - containerTop;
+
+                // Calcular opacidad basada en la posición
+                // Comienza a 0.2 (default) y sube a 1.0 cuando se acerca al top (e.g., < 100px)
+                let opacity = 0.2;
+                if (distanceToTop < 150) {
+                    opacity = 0.2 + ((150 - Math.max(0, distanceToTop)) / 150) * 0.8;
+                }
+
+                // Limitar
+                opacity = Math.max(0.2, Math.min(1, opacity));
+
+                card.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
+            });
+        });
+    });
+}
 
 // Fin del archivo
 

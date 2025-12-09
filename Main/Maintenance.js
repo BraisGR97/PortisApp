@@ -377,8 +377,9 @@
         } else {
             // CASE 2: Mantenimiento NORMAL
             if (title) title.textContent = "¿Mantenimiento Completado?";
-            // if (desc) desc.textContent = "Se registrará como completado y se actualizará la fecha.";
-            if (desc) desc.textContent = "";
+
+            // Texto descriptivo opcional
+            if (desc) desc.textContent = "Se registrará como completado y se actualizará la fecha.";
 
             newBtnYes.innerHTML = '<i class="ph ph-check"></i> Completar';
             newBtnYes.onclick = () => {
@@ -388,12 +389,8 @@
             };
             newBtnYes.classList.remove('hidden');
 
-            newBtnNo.innerHTML = 'Cancelar';
-            newBtnNo.onclick = () => {
-                obsModal.classList.add('hidden');
-                obsModal.classList.remove('flex');
-            };
-            newBtnNo.classList.remove('hidden');
+            // Ocultar el segundo botón (Cancelar) ya que existe un botón estático de cancelar en el footer del modal
+            newBtnNo.classList.add('hidden');
         }
 
         obsModal.classList.remove('hidden');

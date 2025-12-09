@@ -132,8 +132,10 @@ function setupSharedListener() {
 
 
     try {
-        // Escuchar Bandeja de Entrada (INBOX)
-        db.collection(`users/${userId}/shared_inbox`)
+        // Escuchar elementos compartidos conmigo (usando collectionGroup en 'shared_outbox')
+        // Esto evita tener que escribir en la inbox del destinatario (lo cual daba error de permisos)
+        db.collectionGroup('shared_outbox')
+            .where('recipientId', '==', userId)
             .onSnapshot((snapshot) => {
                 const received = [];
                 const now = Date.now();
@@ -142,10 +144,7 @@ function setupSharedListener() {
                     const data = doc.data();
                     const expiresAt = data.expiresAt ? (data.expiresAt.toDate ? data.expiresAt.toDate().getTime() : new Date(data.expiresAt).getTime()) : 0;
 
-                    if (expiresAt <= now) {
-                        // Limpieza automática (Inbox)
-                        db.collection(`users/${userId}/shared_inbox`).doc(doc.id).delete().catch(console.warn);
-                    } else {
+                    if (expiresAt > now) {
                         received.push({ id: doc.id, ...data });
                     }
                 });
@@ -153,11 +152,10 @@ function setupSharedListener() {
                 sharedReceived = received;
                 renderReceivedList(received);
             }, (error) => {
-                console.error("[SHARED] Error listener inbox:", error);
+                console.error("[SHARED] Error listener shared:", error);
             });
 
-        // (Opcional) Listener para limpiar Outbox expirados
-        // Lo ideal sería una Cloud Function, pero aquí hacemos limpieza "lazy" cuando el usuario abre la app
+        // Limpieza de mi Outbox (elementos que yo envié y expiraron)
         db.collection(`users/${userId}/shared_outbox`).get().then(snapshot => {
             snapshot.forEach(doc => {
                 const data = doc.data();
@@ -470,72 +468,34 @@ window.shareRepair = async function (repairId) {
     try {
         if (!db) return;
 
-        // Buscar si ya existe un compartido activo para este usuario y reparación en la INBOX del destinatario
-        // Ahora buscamos en 'shared_inbox'
-        const existingQuery = await db.collection(`users/${recipientId}/shared_inbox`)
-            .where('senderId', '==', userId)
+        // Buscar si ya existe un compartido activo por MÍ para este destinatario
+        // Buscamos en 'shared_outbox'
+        const existingQuery = await db.collection(`users/${userId}/shared_outbox`)
+            .where('recipientId', '==', recipientId)
             .where('repairData.id', '==', repair.id)
             .get();
 
         if (!existingQuery.empty) {
-            // Actualizar existente en Shared Inbox
+            // Actualizar existente (Outbox)
             const docId = existingQuery.docs[0].id;
 
-            // Actualizar Inbox
-            await db.collection(`users/${recipientId}/shared_inbox`).doc(docId).update({
-                expiresAt: new Date(sharedData.expiresAt),
-                sharedAt: sharedData.sharedAt,
-                includeRecords: includeRecords,
-                records: sharedData.records || []
-            });
-
-            // Actualizar Outbox (mismo ID)
             await db.collection(`users/${userId}/shared_outbox`).doc(docId).set({
                 ...sharedData,
-                recipientId: recipientId,
                 type: 'sent',
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
 
         } else {
-            // NO EXISTE: Crear nuevo con la lógica atómica de batch (Inbox + Outbox + Stats)
-            const batch = db.batch();
+            // Crear nuevo en Outbox
             const sharedDataPayload = {
                 ...sharedData,
+                type: 'sent',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
-            // 1. Inbox Destinatario
-            const recipientRef = db.collection(`users/${recipientId}/shared_inbox`).doc();
-            batch.set(recipientRef, {
-                ...sharedDataPayload,
-                type: 'received'
-            });
-
-            // 2. Outbox Remitente
-            const senderRef = db.collection(`users/${userId}/shared_outbox`).doc(recipientRef.id);
-            batch.set(senderRef, {
-                ...sharedDataPayload,
-                recipientId: recipientId,
-                type: 'sent'
-            });
-
-            // 3. Stats Destinatario
-            const recipientStatsRef = db.collection(`users/${recipientId}/shared_stats`).doc('general');
-            batch.set(recipientStatsRef, {
-                receivedCount: firebase.firestore.FieldValue.increment(1),
-                lastReceivedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-
-            // 4. Stats Remitente
-            const senderStatsRef = db.collection(`users/${userId}/shared_stats`).doc('general');
-            batch.set(senderStatsRef, {
-                sentCount: firebase.firestore.FieldValue.increment(1),
-                lastSentAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-
-            await batch.commit();
+            await db.collection(`users/${userId}/shared_outbox`).add(sharedDataPayload);
         }
+
 
         if (messageDiv) {
             messageDiv.textContent = `✓ Compartido con ${recipientName}`;
