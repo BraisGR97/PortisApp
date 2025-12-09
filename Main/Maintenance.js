@@ -277,12 +277,19 @@
             // Historial (Siempre guarda todo)
             const historyRecord = {
                 ...repair,
-                completedDate: new Date().toISOString(),
+                completedAt: new Date(), // Changed to completedAt (Firestore Timestamp compatible if using serverTimestamp, but Date object/ISO string works for now with client sort)
                 completedBy: userId,
+                username: sessionStorage.getItem('portis-user-display-name') || 'Usuario', // Capture username
                 original_month: repair.maintenance_month,
                 original_year: repair.maintenance_year
             };
             delete historyRecord.id;
+
+            // Lógica de Avería para Historial
+            if (repair.breakdown) {
+                historyRecord.breakdown = repair.breakdown;
+                historyRecord.repairStatus = breakdownRepaired ? 'Reparado' : 'No Reparado';
+            }
 
             // Updates para el mantenimiento recurrente
             const updates = {
@@ -715,6 +722,11 @@
                 phone: contactPhone
             } : null
         };
+
+        // Regla: Si hay avería, la prioridad sube a Alta automáticamente
+        if (newValues.breakdown) {
+            newValues.priority = 'Alta';
+        }
 
         if (!newValues.location || !newValues.contract) {
             showMessage('error', 'Ubicación y Contrato son obligatorios.');

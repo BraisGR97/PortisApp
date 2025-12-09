@@ -272,8 +272,15 @@ function createRecordCard(record) {
 
     // Formatear fecha de completado
     let completedDate = 'Fecha no disponible';
+
+    // Priority: completedAt (Timestamp from new records) -> completedDate (ISO string from legacy records)
     if (record.completedAt) {
         const date = record.completedAt.toDate ? record.completedAt.toDate() : new Date(record.completedAt);
+        completedDate = date.toLocaleDateString('es-ES', {
+            day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+    } else if (record.completedDate) {
+        const date = new Date(record.completedDate);
         completedDate = date.toLocaleDateString('es-ES', {
             day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
         });
@@ -285,13 +292,17 @@ function createRecordCard(record) {
                 <p class="text-sm font-light mb-1 record-card-date">
                     <i class="ph ph-calendar-check mr-1"></i> ${completedDate}
                 </p>
-                <p class="text-sm font-medium record-card-user">
-                    <i class="ph ph-user mr-1"></i> Completado por: ${record.username || 'Usuario desconocido'}
-                </p>
+                <!-- Usuario eliminado de la vista de tarjeta según solicitud -->
             </div>
-            <span class="text-xs font-medium px-2 py-1 rounded-full record-card-status">
-                Completado
-            </span>
+            ${record.repairStatus ? `
+                <span class="text-xs font-bold px-2 py-1 rounded-full ${record.repairStatus === 'Reparado' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'}">
+                    ${record.repairStatus}
+                </span>
+            ` : `
+                <span class="text-xs font-medium px-2 py-1 rounded-full record-card-status">
+                    Completado
+                </span>
+            `}
         </div>
 
         <div class="text-sm record-card-info">
@@ -307,10 +318,21 @@ function createRecordCard(record) {
             ` : ''}
         </div>
 
+        ${record.breakdown ? `
+        <div class="mt-3 pt-2 border-t border-red-200 dark:border-red-900/30">
+            <p class="text-sm text-red-500 font-medium mb-1">
+                <i class="ph ph-warning-octagon mr-1"></i> Avería:
+            </p>
+            <p class="text-sm italic opacity-80 pl-2 border-l-2 border-red-400">
+                ${record.breakdown}
+            </p>
+        </div>
+        ` : ''}
+
         <div class="mt-3 pt-3 border-t record-card-description-container">
             <p class="${record.description && record.description.trim() ? 'text-sm' : 'text-sm italic opacity-70'} record-card-description">
                 <i class="ph ph-note mr-1"></i>
-                ${record.description && record.description.trim() ? record.description : 'Mantenimiento sin contratiempos'}
+                ${record.description && record.description.trim() ? record.description : 'Mantenimiento sin observaciones'}
             </p>
         </div>
     `;
@@ -364,6 +386,11 @@ function showRecordDetailsModal(record) {
     let completedDate = 'Fecha no disponible';
     if (record.completedAt) {
         const date = record.completedAt.toDate ? record.completedAt.toDate() : new Date(record.completedAt);
+        completedDate = date.toLocaleDateString('es-ES', {
+            day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+    } else if (record.completedDate) {
+        const date = new Date(record.completedDate);
         completedDate = date.toLocaleDateString('es-ES', {
             day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
         });
