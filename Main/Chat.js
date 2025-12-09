@@ -25,6 +25,26 @@
     let isFirebaseReady = false;
     let lastRenderedDate = null;
 
+    // ----------------------------------------------------------------------------------
+    // 🛑 FUNCIÓN CORREGIDA: Setup de Firebase (Compatibilidad) usando instancias globales
+    // ----------------------------------------------------------------------------------
+    async function setupFirebase() {
+        // 🚨 CRÍTICO: Usar las instancias globales proporcionadas por Main.js
+        if (typeof window.firebaseReadyPromise !== 'undefined') {
+            await window.firebaseReadyPromise;
+        }
+
+        if (typeof window.db !== 'undefined' && typeof firebase !== 'undefined') {
+            db = window.db; // Asignamos la instancia global a la local
+            isFirebaseReady = true;
+            return;
+        }
+
+        // Si window.db no existe o no hay promesa, algo salió mal.
+        showMessage('error', 'Error de base de datos. Usando modo simulado.');
+        isFirebaseReady = true;
+    }
+
     // --- [Funciones Auxiliares - showMessage, getChatId] ---
 
     function showMessage(type, message) {
@@ -55,22 +75,7 @@
     // ----------------------------------------------------------------------------------
     // 🛑 FUNCIÓN CORREGIDA: Setup de Firebase (Compatibilidad) usando instancias globales
     // ----------------------------------------------------------------------------------
-    async function setupFirebase() {
-        // 🚨 CRÍTICO: Usar las instancias globales proporcionadas por Main.js
-        if (typeof window.firebaseReadyPromise !== 'undefined') {
-            await window.firebaseReadyPromise;
-        }
 
-        if (typeof window.db !== 'undefined' && typeof firebase !== 'undefined') {
-            db = window.db; // Asignamos la instancia global a la local
-            isFirebaseReady = true;
-            return;
-        }
-
-        // Si window.db no existe o no hay promesa, algo salió mal.
-        showMessage('error', 'Error de base de datos. Usando modo simulado.');
-        isFirebaseReady = true;
-    }
 
     async function saveMessageAndApplyCapping(recipientId, text, timestamp) {
         if (!db || !isFirebaseReady) {
