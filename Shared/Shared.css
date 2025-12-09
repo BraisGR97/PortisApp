@@ -192,8 +192,7 @@ html.light-mode body {
     flex-direction: column;
     border-top: 1px solid #ffffff;
     /* margin-bottom eliminado, lo maneja el padding de .view-section */
-    height: auto;
-    /* Dejar que flex-grow haga su trabajo */
+    height: calc(100vh - 11rem);
 }
 
 .card-inner-content {

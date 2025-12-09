@@ -204,15 +204,14 @@ async function loadUsers() {
             console.error('[SHARED] loadUsers: db no inicializada');
             return;
         }
-        console.log('[SHARED] Cargando usuarios desde Firestore...');
+
+
         const usersRef = db.collection('users');
         const snapshot = await usersRef.get();
-        console.log('[SHARED] Snapshot usuarios, tamaño:', snapshot.size);
-
         allUsers = [];
         snapshot.forEach(doc => {
             const userData = doc.data();
-            console.log('[SHARED] Usuario encontrado:', doc.id, userData);
+
             if (doc.id !== userId) {
                 allUsers.push({
                     id: doc.id,
@@ -220,8 +219,8 @@ async function loadUsers() {
                 });
             }
         });
-        console.log('[SHARED] Total usuarios (sin actual):', allUsers.length);
-        console.log('[SHARED] Lista usuarios:', allUsers);
+
+
 
         // Re-renderizar las tarjetas para actualizar los selectores con los usuarios cargados
         renderSendView();
@@ -739,38 +738,7 @@ function switchView(targetViewId) {
 // EFECTOS VISUALES
 // ====================================================================
 
-/**
- * Actualiza la opacidad del borde superior de las tarjetas según el scroll.
- */
-function updateCardBorderOpacity() {
-    const contentScrollables = document.querySelectorAll('.card-inner-content');
-
-    contentScrollables.forEach(inner => {
-        const container = inner.closest('.card-container');
-        if (container) {
-            const scrollTop = inner.scrollTop;
-            const opacity = Math.min(scrollTop / 50, 1);
-            container.style.borderTopColor = `rgba(255, 255, 255, ${0.1 + (opacity * 0.9)})`;
-        }
-    });
-
-    // También actualizar items internos si los hay (repair-card)
-    const items = document.querySelectorAll('.repair-card');
-    const viewportHeight = window.innerHeight;
-
-    items.forEach(element => {
-        const rect = element.getBoundingClientRect();
-        const elementTop = rect.top;
-        const elementHeight = rect.height;
-        let opacity = 0;
-        if (elementTop < viewportHeight && elementTop > -elementHeight) {
-            const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
-            opacity = 1 - normalizedPosition;
-            opacity = 0.2 + (opacity * 0.8);
-        }
-        element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
-    });
-}
+// function updateCardBorderOpacity() removed
 
 // ====================================================================
 // FUNCIONALIDAD DE SWIPE
@@ -921,33 +889,7 @@ window.addEventListener('load', () => {
     // Inicializar swipe
     initializeSwipe();
 
-    // Efectos visuales de borde animado
-    const appContent = document.getElementById('app-content');
-    if (appContent) appContent.addEventListener('scroll', updateCardBorderOpacity);
-    window.addEventListener('scroll', updateCardBorderOpacity);
-    window.addEventListener('resize', updateCardBorderOpacity);
-    setTimeout(updateCardBorderOpacity, 100);
+
 });
 
-// ================================================================
-// BORDE ANIMADO EN SCROLL (para sistema de slider)
-// ================================================================
-document.addEventListener('DOMContentLoaded', function () {
-    const cardInnerContents = document.querySelectorAll('.card-inner-content');
 
-    cardInnerContents.forEach(innerContent => {
-        const container = innerContent.closest('.card-container');
-
-        if (container && innerContent) {
-            innerContent.addEventListener('scroll', function () {
-                const scrollTop = innerContent.scrollTop;
-
-                if (scrollTop > 10) {
-                    container.style.borderTopColor = 'rgba(255, 255, 255, 0.2)';
-                } else {
-                    container.style.borderTopColor = 'transparent';
-                }
-            });
-        }
-    });
-});

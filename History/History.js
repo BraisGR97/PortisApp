@@ -187,7 +187,7 @@ function renderMaintenances(maintenances) {
         listContainer.appendChild(card);
     });
 
-    setTimeout(updateCardBorderOpacity, 50);
+
 }
 
 function createMaintenanceCard(item) {
@@ -263,7 +263,7 @@ function renderRecords(records) {
         listContainer.appendChild(card);
     });
 
-    setTimeout(updateCardBorderOpacity, 50);
+
 }
 
 function createRecordCard(record) {
@@ -322,39 +322,7 @@ function createRecordCard(record) {
     return card;
 }
 
-/**
- * Actualiza la opacidad del borde superior de las tarjetas (Efecto Visual).
- */
-function updateCardBorderOpacity() {
-    // 1. Contenedores (Border TOP por scroll interno)
-    const innerContents = document.querySelectorAll('.card-inner-content');
-    innerContents.forEach(inner => {
-        const container = inner.closest('.card-container');
-        if (container) {
-            const scrollTop = inner.scrollTop;
-            const opacity = Math.min(scrollTop / 50, 1);
-            container.style.borderTopColor = `rgba(255, 255, 255, ${0.1 + (opacity * 0.9)})`;
-        }
-    });
-
-    // 2. Tarjetas (Border TOP por posición en pantalla)
-    const elements = document.querySelectorAll('.repair-card');
-    const viewportHeight = window.innerHeight;
-
-    elements.forEach(element => {
-        const rect = element.getBoundingClientRect();
-        const elementTop = rect.top;
-        const elementHeight = rect.height;
-
-        let opacity = 0;
-        if (elementTop < viewportHeight && elementTop > -elementHeight) {
-            const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
-            opacity = 1 - normalizedPosition;
-            opacity = 0.2 + (opacity * 0.8);
-        }
-        element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
-    });
-}
+// function updateCardBorderOpacity() removed
 
 // -----------------------------------------------------------------
 // 5. FUNCIONES DE NAVEGACIÓN
@@ -602,14 +570,7 @@ window.addEventListener('load', () => {
     setupSearch();
 
     // Efectos visuales
-    const scrollContainer = document.getElementById('app-content');
-    if (scrollContainer) scrollContainer.addEventListener('scroll', updateCardBorderOpacity);
-    window.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
-    window.addEventListener('resize', updateCardBorderOpacity);
 
-    // Forzar actualización inicial
-    setTimeout(updateCardBorderOpacity, 100);
-    setTimeout(updateCardBorderOpacity, 500);
 });
 
 // Fin del archivo
