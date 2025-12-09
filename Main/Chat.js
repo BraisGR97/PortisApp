@@ -540,7 +540,13 @@
     // ----------------------------------------------------------------------------------
     // 🚨 FUNCIÓN NUEVA: Comprobación de mensajes en segundo plano (Global)
     // ----------------------------------------------------------------------------------
-    window.startBackgroundMessageCheck = function () {
+    window.startBackgroundMessageCheck = async function () {
+        // Asegurar que Firebase esté inicializado en este módulo, 
+        // incluso si initChat aún no se ha llamado (ej. usuario en Dashboard)
+        if (!isFirebaseReady) {
+            await setupFirebase();
+        }
+
         if (!isFirebaseReady) return;
 
         // Ejecutar inmediatamente
