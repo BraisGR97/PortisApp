@@ -121,10 +121,12 @@
     // ----------------------------------------------------------------------------------
     // 🚨 FUNCIÓN CRÍTICA: Listener en Tiempo Real
     // ----------------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------------
+    // REEMPLAZO DE LISTENER: Ordenamiento Cliente-Side Robusto
+    // ----------------------------------------------------------------------------------
     function listenForChatMessages() {
         if (!db || !currentRecipientId || !isFirebaseReady) return;
 
-        // 🛑 CRÍTICO: Si ya hay un listener activo, lo cerramos antes de abrir uno nuevo.
         if (unsubscribeFromChat) {
             unsubscribeFromChat();
             unsubscribeFromChat = null;
@@ -133,39 +135,56 @@
         const chatId = getChatId(currentRecipientId);
         const messagesContainer = document.getElementById('chat-messages-container');
         if (messagesContainer) messagesContainer.innerHTML = '';
+        lastRenderedDate = null; // Resetear fechas
 
-        // 🔑 CLAVE: Usar la API de compatibilidad y onSnapshot
         const chatCollectionRef = db.collection('chats').doc(chatId).collection('messages');
         const q = chatCollectionRef.orderBy('timestamp', 'asc').limit(MESSAGE_LIMIT);
 
-        // 🚨 FUNCIÓN DE SUSCRIPCIÓN (onSnapshot)
         unsubscribeFromChat = q.onSnapshot(snapshot => {
             if (!messagesContainer) return;
 
-            snapshot.docChanges().forEach(change => {
-                if (change.type === "added") {
-                    const data = change.doc.data();
-                    const isCurrentUser = data.senderId === getUserId();
+            // 1. Convertir docs a objetos manejables para ordenar
+            const messages = snapshot.docs.map(doc => {
+                const data = doc.data();
 
-                    // Determinar el timestamp correcto
-                    let timestamp = new Date();
-                    if (data.timestamp && data.timestamp.toDate) {
-                        timestamp = data.timestamp.toDate();
-                    } else if (data.clientTimestamp) {
-                        timestamp = new Date(data.clientTimestamp);
-                    }
-
-                    renderMessage(data.senderId, data.text, isCurrentUser, timestamp);
+                // Determinar timestamp efectivo
+                let timestamp;
+                // Si timestamp es null (escritura pendiente), asumimos "ahora" para que vaya al final
+                if (data.timestamp === null) {
+                    timestamp = new Date();
+                } else if (data.timestamp && data.timestamp.toDate) {
+                    timestamp = data.timestamp.toDate();
+                } else if (data.clientTimestamp) {
+                    timestamp = new Date(data.clientTimestamp);
+                } else {
+                    timestamp = new Date(0); // Fallback
                 }
+
+                return {
+                    id: doc.id,
+                    senderId: data.senderId,
+                    text: data.text,
+                    timestamp: timestamp,
+                    // Flag para saber si es mío (útil para alineación)
+                    isCurrentUser: data.senderId === getUserId()
+                };
+            });
+
+            // 2. Ordenar en cliente (ASC: Más viejo -> Más nuevo)
+            messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+            // 3. Renderizar TODO de nuevo para garantizar el orden correcto
+            // (Es menos eficiente que docChanges pero garantiza consistencia visual instantánea)
+            messagesContainer.innerHTML = '';
+            lastRenderedDate = null;
+
+            messages.forEach(msg => {
+                renderMessage(msg.senderId, msg.text, msg.isCurrentUser, msg.timestamp);
             });
 
         }, error => {
-            showMessage('error', 'Error de conexión en tiempo real con el chat.');
-            // Intentar desuscribirse en caso de error
-            if (unsubscribeFromChat) {
-                unsubscribeFromChat();
-                unsubscribeFromChat = null;
-            }
+            console.error("Error en chat listener:", error);
+            // Intentar reconectar o manejar error silenciosamente
         });
     }
 
@@ -369,22 +388,26 @@
                     }
                 });
             } catch (error) {
-                showMessage('error', 'Error al cargar la lista de contactos. (Verifique permisos)');
+                // Silenciar error en background
                 return;
             }
         }
 
+        // Renderizar solo si existe el contenedor (estamos en vista Chat)
         if (userListContainer) {
             renderUserList(users, {});
         }
 
-        // Comprobar mensajes no leídos para cada usuario
+        // Comprobar mensajes no leídos para cada usuario (siempre, para el badge global)
         checkUnreadMessages(users);
     }
 
     function renderUserList(users, unreadStatusMap) {
         const userListContainer = document.getElementById('user-list-container');
         if (!userListContainer) return;
+
+        // Guardamos posición de scroll para restaurarla
+        const scrollTop = userListContainer.scrollTop;
 
         userListContainer.innerHTML = users.map(user => {
             const hasUnread = unreadStatusMap[user.id];
@@ -403,6 +426,9 @@
                 <p class="font-semibold user-chat-item-name">${user.name}</p>
             </div>
         `}).join('');
+
+        // Restaurar scroll
+        userListContainer.scrollTop = scrollTop;
     }
 
     async function checkUnreadMessages(users) {
@@ -411,10 +437,9 @@
         let totalUnread = 0;
         const unreadStatusMap = {};
 
-        for (const user of users) {
-            // Using getChatId logic directly or function
+        // Optimización: Promise.all para hacer las consultas en paralelo
+        const promises = users.map(async (user) => {
             const chatId = [getUserId(), user.id].sort().join('_');
-
             try {
                 // Obtener el último mensaje del chat
                 const snapshot = await db.collection('chats').doc(chatId).collection('messages')
@@ -438,16 +463,25 @@
                         // Si no hay fecha de lectura o el mensaje es más reciente
                         if (!lastReadTime || msgTime > parseInt(lastReadTime)) {
                             unreadStatusMap[user.id] = true;
-                            totalUnread++;
+                            return 1;
                         }
                     }
                 }
             } catch (e) {
-                console.error("Error checking unread for", user.id, e);
+                // console.error("Error checking unread for", user.id, e);
             }
+            return 0;
+        });
+
+        const results = await Promise.all(promises);
+        totalUnread = results.reduce((a, b) => a + b, 0);
+
+        // Si estamos viendo la lista, actualizar indicadores individuales
+        const userListContainer = document.getElementById('user-list-container');
+        if (userListContainer) {
+            renderUserList(users, unreadStatusMap);
         }
 
-        renderUserList(users, unreadStatusMap);
         updateUnreadBadge(totalUnread);
     }
 
@@ -552,7 +586,9 @@
         // Asegurar que Firebase esté inicializado en este módulo, 
         // incluso si initChat aún no se ha llamado (ej. usuario en Dashboard)
         if (!isFirebaseReady) {
-            await setupFirebase();
+            try {
+                await setupFirebase();
+            } catch (e) { }
         }
 
         if (!isFirebaseReady) return;
@@ -560,14 +596,13 @@
         // Ejecutar inmediatamente
         loadUsers();
 
-        // Configurar intervalo (cada 60 segundos)
+        // Configurar intervalo (cada 10 segundos)
         setInterval(() => {
             if (isFirebaseReady) {
                 // Recargar usuarios y comprobar mensajes
-                // Nota: loadUsers llama a checkUnreadMessages internamente
                 loadUsers();
             }
-        }, 60000); // 1 minuto
+        }, 10000); // 10 segundos
     };
 
     // Hacer la función de inicialización global
