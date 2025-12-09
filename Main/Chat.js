@@ -521,7 +521,9 @@
             window.applyColorMode();
         }
 
-        if (isChatInitialized) return;
+        // Aunque tengamos isChatInitialized, si el DOM se regenera (hot-reload o SPA navigation), 
+        // necesitamos re-attachear los eventos.
+        // La mejor manera de EVITAR duplicados es CLONAR y reemplazar los nodos.
 
         // 🔑 Setup de Firebase antes de cargar usuarios
         setupFirebase().then(() => {
@@ -529,9 +531,12 @@
         });
 
         const chatInput = document.getElementById('chat-input');
-
         if (chatInput) {
-            chatInput.addEventListener('keypress', (e) => {
+            // Clonamos para limpiar eventos previos
+            const newChatInput = chatInput.cloneNode(true);
+            chatInput.parentNode.replaceChild(newChatInput, chatInput);
+
+            newChatInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     sendMessage(e); // 🛑 Pasamos el evento para el preventDefault
                     e.preventDefault();
@@ -544,18 +549,37 @@
         const imageInput = document.getElementById('chat-image-input');
 
         if (imageBtn && imageInput) {
-            imageBtn.addEventListener('click', () => {
-                imageInput.click();
+            // Eliminar listeners previos clonando el nodo
+            const newImageInput = imageInput.cloneNode(true);
+            imageInput.parentNode.replaceChild(newImageInput, imageInput);
+
+            const newImageBtn = imageBtn.cloneNode(true);
+            imageBtn.parentNode.replaceChild(newImageBtn, imageBtn);
+
+            // Reasignar referencias
+            const finalImageInput = document.getElementById('chat-image-input');
+            const finalImageBtn = document.getElementById('chat-image-btn');
+
+            // 1. Manejo del click en el botón
+            finalImageBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                finalImageInput.click();
             });
 
-            imageInput.addEventListener('change', async (e) => {
-                const file = e.target.files[0];
+            // 2. Manejo del cambio en el input
+            finalImageInput.addEventListener('change', async (e) => {
+                if (finalImageInput.files.length === 0) return;
+
+                const file = finalImageInput.files[0];
+
+                // Limpiar el input INMEDIATAMENTE
+                finalImageInput.value = '';
+
                 if (!file) return;
 
                 // Validar tipo
                 if (!file.type.startsWith('image/')) {
                     showMessage('error', 'Solo se permiten imágenes.');
-                    imageInput.value = '';
                     return;
                 }
 
@@ -569,26 +593,22 @@
                         saveMessageAndApplyCapping(currentRecipientId, imageUrl, timestamp);
                     }
                 }
-
-                // Limpiar input siempre para permitir subir la misma imagen si falló o si se quiere repetir
-                imageInput.value = '';
             });
         }
 
         // Listener para el botón de enviar mensaje
         const sendBtn = document.getElementById('send-message-btn');
         if (sendBtn) {
-            sendBtn.addEventListener('click', (e) => sendMessage(e));
+            const newSendBtn = sendBtn.cloneNode(true);
+            sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
+
+            newSendBtn.addEventListener('click', (e) => sendMessage(e));
         }
 
         isChatInitialized = true;
     }
 
-    // Listener para el botón de enviar mensaje
-    const sendBtn = document.getElementById('send-message-btn');
-    if (sendBtn) {
-        sendBtn.addEventListener('click', (e) => sendMessage(e));
-    }
+
 
     // Listener para cerrar modal
     const closeModalBtn = document.querySelector('button[onclick="closeChatModal(\'message-modal\')"]');
