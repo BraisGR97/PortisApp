@@ -317,9 +317,6 @@ function updateProfileStatsUI(repairs, bills, history, calendar, sentCount, rece
     // Renderizar Textos - Calendario
     updateStat('stat-vacation-days', vacationDays);
     updateStat('stat-overtime-hours', overtimeHours.toFixed(1));
-    // Si hay un elemento para guardias, actualizarlo. Si no, lo creamos dinámicamente o asumimos que el usuario lo pedirá
-    // El usuario pidió "añade el de guardias". Lo insertaremos en HTML o asumimos que ya está.
-    // Voy a añadir el updateStat por si acaso.
     updateStat('stat-shifts-count', totalShifts);
 
     // Renderizar Textos - Compartidos
@@ -655,3 +652,34 @@ async function deleteProfilePhoto() {
         photoElement.style.opacity = '1';
     }
 }
+
+// ================================================================
+// BORDE ANIMADO EN SCROLL (Corregido)
+// ================================================================
+document.addEventListener('DOMContentLoaded', function () {
+    const cardInnerContents = document.querySelectorAll('.card-inner-content');
+
+    function updateBorder(e) {
+        const innerContent = e.target;
+        const container = innerContent.closest('.card-container');
+
+        if (container) {
+            const scrollTop = innerContent.scrollTop;
+            if (scrollTop <= 10) {
+                container.style.borderTopColor = 'transparent';
+                return;
+            }
+            // Aumentar sensibilidad: opacity llega a 1 cuando scroll llega a 100px (ajustado)
+            const opacity = Math.min(scrollTop / 100, 1);
+
+            // Interpolar para que sea visible
+            container.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
+        }
+    }
+
+    cardInnerContents.forEach(innerContent => {
+        innerContent.addEventListener('scroll', updateBorder, { passive: true });
+        // Initial check
+        updateBorder({ target: innerContent });
+    });
+});
