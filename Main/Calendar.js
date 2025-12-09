@@ -12,6 +12,7 @@
 
     var calendarEvents = {}; // Clave: fechaString (YYYY-MM-DD), Valor: EventoData
     var isFirebaseReady = false;
+    let unsubscribe = null; // 🔑 Variable para almacenar la función de desuscripción
 
     let currentCalendarDate = new Date();
     let selectedDateForEvent = null;
@@ -94,8 +95,14 @@
         const eventsQuery = getEventsCollectionRef();
         if (!eventsQuery) return;
 
+        // 🔑 Limpiar listener previo si existe para forzar una "recarga" al cambiar de vista
+        if (unsubscribe) {
+            unsubscribe();
+            unsubscribe = null;
+        }
+
         // Escuchar solo los eventos del usuario actual
-        eventsQuery.onSnapshot((snapshot) => {
+        unsubscribe = eventsQuery.onSnapshot((snapshot) => {
             const newEvents = {};
             snapshot.forEach((doc) => {
                 const data = doc.data();
