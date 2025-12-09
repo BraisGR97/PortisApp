@@ -589,6 +589,26 @@ function showSharedDetailModal(shared) {
                     </div>
                 </div>
 
+                <!-- Observaciones (si las tiene el mantenimiento original) -->
+                ${repair.description ? `
+                <div class="mb-4">
+                    <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Observaciones</label>
+                    <p class="text-sm p-2 rounded bg-opacity-20 bg-gray-600 border border-gray-700 mt-1" style="color: var(--color-text-primary);">
+                        ${repair.description}
+                    </p>
+                </div>
+                ` : ''}
+
+                <!-- Averías (Breakdowns) si existen -->
+                ${repair.breakdowns && repair.breakdowns.length > 0 ? `
+                <div class="mb-4">
+                     <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Averías Reportadas</label>
+                     <ul class="list-disc list-inside text-sm mt-1" style="color: var(--color-accent-red);">
+                        ${repair.breakdowns.map(b => `<li>${b}</li>`).join('')}
+                     </ul>
+                </div>
+                ` : ''}
+
                 ${(contact.name || contact.phone || contact.notes) ? `
                 <h3 class="modal-subtitle" style="color: var(--color-accent-magenta); margin-top: 1.5rem;">Contacto</h3>
                 <div class="modal-grid">
@@ -633,9 +653,20 @@ function showSharedDetailModal(shared) {
                                     Por: ${record.username || 'Usuario desconocido'}
                                 </p>
                                 ${record.description ? `
-                                <p class="text-xs mt-1 italic" style="color: var(--color-text-secondary);">
-                                    ${record.description}
-                                </p>
+                                <div class="mt-1">
+                                    <span class="text-xs font-medium" style="color: var(--color-text-secondary);">Observaciones:</span>
+                                    <p class="text-xs italic" style="color: var(--color-text-primary);">
+                                        ${record.description}
+                                    </p>
+                                </div>
+                                ` : ''}
+                                ${record.breakdowns && record.breakdowns.length > 0 ? `
+                                <div class="mt-1">
+                                    <span class="text-xs font-medium text-red-400">Averías:</span>
+                                    <ul class="list-none text-xs text-red-300 pl-2 border-l-2 border-red-500/30">
+                                        ${record.breakdowns.map(b => `<li>- ${b}</li>`).join('')}
+                                    </ul>
+                                </div>
                                 ` : ''}
                             </div>
                         `;

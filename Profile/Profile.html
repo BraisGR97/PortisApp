@@ -147,8 +147,12 @@
                                     <p class="stat-label">Mantenimientos</p>
                                     <p id="stat-repairs-count" class="stat-value">0</p>
                                 </div>
+                                <div class="stat-item">
+                                    <p class="stat-label">Total Historial</p>
+                                    <p id="stat-history-count" class="stat-value">0</p>
+                                </div>
                             </div>
-                            <p class="stat-label mb-2">Desglose por Prioridad</p>
+                            <p class="stat-label mb-2">Carga de Trabajo</p>
                             <div class="chart-container priority-chart-container">
                                 <canvas id="priorityChart"></canvas>
                             </div>
@@ -156,15 +160,19 @@
 
                         <div>
                             <!-- Calendario Section (New) -->
-                            <h3 class="text-lg font-semibold mb-4 text-gray-400">Calendario (Año Actual)</h3>
+                            <h3 class="text-lg font-semibold mb-4 text-gray-400">Calendario (Total)</h3>
                             <div class="stats-grid">
                                 <div class="stat-item">
-                                    <p class="stat-label">Días Vacaciones</p>
+                                    <p class="stat-label">Vacaciones</p>
                                     <p id="stat-vacation-days" class="stat-value text-purple-400">0</p>
                                 </div>
                                 <div class="stat-item">
                                     <p class="stat-label">Horas Extra</p>
                                     <p id="stat-overtime-hours" class="stat-value text-orange-400">0.0</p>
+                                </div>
+                                <div class="stat-item">
+                                    <p class="stat-label">Guardias</p>
+                                    <p id="stat-shifts-count" class="stat-value text-blue-400">0</p>
                                 </div>
                             </div>
                             <!-- You could add a mini calendar visualization here if desired, but stats are enough for now -->

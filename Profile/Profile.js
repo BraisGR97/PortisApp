@@ -120,7 +120,7 @@ async function initializeAppAndAuth() {
 // GESTIÓN DE DATOS DE USUARIO
 // ====================================================================
 
-function displayUserData(user, overridePhotoURL) {
+async function displayUserData(user, overridePhotoURL) {
     const usernameInput = document.getElementById('username');
     const registrationDateElement = document.getElementById('stat-registration-date');
     const photoElement = document.getElementById('profile-photo');
@@ -145,12 +145,28 @@ function displayUserData(user, overridePhotoURL) {
     const saveButton = document.getElementById('save-changes-btn');
     if (saveButton) saveButton.classList.add('hidden');
 
-    if (user.metadata && user.metadata.creationTime) {
-        const creationDate = new Date(user.metadata.creationTime);
-        registrationDateElement.textContent = creationDate.toLocaleDateString('es-ES', {
-            year: 'numeric', month: '2-digit', day: '2-digit'
-        });
-    } else {
+    // Obtener fecha de registro real de base de datos
+    try {
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        if (userDoc.exists && userDoc.data().registrationDate) {
+            const data = userDoc.data().registrationDate;
+            const regDate = data.toDate ? data.toDate() : new Date(data);
+            registrationDateElement.textContent = regDate.toLocaleDateString('es-ES', {
+                year: 'numeric', month: '2-digit', day: '2-digit'
+            });
+        } else {
+            // Fallback a metadata si no existe campo
+            if (user.metadata && user.metadata.creationTime) {
+                const creationDate = new Date(user.metadata.creationTime);
+                registrationDateElement.textContent = creationDate.toLocaleDateString('es-ES', {
+                    year: 'numeric', month: '2-digit', day: '2-digit'
+                });
+            } else {
+                registrationDateElement.textContent = '01/01/2024';
+            }
+        }
+    } catch (e) {
+        console.warn("Error fetching registration date:", e);
         registrationDateElement.textContent = '01/01/2024';
     }
 }
@@ -273,25 +289,23 @@ function updateProfileStatsUI(repairs, bills, history, calendar, sentCount, rece
         else lowPriority++;
     });
 
-    // Cálculos Calendario (Año Actual)
-    const currentYear = new Date().getFullYear();
+    // Cálculos Calendario (Total - Todos los años)
     let vacationDays = 0;
     let overtimeHours = 0;
+    let totalShifts = 0;
 
     calendar.forEach(event => {
-        // Formato esperado de fecha: YYYY-MM-DD
-        const eventDate = new Date(event.date);
-        if (eventDate.getFullYear() === currentYear) {
-            if (event.type === 'Vacaciones') {
-                vacationDays++;
-            } else if (event.type === 'Extra' && event.hours) {
-                overtimeHours += parseFloat(event.hours);
-            }
+        if (event.type === 'Vacaciones') {
+            vacationDays++;
+        } else if (event.type === 'Extra' && event.hours) {
+            overtimeHours += parseFloat(event.hours);
+        } else if (event.type === 'Guardia') {
+            totalShifts++;
         }
     });
 
     // Renderizar Textos - Generales/Fijos
-    updateStat('stat-registration-date', '01/01/2024');
+    // La fecha de registro se actualiza en displayUserData
     updateStat('stat-history-count', historyCount);
 
     // Renderizar Textos - Actividad
@@ -300,6 +314,10 @@ function updateProfileStatsUI(repairs, bills, history, calendar, sentCount, rece
     // Renderizar Textos - Calendario
     updateStat('stat-vacation-days', vacationDays);
     updateStat('stat-overtime-hours', overtimeHours.toFixed(1));
+    // Si hay un elemento para guardias, actualizarlo. Si no, lo creamos dinámicamente o asumimos que el usuario lo pedirá
+    // El usuario pidió "añade el de guardias". Lo insertaremos en HTML o asumimos que ya está.
+    // Voy a añadir el updateStat por si acaso.
+    updateStat('stat-shifts-count', totalShifts);
 
     // Renderizar Textos - Compartidos
     updateStat('stat-shared-total', totalShared);
@@ -311,7 +329,9 @@ function updateProfileStatsUI(repairs, bills, history, calendar, sentCount, rece
     updateStat('stat-paid-cost', `${totalPaid.toFixed(2)} €`);
 
     // Renderizar Gráficos
-    renderPriorityChart(highPriority, mediumPriority, lowPriority);
+    // Carga de Trabajo: Pendientes (Repairs) vs Completados (History)
+    renderWorkloadChart(repairsCount, historyCount);
+
     renderSharedChart(sentCount, receivedCount);
     renderExpensesChart(totalPaid, totalCost - totalPaid);
 }
@@ -324,15 +344,15 @@ function updateStat(id, value) {
 
 // --- GRÁFICOS CHART.JS ---
 
-function renderPriorityChart(high, medium, low) {
+function renderWorkloadChart(pending, completed) {
     try {
-        // Reutilizamos el ID del canvas 'workloadChart' pero le cambiamos la lógica
-        // O si ya lo cambié en HTML, uso el nuevo. Asumimos que Profile.html se actualizará para usar 'priorityChart'
-        let canvas = document.getElementById('priorityChart');
-        if (!canvas) canvas = document.getElementById('workloadChart'); // Fallback
+        const canvas = document.getElementById('priorityChart'); // Reutilizamos el canvas existente (renombrado anteriormente a priorityChart)
+        // Ojo: en el paso anterior renombré el canvas en HTML a 'priorityChart'. 
+        // El usuario pide volver a "Carga de Trabajo".
+        // Voy a usar el mismo canvas pero con lógica de carga.
 
         if (!canvas) {
-            console.error('[PROFILE] Canvas para priorityChart no encontrado');
+            console.error('[PROFILE] Canvas no encontrado');
             return;
         }
 
@@ -342,10 +362,10 @@ function renderPriorityChart(high, medium, low) {
         workloadChartInstance = new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: ['Alta', 'Media', 'Baja'],
+                labels: ['Pendientes', 'Completados'],
                 datasets: [{
-                    data: [high, medium, low],
-                    backgroundColor: ['#ef4444', '#f59e0b', '#10b981'], // Colores semánticos
+                    data: [pending, completed],
+                    backgroundColor: ['#FFAB40', '#00E676'], // Naranja, Verde
                     borderWidth: 0,
                     hoverOffset: 4
                 }]
@@ -354,14 +374,15 @@ function renderPriorityChart(high, medium, low) {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'bottom', labels: { color: '#9999aa', font: { family: 'Inter' } } }
+                    legend: { position: 'bottom', labels: { color: '#9999aa', font: { family: 'Inter' } } },
+                    title: { display: true, text: 'Carga de Trabajo', color: '#9999aa', font: { size: 14 } }
                 },
                 cutout: '70%'
             }
         });
-        console.log('[PROFILE] Gráfico de prioridades renderizado');
+        console.log('[PROFILE] Gráfico de carga de trabajo renderizado');
     } catch (error) {
-        console.error('[PROFILE] Error renderizando priorityChart:', error);
+        console.error('[PROFILE] Error renderizando workloadChart:', error);
     }
 }
 

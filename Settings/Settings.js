@@ -312,29 +312,7 @@
 // ================================================================
 // BORDE ANIMADO EN SCROLL
 // ================================================================
-document.addEventListener('DOMContentLoaded', function () {
-    const cardInnerContents = document.querySelectorAll('.card-inner-content');
-
-    function updateBorder(e) {
-        const innerContent = e.target;
-        const container = innerContent.closest('.card-container');
-
-        if (container) {
-            const scrollTop = innerContent.scrollTop;
-            const opacity = Math.min(scrollTop / 50, 1);
-            container.style.borderTopColor = `rgba(255, 255, 255, ${0.1 + (opacity * 0.9)})`;
-        }
-    }
-
-    cardInnerContents.forEach(innerContent => {
-        innerContent.addEventListener('scroll', updateBorder, { passive: true });
-
-        // Llamada inicial para establecer estado
-        const container = innerContent.closest('.card-container');
-        if (container) {
-            const scrollTop = innerContent.scrollTop;
-            const opacity = Math.min(scrollTop / 50, 1);
-            container.style.borderTopColor = `rgba(255, 255, 255, ${0.1 + (opacity * 0.9)})`;
-        }
-    });
-});
+// ================================================================
+// BORDE ANIMADO EN SCROLL (Removed per request)
+// ================================================================
+// document.addEventListener('DOMContentLoaded', ...);

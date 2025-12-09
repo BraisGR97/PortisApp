@@ -139,6 +139,8 @@ html.light-mode body {
     width: 200%;
     height: 100%;
     transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    /* Enforce safe area for bottom navbar */
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 .view-section {
@@ -146,10 +148,8 @@ html.light-mode body {
     height: 100%;
     flex-shrink: 0;
 
-    /* Padding estratégico para posicionar el Card Container */
-    /* Arriba: 1rem (margen con TopNavbar) */
-    /* Abajo: 6rem (4rem BottomNavbar + 2rem margen) */
-    padding: 1rem 1rem 6rem 1rem;
+    /* Updated padding for mobile to clear bottom navbar */
+    padding: 1rem 1rem 8rem 1rem;
 
     display: flex;
     flex-direction: column;
@@ -269,6 +269,10 @@ html.light-mode body {
     border-radius: 9999px;
     background-color: var(--color-accent-red);
     color: white;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    white-space: nowrap;
 }
 
 .received-includes-badge {
