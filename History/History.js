@@ -135,12 +135,18 @@ async function loadRecords(maintenanceId, location) {
 
         const snapshot = await historyRef
             .where('location', '==', location)
-            .orderBy('completedAt', 'desc')
             .get();
 
         const records = [];
         snapshot.forEach(doc => {
             records.push({ id: doc.id, ...doc.data() });
+        });
+
+        // Ordenar en cliente para evitar necesidad de índice compuesto
+        records.sort((a, b) => {
+            const dateA = a.completedAt ? (a.completedAt.seconds || 0) : 0;
+            const dateB = b.completedAt ? (b.completedAt.seconds || 0) : 0;
+            return dateB - dateA;
         });
 
         allRecordsData = records;
