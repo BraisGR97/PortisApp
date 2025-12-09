@@ -200,14 +200,16 @@
     async function uploadImageToCloudinary(file) {
         const config = window.cloudinaryConfig;
         if (!config) {
-            showMessage('error', 'Error de configuración de imágenes.');
+            showMessage('error', 'Error config imágenes (window.cloudinaryConfig missing).');
+            console.error("Falta window.cloudinaryConfig");
             return null;
         }
 
         const formData = new FormData();
         formData.append('file', file);
         formData.append('upload_preset', config.uploadPreset);
-        formData.append('cloud_name', config.cloudName);
+        // cloud_name optional in body if in URL, but good for completeness
+        // formData.append('cloud_name', config.cloudName); 
 
         try {
             showMessage('success', 'Subiendo imagen...');
@@ -217,13 +219,17 @@
             });
 
             if (!response.ok) {
-                throw new Error('Error en la subida a Cloudinary');
+                const errorData = await response.json().catch(() => ({}));
+                const errorMessage = errorData.error?.message || response.statusText;
+                console.error("Cloudinary Error:", errorData);
+                throw new Error(`Cloudinary: ${errorMessage}`);
             }
 
             const data = await response.json();
             return data.secure_url;
         } catch (error) {
-            showMessage('error', 'Error al subir la imagen.');
+            console.error("Upload error:", error);
+            showMessage('error', `Error subida: ${error.message}`);
             return null;
         }
     }
@@ -262,7 +268,11 @@
         const timeString = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         // Detectar si es una imagen de Cloudinary
-        const isImage = text.includes('res.cloudinary.com');
+        // Robustez: Comprobar extensiones comunes de imagen también por si acaso
+        const isImage = text.includes('res.cloudinary.com') ||
+            /\.(jpg|jpeg|png|gif|webp)$/i.test(text) ||
+            (text.startsWith('http') && text.includes('/image/upload/'));
+
 
         let contentHtml = `<p class="text-sm">${text}</p>`;
 
@@ -503,11 +513,15 @@
     // 5. INICIALIZACIÓN Y LISTENERS
     // ===============================================
 
+    let isChatInitialized = false;
+
     function initChat() {
         // 🔑 Aplicar el tema
         if (typeof window.applyColorMode === 'function') {
             window.applyColorMode();
         }
+
+        if (isChatInitialized) return;
 
         // 🔑 Setup de Firebase antes de cargar usuarios
         setupFirebase().then(() => {
@@ -541,6 +555,7 @@
                 // Validar tipo
                 if (!file.type.startsWith('image/')) {
                     showMessage('error', 'Solo se permiten imágenes.');
+                    imageInput.value = '';
                     return;
                 }
 
@@ -553,12 +568,20 @@
                     if (isFirebaseReady) {
                         saveMessageAndApplyCapping(currentRecipientId, imageUrl, timestamp);
                     }
-
-                    // Limpiar input
-                    imageInput.value = '';
                 }
+
+                // Limpiar input siempre para permitir subir la misma imagen si falló o si se quiere repetir
+                imageInput.value = '';
             });
         }
+
+        // Listener para el botón de enviar mensaje
+        const sendBtn = document.getElementById('send-message-btn');
+        if (sendBtn) {
+            sendBtn.addEventListener('click', (e) => sendMessage(e));
+        }
+
+        isChatInitialized = true;
     }
 
     // Listener para el botón de enviar mensaje
