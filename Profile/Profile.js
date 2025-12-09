@@ -201,6 +201,15 @@ async function handleProfileEdit() {
         if (!user) throw new Error("No autenticado.");
 
         await user.updateProfile({ displayName: newUsername });
+
+        // Actualizar tabla central de usuarios (para Chat, etc.)
+        await db.collection('users').doc(userId).set({
+            username: newUsername,
+            displayName: newUsername, // Compatibilidad
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        // Actualizar metadatos locales (artifacts)
         await db.doc(`artifacts/${appId}/users/${userId}/profileData/userMetadata`).set({
             displayName: newUsername,
             lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
