@@ -18,13 +18,16 @@ let auth;
 let userId = sessionStorage.getItem('portis-user-identifier') || null;
 let userDisplayName = sessionStorage.getItem('portis-user-display-name') || null;
 let isAuthReady = false;
-let initialUsername = '';
-let userEmail = '';
+let initialUsername = "";
+let userEmail = "";
+let selectedPhoto = null;
+let currentSettings = {};
 
 // Instancias de gráficos
 let workloadChartInstance = null;
 let expensesChartInstance = null;
 let sharedChartInstance = null;
+let priorityChartInstance = null; // Nueva instancia para prioridad
 
 // ====================================================================
 // INICIALIZACIÓN
@@ -329,8 +332,11 @@ function updateProfileStatsUI(repairs, bills, history, calendar, sentCount, rece
     updateStat('stat-paid-cost', `${totalPaid.toFixed(2)} €`);
 
     // Renderizar Gráficos
-    // Carga de Trabajo: Pendientes (Repairs) vs Completados (History)
+    // Grafico 1: Carga de Trabajo (Pendientes vs Historial)
     renderWorkloadChart(repairsCount, historyCount);
+
+    // Grafico 2: Desglose por Prioridad (Alta/Media/Baja)
+    renderPriorityChart(highPriority, mediumPriority, lowPriority);
 
     renderSharedChart(sentCount, receivedCount);
     renderExpensesChart(totalPaid, totalCost - totalPaid);
@@ -343,18 +349,13 @@ function updateStat(id, value) {
 }
 
 // --- GRÁFICOS CHART.JS ---
+// workloadChartInstance se declara al inicio del archivo
+// priorityChartInstance también
 
 function renderWorkloadChart(pending, completed) {
     try {
-        const canvas = document.getElementById('priorityChart'); // Reutilizamos el canvas existente (renombrado anteriormente a priorityChart)
-        // Ojo: en el paso anterior renombré el canvas en HTML a 'priorityChart'. 
-        // El usuario pide volver a "Carga de Trabajo".
-        // Voy a usar el mismo canvas pero con lógica de carga.
-
-        if (!canvas) {
-            console.error('[PROFILE] Canvas no encontrado');
-            return;
-        }
+        const canvas = document.getElementById('workloadChart');
+        if (!canvas) return;
 
         const ctx = canvas.getContext('2d');
         if (workloadChartInstance) workloadChartInstance.destroy();
@@ -375,14 +376,48 @@ function renderWorkloadChart(pending, completed) {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: { position: 'bottom', labels: { color: '#9999aa', font: { family: 'Inter' } } },
-                    title: { display: true, text: 'Carga de Trabajo', color: '#9999aa', font: { size: 14 } }
+                    title: { display: false }
                 },
                 cutout: '70%'
             }
         });
-        console.log('[PROFILE] Gráfico de carga de trabajo renderizado');
     } catch (error) {
-        console.error('[PROFILE] Error renderizando workloadChart:', error);
+        // Silent catch
+    }
+}
+
+// function renderPriorityChart declared below
+
+function renderPriorityChart(high, medium, low) {
+    try {
+        const canvas = document.getElementById('priorityChart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        if (priorityChartInstance) priorityChartInstance.destroy();
+
+        priorityChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Alta', 'Media', 'Baja'],
+                datasets: [{
+                    data: [high, medium, low],
+                    backgroundColor: ['#ef4444', '#f59e0b', '#10b981'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#9999aa', font: { family: 'Inter' } } }
+                },
+                cutout: '70%'
+            }
+        });
+    } catch (error) {
+        // Silent catch
     }
 }
 
