@@ -545,41 +545,30 @@
         }
 
         // Listeners para imagen
-        const imageBtn = document.getElementById('chat-image-btn');
+        // NOTA: 'chat-image-btn' ahora es un LABEL en HTML, por lo que el click lo maneja el navegador nativamente.
+        // Solo necesitamos escuchar el CHANGE del input.
         const imageInput = document.getElementById('chat-image-input');
 
-        if (imageBtn && imageInput) {
+        if (imageInput) {
             // Eliminar listeners previos clonando el nodo
             const newImageInput = imageInput.cloneNode(true);
             imageInput.parentNode.replaceChild(newImageInput, imageInput);
 
-            const newImageBtn = imageBtn.cloneNode(true);
-            imageBtn.parentNode.replaceChild(newImageBtn, imageBtn);
-
-            // Reasignar referencias
+            // Reasignar referencia
             const finalImageInput = document.getElementById('chat-image-input');
-            const finalImageBtn = document.getElementById('chat-image-btn');
 
-            // 1. Manejo del click en el botón
-            finalImageBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                finalImageInput.click();
-            });
-
-            // 2. Manejo del cambio en el input
+            // Manejo del cambio en el input
             finalImageInput.addEventListener('change', async (e) => {
                 if (finalImageInput.files.length === 0) return;
 
                 const file = finalImageInput.files[0];
-
-                // Limpiar el input INMEDIATAMENTE
-                finalImageInput.value = '';
 
                 if (!file) return;
 
                 // Validar tipo
                 if (!file.type.startsWith('image/')) {
                     showMessage('error', 'Solo se permiten imágenes.');
+                    finalImageInput.value = ''; // Limpiar si es inválido
                     return;
                 }
 
@@ -593,6 +582,9 @@
                         saveMessageAndApplyCapping(currentRecipientId, imageUrl, timestamp);
                     }
                 }
+
+                // Limpiar input AL FINAL para permitir seleccionar la misma imagen después
+                finalImageInput.value = '';
             });
         }
 
