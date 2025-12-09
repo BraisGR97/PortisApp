@@ -421,6 +421,27 @@
         </div>
     </div>
 
+    <!-- Modal Contexto Chat -->
+    <div id="chat-context-menu-modal"
+        class="fixed inset-0 z-[150] hidden items-end sm:items-center justify-center p-4 modal-backdrop"
+        onclick="closeModal('chat-context-menu-modal')">
+        <div class="modal-content w-full max-w-sm rounded-xl p-4 flex flex-col gap-2 mb-4 sm:mb-0"
+            onclick="event.stopPropagation()">
+            <button id="ctx-copy-btn" class="secondary-btn w-full rounded-lg justify-start gap-3 h-12">
+                <i class="ph ph-copy text-lg"></i> Copiar texto
+            </button>
+            <button id="ctx-delete-btn"
+                class="secondary-btn w-full rounded-lg justify-start gap-3 h-12 text-red-500 hover:text-red-600">
+                <i class="ph ph-trash text-lg"></i> Borrar mensaje
+            </button>
+            <div class="h-px bg-gray-200 dark:bg-gray-700 my-1"></div>
+            <button onclick="closeModal('chat-context-menu-modal')"
+                class="secondary-btn w-full rounded-lg justify-center h-12">
+                Cancelar
+            </button>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="../Config/Config.js"></script>
 

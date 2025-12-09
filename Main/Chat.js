@@ -179,7 +179,7 @@
             lastRenderedDate = null;
 
             messages.forEach(msg => {
-                renderMessage(msg.senderId, msg.text, msg.isCurrentUser, msg.timestamp);
+                renderMessage(msg.id, msg.senderId, msg.text, msg.isCurrentUser, msg.timestamp);
             });
 
         }, error => {
@@ -234,7 +234,63 @@
         }
     }
 
-    function renderMessage(senderId, text, isCurrentUser, timestamp = new Date()) {
+    // ===============================================
+    // FUNCIONES DEL MENÚ CONTEXTUAL (LONG PRESS)
+    // ===============================================
+
+    function showContextMenu(messageId, text) {
+        // Haptic feedback
+        if (navigator.vibrate) navigator.vibrate(50);
+
+        const btnCopy = document.getElementById('ctx-copy-btn');
+        const btnDelete = document.getElementById('ctx-delete-btn');
+
+        if (btnCopy) {
+            // Eliminar listeners previos clonando (clean slate)
+            const newBtn = btnCopy.cloneNode(true);
+            btnCopy.parentNode.replaceChild(newBtn, btnCopy);
+
+            newBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(text).then(() => {
+                    showMessage('success', 'Copiado al portapapeles');
+                }).catch(err => {
+                    console.error('Copy error', err);
+                    showMessage('error', 'No se pudo copiar');
+                });
+                if (typeof window.closeModal === 'function') window.closeModal('chat-context-menu-modal');
+            });
+        }
+
+        if (btnDelete) {
+            const newBtn = btnDelete.cloneNode(true);
+            btnDelete.parentNode.replaceChild(newBtn, btnDelete);
+
+            newBtn.addEventListener('click', () => {
+                deleteMessage(messageId);
+                if (typeof window.closeModal === 'function') window.closeModal('chat-context-menu-modal');
+            });
+        }
+
+        if (typeof window.showModal === 'function') window.showModal('chat-context-menu-modal');
+    }
+
+    async function deleteMessage(messageId) {
+        if (!db || !currentRecipientId || !messageId) return;
+
+        // Confirmación simple (opcional, usuario pidió "opción borrar", no explícitamente confirmación)
+        // Pero es destructivo, así que... bueno, hagámoslo directo como pidió.
+
+        try {
+            const chatId = getChatId(currentRecipientId);
+            await db.collection('chats').doc(chatId).collection('messages').doc(messageId).delete();
+            showMessage('success', 'Mensaje eliminado');
+        } catch (e) {
+            console.error(e);
+            showMessage('error', 'Error al borrar mensaje');
+        }
+    }
+
+    function renderMessage(messageId, senderId, text, isCurrentUser, timestamp = new Date()) {
         const container = document.getElementById('chat-messages-container');
         if (!container) return;
 
@@ -268,33 +324,73 @@
         const timeString = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         // Detectar si es una imagen de Cloudinary
-        // Robustez: Comprobar extensiones comunes de imagen también por si acaso
         const isImage = text.includes('res.cloudinary.com') ||
             /\.(jpg|jpeg|png|gif|webp)$/i.test(text) ||
             (text.startsWith('http') && text.includes('/image/upload/'));
 
 
-        let contentHtml = `<p class="text-sm">${text}</p>`;
+        let contentHtml = `<p class="text-sm select-none pointer-events-none">${text}</p>`; // pointer-events-none en texto para que el click pase al padre
 
         if (isImage) {
             contentHtml = `
-                <div class="image-message">
-                    <img src="${text}" alt="Imagen enviada" class="rounded-lg max-w-full h-auto cursor-pointer" onclick="window.open('${text}', '_blank')">
+                <div class="image-message pointer-events-none">
+                    <img src="${text}" alt="Imagen enviada" class="rounded-lg max-w-full h-auto">
                 </div>
             `;
         }
 
+        // ID único para el elemento DOM
+        const domId = `msg-${messageId || Date.now()}`;
+
         const messageHtml = `
             <div class="flex ${isCurrentUser ? 'justify-end' : 'justify-start'}">
-                <div class="max-w-xs md:max-w-md p-3 rounded-xl ${messageClass} shadow-md" style="color: var(--color-text-light);">
+                <div id="${domId}" class="max-w-xs md:max-w-md p-3 rounded-xl ${messageClass} shadow-md relative group select-none transition-transform active:scale-95 touch-manipulation cursor-pointer" style="color: var(--color-text-light);">
                     ${contentHtml}
-                    <span class="text-xs opacity-75 block mt-1 text-right">${timeString}</span>
+                    <span class="text-xs opacity-75 block mt-1 text-right select-none">${timeString}</span>
                 </div>
             </div>
         `;
 
         container.insertAdjacentHTML('beforeend', messageHtml);
         container.scrollTop = container.scrollHeight;
+
+        // --- LÓGICA DE LONG PRESS ---
+        const messageEl = document.getElementById(domId);
+        if (messageEl) {
+            let pressTimer;
+            const LONG_PRESS_DURATION = 2000; // 2 segundos
+
+            const startPress = (e) => {
+                // Si es clic izquierdo o toque
+                if (e.type === 'mousedown' && e.button !== 0) return;
+
+                pressTimer = setTimeout(() => {
+                    showContextMenu(messageId, text);
+                }, LONG_PRESS_DURATION);
+            };
+
+            const cancelPress = () => {
+                clearTimeout(pressTimer);
+            };
+
+            // Eventos táctiles y ratón
+            messageEl.addEventListener('touchstart', startPress, { passive: true });
+            messageEl.addEventListener('touchend', cancelPress);
+            messageEl.addEventListener('touchmove', cancelPress);
+
+            messageEl.addEventListener('mousedown', startPress);
+            messageEl.addEventListener('mouseup', cancelPress);
+            messageEl.addEventListener('mouseleave', cancelPress);
+
+            // Click normal para abrir imagen si corresponde
+            messageEl.addEventListener('click', (e) => {
+                if (isImage && !pressTimer) { // Solo si no fue long press (aunque el timer se limpia en mouseup, si el modal ya salió...)
+                    // Si el modal salió, el evento click podria dispararse igual al soltar?
+                    // El modal bloquea la pantalla, asi que ok.
+                    window.open(text, '_blank');
+                }
+            });
+        }
     }
 
     // ----------------------------------------------------------------------------------
