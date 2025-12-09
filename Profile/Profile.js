@@ -244,11 +244,12 @@ async function loadAndCalculateStats() {
         else console.error('[PROFILE] Error cargando bills:', billsResult.reason);
 
         if (historyResult.status === 'fulfilled') historyResult.value.forEach(doc => history.push(doc.data()));
-        else {
-            // Silent catch
-        }
+        else { /* Silent catch */ }
 
-        if (calendarResult.status === 'fulfilled') calendarResult.value.forEach(doc => calendar.push(doc.data()));
+        if (calendarResult.status === 'fulfilled') calendarResult.value.forEach(doc => {
+            // Asegurar que tenemos la fecha, el ID del documento suele ser la fecha YYYY-MM-DD
+            calendar.push({ ...doc.data(), date: doc.id });
+        });
         else { /* Silent catch */ }
 
         // Calculos previos para pasar a UI
@@ -265,19 +266,42 @@ async function loadAndCalculateStats() {
             }
         });
 
+        // Calculo de Guardias (Bloques Consecutivos)
+        // Filtrar guardias
+        const shiftEvents = calendar.filter(e => e.type === 'Guardia').sort((a, b) => new Date(a.date) - new Date(b.date));
+        let calculatedShifts = 0;
+        let previousDate = null;
+
+        shiftEvents.forEach(evt => {
+            if (!previousDate) {
+                calculatedShifts++;
+            } else {
+                const currentDate = new Date(evt.date); // asumiendo YYYY-MM-DD
+                const prevDateObj = new Date(previousDate);
+                const diffTime = Math.abs(currentDate - prevDateObj);
+                const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+                // Misma logica que Calendar.js: Si diff > 3 dias, es nuevo bloque
+                if (diffDays > 3) {
+                    calculatedShifts++;
+                }
+            }
+            previousDate = evt.date;
+        });
+
         // Stats "removed" but we need counts for shared chart
         const finalSentCount = 0;
         const finalReceivedCount = 0;
 
         // Actualizar UI
-        updateProfileStatsUI(repairs, bills, history, calendar, finalSentCount, finalReceivedCount, pendingRepairs, inProgressRepairs);
+        updateProfileStatsUI(repairs, bills, history, calendar, finalSentCount, finalReceivedCount, pendingRepairs, inProgressRepairs, calculatedShifts);
 
     } catch (error) {
         // Silent catch
     }
 }
 
-function updateProfileStatsUI(repairs, bills, history, calendar, sentCount, receivedCount, pendingRepairs, inProgressRepairs) {
+function updateProfileStatsUI(repairs, bills, history, calendar, sentCount, receivedCount, pendingRepairs, inProgressRepairs, calculatedShifts) {
     // Cálculos Generales
     const repairsCount = repairs.length;
     const billsCount = bills.length;
@@ -310,15 +334,13 @@ function updateProfileStatsUI(repairs, bills, history, calendar, sentCount, rece
     // Cálculos Calendario (Total - Todos los años)
     let vacationDays = 0;
     let overtimeHours = 0;
-    let totalShifts = 0;
+    // totalShifts se pasa como argumento ahora
 
     calendar.forEach(event => {
         if (event.type === 'Vacaciones') {
             vacationDays++;
         } else if (event.type === 'Extra' && event.hours) {
             overtimeHours += parseFloat(event.hours);
-        } else if (event.type === 'Guardia') {
-            totalShifts++;
         }
     });
 
@@ -332,7 +354,7 @@ function updateProfileStatsUI(repairs, bills, history, calendar, sentCount, rece
     // Renderizar Textos - Calendario
     updateStat('stat-vacation-days', `${vacationDays} días`);
     updateStat('stat-overtime-hours', `${overtimeHours.toFixed(1)} h.`);
-    updateStat('stat-shifts-count', `${totalShifts} guardias`);
+    updateStat('stat-shifts-count', `${calculatedShifts} guardias`);
 
     // Renderizar Textos - Compartidos
     updateStat('stat-shared-total', totalShared);

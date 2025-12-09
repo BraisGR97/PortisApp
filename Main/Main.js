@@ -81,6 +81,11 @@
                     // Resolver promesa para modulos dependientes
                     resolveFirebaseReady();
 
+                    // Iniciar comprobación de mensajes en segundo plano
+                    if (typeof window.startBackgroundMessageCheck === 'function') {
+                        window.startBackgroundMessageCheck();
+                    }
+
                     // Inicializar vista
                     initializeView();
 

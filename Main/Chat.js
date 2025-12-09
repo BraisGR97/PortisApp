@@ -537,6 +537,25 @@
     // No tiene ID. Así que Buttons.js probablemente no estaba funcionando para ese boton especificamente o usaba otro selector.
     // Asique solo añadiré el de enviar.
 
+    // ----------------------------------------------------------------------------------
+    // 🚨 FUNCIÓN NUEVA: Comprobación de mensajes en segundo plano (Global)
+    // ----------------------------------------------------------------------------------
+    window.startBackgroundMessageCheck = function () {
+        if (!isFirebaseReady) return;
+
+        // Ejecutar inmediatamente
+        loadUsers();
+
+        // Configurar intervalo (cada 60 segundos)
+        setInterval(() => {
+            if (isFirebaseReady) {
+                // Recargar usuarios y comprobar mensajes
+                // Nota: loadUsers llama a checkUnreadMessages internamente
+                loadUsers();
+            }
+        }, 60000); // 1 minuto
+    };
+
     // Hacer la función de inicialización global
     window.initChat = initChat;
 

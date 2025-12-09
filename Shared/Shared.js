@@ -599,13 +599,16 @@ function showSharedDetailModal(shared) {
                 </div>
                 ` : ''}
 
-                <!-- Averías (Breakdowns) si existen -->
-                ${repair.breakdowns && repair.breakdowns.length > 0 ? `
+                <!-- Averías (Breakdowns) handling singular or plural -->
+                ${(repair.breakdowns && repair.breakdowns.length > 0) || repair.breakdown ? `
                 <div class="mb-4">
-                     <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Averías Reportadas</label>
-                     <ul class="list-disc list-inside text-sm mt-1" style="color: var(--color-accent-red);">
-                        ${repair.breakdowns.map(b => `<li>${b}</li>`).join('')}
-                     </ul>
+                     <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Avería(s)</label>
+                     ${repair.breakdown ?
+                `<p class="text-sm mt-1 p-2 rounded bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/30">${repair.breakdown}</p>` :
+                `<ul class="list-disc list-inside text-sm mt-1" style="color: var(--color-accent-red);">
+                            ${repair.breakdowns.map(b => `<li>${b}</li>`).join('')}
+                         </ul>`
+            }
                 </div>
                 ` : ''}
 
@@ -639,12 +642,12 @@ function showSharedDetailModal(shared) {
                 </h3>
                 <div class="modal-history-list">
                     ${shared.records.map(record => {
-        const completedDate = record.completedAt ?
-            (record.completedAt.toDate ?
-                record.completedAt.toDate().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' }) :
-                new Date(record.completedAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })) :
-            'Fecha no disponible';
-        return `
+                const completedDate = record.completedAt ?
+                    (record.completedAt.toDate ?
+                        record.completedAt.toDate().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' }) :
+                        new Date(record.completedAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })) :
+                    'Fecha no disponible';
+                return `
                             <div class="modal-history-item">
                                 <p class="text-sm font-semibold" style="color: var(--color-text-primary);">
                                     <i class="ph ph-calendar-check mr-1"></i> ${completedDate}
@@ -660,17 +663,20 @@ function showSharedDetailModal(shared) {
                                     </p>
                                 </div>
                                 ` : ''}
-                                ${record.breakdowns && record.breakdowns.length > 0 ? `
+                                ${(record.breakdowns && record.breakdowns.length > 0) || record.breakdown ? `
                                 <div class="mt-1">
-                                    <span class="text-xs font-medium text-red-400">Averías:</span>
-                                    <ul class="list-none text-xs text-red-300 pl-2 border-l-2 border-red-500/30">
-                                        ${record.breakdowns.map(b => `<li>- ${b}</li>`).join('')}
-                                    </ul>
+                                    <span class="text-xs font-medium text-red-400">Avería:</span>
+                                    ${record.breakdown ?
+                            `<p class="text-xs text-red-300 pl-2 border-l-2 border-red-500/30">${record.breakdown}</p>` :
+                            `<ul class="list-none text-xs text-red-300 pl-2 border-l-2 border-red-500/30">
+                                            ${record.breakdowns.map(b => `<li>- ${b}</li>`).join('')}
+                                        </ul>`
+                        }
                                 </div>
                                 ` : ''}
                             </div>
                         `;
-    }).join('')}
+            }).join('')}
                 </div>
                 ` : ''}
             </div>

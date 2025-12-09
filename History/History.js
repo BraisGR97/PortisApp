@@ -451,9 +451,16 @@ function showRecordDetailsModal(record) {
                 </div>
             </div>
 
+            ${record.breakdown ? `
+            <div class="mb-4">
+                <label class="text-xs font-medium block mb-1 text-red-500">Avería</label>
+                <p class="text-sm italic pl-2 border-l-2 border-red-500 text-red-600 bg-red-50 dark:bg-red-900/20 py-1 rounded-r">${record.breakdown}</p>
+            </div>
+            ` : ''}
+
             ${record.description ? `
             <div class="mb-4">
-                <label class="text-xs font-medium block mb-1 modal-description-label">Descripción</label>
+                <label class="text-xs font-medium block mb-1 modal-description-label">Observaciones</label>
                 <p class="text-sm italic modal-description-text">${record.description}</p>
             </div>
             ` : ''}
