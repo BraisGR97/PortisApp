@@ -65,3 +65,56 @@ window.applyColorMode = function () {
 
     return savedTheme;
 };
+
+/**
+ * Obtiene la ruta de la imagen según la empresa seleccionada.
+ * Default: Otis
+ */
+window.getPortisImage = function () {
+    const company = localStorage.getItem('portis-company') || 'otis';
+    switch (company) {
+        case 'enor':
+            return '../assets/Enor.png';
+        case 'portis':
+            return '../assets/Portis.png';
+        case 'otis':
+        default:
+            return '../assets/Otis.png';
+    }
+};
+
+/**
+ * Actualiza todas las imágenes de logo/perfil en la página actual
+ * basándose en la configuración de la empresa.
+ */
+window.updateAppLogo = function () {
+    const imagePath = window.getPortisImage();
+
+    // 1. Logo principal (Login / Main)
+    const appLogo = document.getElementById('app-logo');
+    if (appLogo) {
+        // Ajuste de ruta relativa si estamos en index.html vs subcarpetas
+        // Si estamos en index (root), quitamos el "../"
+        const isRoot = window.location.pathname.endsWith('index.html') || window.location.pathname.endsWith('/');
+        const finalPath = isRoot ? imagePath.replace('../', './') : imagePath;
+        appLogo.src = finalPath;
+    }
+
+    // 2. Logo en Navbar (Main.html)
+    const navbarLogo = document.querySelector('#top-navbar img');
+    if (navbarLogo) navbarLogo.src = imagePath;
+
+    // 3. Foto de perfil default (Profile.html)
+    // Solo si es la imagen por defecto (nuestra logica de Profile ya maneja esto, pero esto es un refuerzo visual inmediato)
+    const profilePhoto = document.getElementById('profile-photo');
+    if (profilePhoto && (profilePhoto.src.includes('Portis.png') || profilePhoto.src.includes('Otis.png') || profilePhoto.src.includes('Enor.png'))) {
+        profilePhoto.src = imagePath;
+    }
+};
+
+// Ejecutar actualización al cargar
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof window.updateAppLogo === 'function') {
+        window.updateAppLogo();
+    }
+});

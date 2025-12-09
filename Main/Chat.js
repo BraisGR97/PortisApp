@@ -20,7 +20,8 @@
     // Replaced with getUserId() in code
 
     const MESSAGE_LIMIT = 50;
-    const profileImagePath = '../assets/logo.png';
+    const getProfileImagePath = () => (typeof window.getPortisImage === 'function' ? window.getPortisImage() : '../assets/Otis.png');
+    // const profileImagePath removed, will use function call
 
     let db = null; // Instancia de Firestore
     let isFirebaseReady = false;
@@ -532,7 +533,7 @@
                  onclick="openChatModal('${user.id}', '${user.name}')">
                 
                 <div class="relative w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold mr-4 overflow-hidden border border-gray-300 dark:border-gray-600">
-                    <img src="${user.photoURL || profileImagePath}" alt="${user.name.charAt(0)}" class="w-full h-full object-cover">
+                    <img src="${user.photoURL || getProfileImagePath()}" alt="${user.name.charAt(0)}" class="w-full h-full object-cover">
                     ${unreadIndicator}
                 </div>
                 

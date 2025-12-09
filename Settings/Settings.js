@@ -8,6 +8,7 @@
     const themeToggle = document.getElementById('dark-mode-toggle');
     const languageSelect = document.getElementById('language-select');
     const locationSelect = document.getElementById('location-select');
+    const companySelect = document.getElementById('company-select');
     const userDisplay = document.getElementById('current-user-display');
 
     // Elementos del modal de eliminación
@@ -101,12 +102,14 @@
         const theme = localStorage.getItem('portis-theme') || 'dark';
         const language = localStorage.getItem('portis-language') || 'es';
         const location = localStorage.getItem('portis-location') || 'nacional';
+        const company = localStorage.getItem('portis-company') || 'otis';
 
         if (themeToggle) themeToggle.checked = theme === 'dark';
         if (languageSelect) languageSelect.value = language;
         if (locationSelect) locationSelect.value = location;
+        if (companySelect) companySelect.value = company;
 
-        console.log('📥 Loaded from localStorage:', { theme, language, location });
+        console.log('📥 Loaded from localStorage:', { theme, language, location, company });
     }
 
     async function loadSettingsFromFirestore() {
@@ -127,10 +130,12 @@
                 if (themeToggle) themeToggle.checked = (data.theme || 'dark') === 'dark';
                 if (languageSelect) languageSelect.value = data.language || 'es';
                 if (locationSelect) locationSelect.value = data.location || 'nacional';
+                if (companySelect) companySelect.value = data.company || 'otis';
 
                 localStorage.setItem('portis-theme', data.theme || 'dark');
                 localStorage.setItem('portis-language', data.language || 'es');
                 localStorage.setItem('portis-location', data.location || 'nacional');
+                localStorage.setItem('portis-company', data.company || 'otis');
             } else {
                 console.log('ℹ️ No settings found in Firestore, using defaults');
                 loadSettingsFromLocalStorage();
@@ -150,12 +155,14 @@
         const theme = themeToggle?.checked ? 'dark' : 'light';
         const language = languageSelect?.value || 'es';
         const location = locationSelect?.value || 'nacional';
+        const company = companySelect?.value || 'otis';
 
-        const settings = { theme, language, location };
+        const settings = { theme, language, location, company };
 
         localStorage.setItem('portis-theme', theme);
         localStorage.setItem('portis-language', language);
         localStorage.setItem('portis-location', location);
+        localStorage.setItem('portis-company', company);
 
         console.log('💾 Saving settings:', settings, { IS_MOCK_MODE, hasDB: !!db, userId });
 
@@ -206,6 +213,18 @@
             locationSelect.addEventListener('change', async () => {
                 console.log('📍 Location changed to:', locationSelect.value);
                 await saveSettings();
+            });
+        }
+
+        if (companySelect) {
+            companySelect.addEventListener('change', async () => {
+                console.log('🏢 Company changed to:', companySelect.value);
+                await saveSettings();
+                // Opcional: Recargar para aplicar cambio de logo inmediato si fuera necesario, 
+                // pero por ahora solo guardamos. La app recargará la imagen al navegar.
+                if (typeof window.updateAppLogo === 'function') {
+                    window.updateAppLogo();
+                }
             });
         }
     }

@@ -16,7 +16,8 @@
     <link rel="stylesheet" href="style.css">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="./assets/logo.png">
+    <!-- Favicon dinámico (script abajo) -->
+    <link rel="icon" type="image/png" href="./assets/Otis.png" id="dynamic-favicon">
 
     <!-- Script inline para evitar parpadeo (FOUC) al cambiar de tema -->
     <script>
@@ -30,6 +31,16 @@
             } else {
                 document.documentElement.classList.add('dark-mode');
             }
+
+            // Cargar Logo/Favicon inicial
+            const company = localStorage.getItem('portis-company') || 'otis';
+            let logoPath = './assets/Otis.png';
+            if (company === 'portis') logoPath = './assets/Portis.png';
+            else if (company === 'enor') logoPath = './assets/Enor.png';
+
+            // No podemos cambiar el src del img aqui porque aun no existe en DOM,
+            // pero el favicon sí si quisiéramos. Lo haremos abajo o via window variables.
+            window.__initialLogoPath = logoPath;
         })();
     </script>
 </head>
@@ -51,7 +62,14 @@
                 <!-- Logo con efecto neón -->
                 <div id="app-logo-wrapper" class="pulse-glow">
                     <div id="app-logo-inner-circle">
-                        <img src="./assets/logo.png" alt="Logo de PortisApp" id="app-logo">
+                        <img src="./assets/Otis.png" alt="Logo de PortisApp" id="app-logo">
+                        <script>
+                            // Aplicar logo calculado arriba
+                            if (window.__initialLogoPath) {
+                                document.getElementById('app-logo').src = window.__initialLogoPath;
+                                document.getElementById('dynamic-favicon').href = window.__initialLogoPath;
+                            }
+                        </script>
                     </div>
                 </div>
                 <p class="text-xl text-center text-white mt-8">Cuando se cierra una puerta, se abre... otra.</p>

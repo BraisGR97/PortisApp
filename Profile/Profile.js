@@ -131,7 +131,8 @@ async function displayUserData(user, overridePhotoURL) {
     if (photoElement) {
         let finalPhotoURL = user.photoURL;
         if (overridePhotoURL !== undefined) finalPhotoURL = overridePhotoURL;
-        photoElement.src = finalPhotoURL || '../assets/logo.png';
+        const defaultImage = typeof window.getPortisImage === 'function' ? window.getPortisImage() : '../assets/Otis.png';
+        photoElement.src = finalPhotoURL || defaultImage;
     }
 
     const currentUsername = user.displayName || userDisplayName || 'Admin';
@@ -689,14 +690,21 @@ async function deleteProfilePhoto() {
         await db.doc(`artifacts/${appId}/users/${userId}/profileData/userMetadata`).update(updateData);
         await db.collection('users').doc(userId).update({ photoURL: firebase.firestore.FieldValue.delete() });
 
-        photoElement.src = '../assets/logo.png';
+        const defaultImage = typeof window.getPortisImage === 'function' ? window.getPortisImage() : '../assets/Otis.png';
+        photoElement.src = defaultImage;
     } catch (error) {
         console.warn('Error al eliminar foto (puede ser normal si ya no existía campo):', error);
         // Aun así reseteamos visualmente
-        photoElement.src = '../assets/logo.png';
+        const defaultImage = typeof window.getPortisImage === 'function' ? window.getPortisImage() : '../assets/Otis.png';
+        photoElement.src = defaultImage;
     } finally {
         photoElement.style.opacity = '1';
     }
+}
+
+function handleProfileImageError(imgElement) {
+    const defaultImage = typeof window.getPortisImage === 'function' ? window.getPortisImage() : '../assets/Otis.png';
+    imgElement.src = defaultImage;
 }
 
 // ================================================================

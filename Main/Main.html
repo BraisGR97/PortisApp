@@ -45,7 +45,17 @@
     <!-- Barra de Navegación Superior -->
     <header id="top-navbar" class="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-opacity-95">
         <div class="w-full max-w-4xl mx-auto flex justify-between items-center h-16 px-4">
-            <img src="../assets/logo.png" alt="PortisApp Logo" class="h-24">
+            <img src="../assets/Otis.png" alt="PortisApp Logo" class="h-24" id="navbar-logo-img">
+            <script>
+                // Instant logo update
+                (function () {
+                    const company = localStorage.getItem('portis-company') || 'otis';
+                    const img = document.getElementById('navbar-logo-img');
+                    if (company === 'portis') img.src = '../assets/Portis.png';
+                    else if (company === 'enor') img.src = '../assets/Enor.png';
+                    else img.src = '../assets/Otis.png';
+                })();
+            </script>
             <div id="current-user-display" class="user-id-display">Cargando...
             </div>
         </div>
