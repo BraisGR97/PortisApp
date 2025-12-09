@@ -96,7 +96,7 @@ async function initializeAppAndAuth() {
     } catch (error) {
         console.error("Error al inicializar Firebase:", error);
         document.getElementById('upload-list').innerHTML = `
-            <div class="p-4 text-center rounded-lg bg-red-900/40 border border-red-900 text-red-400">
+            <div class="error-state-container">
                 <i class="ph ph-warning-circle text-2xl mb-2"></i>
                 <p>Error de conexión. No se pudo cargar los datos.</p>
             </div>
@@ -244,7 +244,7 @@ function renderReceivedList(items) {
 
     if (!items || items.length === 0) {
         container.innerHTML = `
-            <div class="p-6 text-center rounded-lg" style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);">
+            <div class="empty-state-container">
                 <i class="ph ph-inbox text-4xl mb-2"></i>
                 <p>No has recibido mantenimientos compartidos.</p>
             </div>
@@ -271,7 +271,7 @@ function renderSendView() {
 
     if (allRepairs.length === 0) {
         container.innerHTML = `
-            <div class="p-6 text-center rounded-lg" style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);">
+            <div class="empty-state-container">
                 <i class="ph ph-folder-open text-4xl mb-2"></i>
                 <p>No hay mantenimientos para compartir.</p>
             </div>
@@ -298,14 +298,14 @@ function createSendCard(repair) {
 
     card.innerHTML = `
         <div class="mb-3">
-            <p class="text-sm font-light mb-1" style="color: var(--color-text-secondary);">
+            <p class="card-header-date">
                 ${maintenanceDate} | Contrato: ${repair.contract}
             </p>
-            <h3 class="font-bold text-lg" style="color: var(--color-text-primary);">
+            <h3 class="card-header-title">
                 ${repair.location || 'Sin Ubicación'}
             </h3>
             ${repair.model ? `
-                <p class="text-sm mt-1" style="color: var(--color-text-secondary);">
+                <p class="card-header-subtitle">
                     <i class="ph ph-wrench mr-1"></i> ${repair.model}
                 </p>
             ` : ''}
@@ -318,11 +318,11 @@ function createSendCard(repair) {
             </select>
         </div>
 
-        <div class="flex items-center justify-between pt-3 border-t" style="border-color: var(--color-border);">
-            <label class="flex items-center gap-2 cursor-pointer">
+        <div class="card-actions">
+            <label class="cursor-pointer">
                 <input type="checkbox" id="include-records-${repair.id}" 
                        class="custom-checkbox">
-                <span class="text-sm" style="color: var(--color-text-secondary);">Incluir registros</span>
+                <span class="card-actions-text">Incluir registros</span>
             </label>
 
             <button onclick="shareRepair('${repair.id}')" 
@@ -332,9 +332,7 @@ function createSendCard(repair) {
             </button>
         </div>
 
-        <div id="share-message-${repair.id}" class="hidden mt-2 p-2 rounded text-sm text-center" 
-             style="background-color: var(--color-accent-magenta); color: white;">
-        </div>
+        <div id="share-message-${repair.id}" class="feedback-message"></div>
     `;
 
     // Listener para el checkbox
@@ -345,9 +343,9 @@ function createSendCard(repair) {
         checkbox.addEventListener('change', (e) => {
             if (e.target.checked) {
                 messageDiv.textContent = '✓ Los registros históricos serán incluidos';
-                messageDiv.classList.remove('hidden');
+                messageDiv.className = 'feedback-message warning'; // Usando estilo warning o personalizado para info
             } else {
-                messageDiv.classList.add('hidden');
+                messageDiv.className = 'feedback-message'; // Oculto por defecto
             }
         });
     }
@@ -377,29 +375,29 @@ function createReceivedCard(shared) {
 
     card.innerHTML = `
         <div class="mb-2">
-            <div class="flex items-center justify-between mb-2">
-                <p class="text-xs font-medium" style="color: var(--color-accent-magenta);">
-                    <i class="ph ph-user mr-1"></i> Compartido por: <span class="font-semibold">${shared.senderName || 'Usuario'}</span>
+            <div class="received-header">
+                <p class="received-sender">
+                    <i class="ph ph-user mr-1"></i> Compartido por: <span>${shared.senderName || 'Usuario'}</span>
                 </p>
-                <span class="text-xs px-2 py-1 rounded-full" style="background-color: var(--color-accent-red); color: white;">
+                <span class="received-timer">
                     <i class="ph ph-clock mr-1"></i> ${hoursLeft}h restantes
                 </span>
             </div>
-            <p class="text-sm font-light mb-1" style="color: var(--color-text-secondary);">
+            <p class="card-header-date">
                 ${maintenanceDate} | Contrato: ${repair.contract}
             </p>
-            <h3 class="font-bold text-lg" style="color: var(--color-text-primary);">
+            <h3 class="card-header-title">
                 ${repair.location || 'Sin Ubicación'}
             </h3>
             ${repair.model ? `
-                <p class="text-sm mt-1" style="color: var(--color-text-secondary);">
+                <p class="card-header-subtitle">
                     <i class="ph ph-wrench mr-1"></i> ${repair.model}
                 </p>
             ` : ''}
         </div>
 
         ${shared.includeRecords ? `
-            <div class="mt-2 p-2 rounded text-xs" style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);">
+            <div class="received-includes-badge">
                 <i class="ph ph-clock-counter-clockwise mr-1"></i> Incluye registros históricos
             </div>
         ` : ''}
@@ -431,9 +429,8 @@ window.shareRepair = async function (repairId) {
     if (!userSelect || !userSelect.value) {
         if (messageDiv) {
             messageDiv.textContent = '⚠️ Por favor selecciona un usuario';
-            messageDiv.style.backgroundColor = 'var(--color-accent-red)';
-            messageDiv.classList.remove('hidden');
-            setTimeout(() => messageDiv.classList.add('hidden'), 3000);
+            messageDiv.className = 'feedback-message error';
+            setTimeout(() => messageDiv.className = 'feedback-message', 3000);
         }
         return;
     }
@@ -543,10 +540,9 @@ window.shareRepair = async function (repairId) {
 
         if (messageDiv) {
             messageDiv.textContent = `✓ Compartido con ${recipientName}`;
-            messageDiv.style.backgroundColor = '#4CAF50';
-            messageDiv.classList.remove('hidden');
+            messageDiv.className = 'feedback-message success';
             setTimeout(() => {
-                messageDiv.classList.add('hidden');
+                messageDiv.className = 'feedback-message';
                 userSelect.value = '';
                 if (includeRecordsCheckbox) includeRecordsCheckbox.checked = false;
             }, 2000);
@@ -555,9 +551,8 @@ window.shareRepair = async function (repairId) {
         console.error("Error al compartir:", error);
         if (messageDiv) {
             messageDiv.textContent = '✗ Error al compartir';
-            messageDiv.style.backgroundColor = 'var(--color-accent-red)';
-            messageDiv.classList.remove('hidden');
-            setTimeout(() => messageDiv.classList.add('hidden'), 3000);
+            messageDiv.className = 'feedback-message error';
+            setTimeout(() => messageDiv.className = 'feedback-message', 3000);
         }
     }
 };
@@ -572,9 +567,7 @@ window.shareRepair = async function (repairId) {
  */
 function showSharedDetailModal(shared) {
     const modal = document.createElement('div');
-    modal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4';
-    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-    modal.style.backdropFilter = 'blur(4px)';
+    modal.className = 'modal-overlay';
     modal.id = 'shared-detail-modal';
 
     const repair = shared.repairData || {};
@@ -585,31 +578,30 @@ function showSharedDetailModal(shared) {
     const contact = repair.contact || {};
 
     modal.innerHTML = `
-        <div class="max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-xl shadow-2xl" 
-             style="background-color: var(--color-bg-secondary); border: 1px solid var(--color-border);">
-            <div class="p-4 border-b flex justify-between items-center" style="border-color: var(--color-border);">
-                <h2 class="text-xl font-bold" style="color: var(--color-text-light);">
-                    <i class="ph ph-share-network mr-2" style="color: var(--color-accent-magenta);"></i>
-                    Detalles del Mantenimiento Compartido
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <i class="ph ph-share-network" style="color: var(--color-accent-magenta);"></i>
+                    Detalles
                 </h2>
-                <button onclick="closeSharedModal()" class="secondary-icon-btn p-2 rounded-full">
+                <button onclick="closeSharedModal()" class="secondary-icon-btn p-2 rounded-full border-none">
                     <i class="ph ph-x text-xl"></i>
                 </button>
             </div>
 
-            <div class="p-4">
-                <div class="mb-4 p-3 rounded-lg" style="background-color: var(--color-bg-tertiary);">
+            <div class="modal-body">
+                <div class="modal-info-box">
                     <p class="text-sm mb-1" style="color: var(--color-text-secondary);">
-                        <i class="ph ph-user mr-2"></i> Compartido por: <span class="font-semibold">${shared.senderName || 'Usuario'}</span>
+                        <i class="ph ph-user mr-2"></i> Compartido por: <span class="font-semibold text-white">${shared.senderName || 'Usuario'}</span>
                     </p>
                     <p class="text-sm" style="color: var(--color-text-secondary);">
                         <i class="ph ph-clock mr-2"></i> Expira: ${shared.expiresAt ? (shared.expiresAt.toDate ? shared.expiresAt.toDate().toLocaleString('es-ES') : new Date(shared.expiresAt).toLocaleString('es-ES')) : 'No disponible'}
                     </p>
                 </div>
 
-                <h3 class="text-lg font-bold mb-3" style="color: var(--color-text-light);">Información del Mantenimiento</h3>
+                <h3 class="modal-subtitle">Información del Mantenimiento</h3>
                 
-                <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
+                <div class="modal-grid">
                     <div class="space-y-1">
                         <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Ubicación</label>
                         <p class="font-semibold" style="color: var(--color-text-primary);">${repair.location}</p>
@@ -639,8 +631,8 @@ function showSharedDetailModal(shared) {
                 </div>
 
                 ${(contact.name || contact.phone || contact.notes) ? `
-                <h3 class="text-sm font-semibold mt-4 mb-2" style="color: var(--color-accent-magenta);">Contacto</h3>
-                <div class="grid grid-cols-2 gap-4 text-sm">
+                <h3 class="modal-subtitle" style="color: var(--color-accent-magenta); margin-top: 1.5rem;">Contacto</h3>
+                <div class="modal-grid">
                     ${contact.name ? `
                     <div class="space-y-1">
                         <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Nombre</label>
@@ -663,10 +655,10 @@ function showSharedDetailModal(shared) {
                 ` : ''}
 
                 ${shared.includeRecords && shared.records && shared.records.length > 0 ? `
-                <h3 class="text-lg font-bold mt-6 mb-3" style="color: var(--color-text-light);">
+                <h3 class="modal-subtitle" style="margin-top: 1.5rem;">
                     <i class="ph ph-clock-counter-clockwise mr-2"></i>Registros Históricos (${shared.records.length})
                 </h3>
-                <div class="space-y-2 max-h-64 overflow-y-auto">
+                <div class="modal-history-list">
                     ${shared.records.map(record => {
         const completedDate = record.completedAt ?
             (record.completedAt.toDate ?
@@ -674,7 +666,7 @@ function showSharedDetailModal(shared) {
                 new Date(record.completedAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })) :
             'Fecha no disponible';
         return `
-                            <div class="p-3 rounded-lg" style="background-color: var(--color-bg-tertiary);">
+                            <div class="modal-history-item">
                                 <p class="text-sm font-semibold" style="color: var(--color-text-primary);">
                                     <i class="ph ph-calendar-check mr-1"></i> ${completedDate}
                                 </p>
