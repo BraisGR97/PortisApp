@@ -316,14 +316,14 @@ function renderBills(bills, updateCache = true) {
 
         return `
             <div class="bill-card" data-id="${bill.id}">
-                <div class="flex justify-between items-start mb-3">
-                    <div class="flex-1">
-                        <h3 class="bill-card-title text-lg font-semibold mb-1">${bill.concept}</h3>
-                        <p class="bill-card-content text-sm mb-2">
+                <div class="bill-header">
+                    <div class="bill-info">
+                        <h3 class="bill-card-title">${bill.concept}</h3>
+                        <p class="bill-details">
                             <i class="ph ph-calendar-blank mr-1"></i>
                             ${bill.month}
                         </p>
-                        <p class="bill-card-content text-sm">
+                        <p class="bill-amount">
                             <i class="ph ph-currency-eur mr-1"></i>
                             ${parseFloat(bill.cost).toFixed(2)} €
                         </p>
@@ -333,20 +333,22 @@ function renderBills(bills, updateCache = true) {
 
                 ${bill.notes ? `
                     <div class="mb-3">
-                        <p class="bill-card-content text-sm line-clamp-2">
+                        <p class="bill-card-content line-clamp-2">
                             <i class="ph ph-note mr-1"></i>
                             ${bill.notes}
                         </p>
                     </div>
                 ` : ''}
 
-                <div class="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-700">
-                    ${imageButton}
-                    <button class="action-btn" data-action="toggle-status" data-id="${bill.id}" data-status="${bill.status}" title="Cambiar Estado">
-                        <i class="ph ${bill.status === 'Pagado' ? 'ph-x-circle' : 'ph-check-circle'}"></i>
+                <div class="bill-actions">
+                    ${imageButton ? imageButton.replace('class="action-btn"', 'class="bill-action-btn view-image"') : ''}
+                    <button class="bill-action-btn toggle ${bill.status === 'Pagado' ? 'completed' : 'pending'}" 
+                            data-action="toggle-status" data-id="${bill.id}" data-status="${bill.status}" 
+                            title="${bill.status === 'Pagado' ? 'Marcar como Pendiente' : 'Marcar como Pagado'}">
+                        <i class="ph ${bill.status === 'Pagado' ? 'ph-x-circle' : 'ph-check-circle'} text-lg"></i>
                     </button>
-                    <button class="action-btn delete-btn" data-action="delete" data-id="${bill.id}" title="Eliminar">
-                        <i class="ph ph-trash"></i>
+                    <button class="bill-action-btn delete" data-action="delete" data-id="${bill.id}" title="Eliminar">
+                        <i class="ph ph-trash text-lg"></i>
                     </button>
                 </div>
             </div>
@@ -363,16 +365,7 @@ function renderBills(bills, updateCache = true) {
  * Actualiza la opacidad del borde superior de las tarjetas (Efecto Visual).
  */
 function updateCardBorderOpacity() {
-    // 1. Contenedores (Border TOP por scroll interno)
-    const innerContents = document.querySelectorAll('.card-inner-content');
-    innerContents.forEach(inner => {
-        const container = inner.closest('.card-container');
-        if (container) {
-            const scrollTop = inner.scrollTop;
-            const opacity = Math.min(scrollTop / 50, 1);
-            container.style.borderTopColor = `rgba(255, 255, 255, ${0.1 + (opacity * 0.9)})`;
-        }
-    });
+    // 1. Contenedores (Border TOP static now, logic removed)
 
     // 2. Tarjetas de Facturas (Border TOP por posición en pantalla)
     const elements = document.querySelectorAll('.bill-card');

@@ -165,7 +165,6 @@ html.light-mode body {
     display: flex;
     flex-direction: column;
     border-top: 1px solid #ffffff;
-    margin-bottom: 1.5rem;
 }
 
 .card-inner-content {
@@ -470,4 +469,100 @@ html.light-mode body {
     overflow-y: auto;
     flex: 1;
     min-height: 0;
+}
+
+/* ================================================================
+   NUEVOS ESTILOS PARA REFACTORIZACION (Clean Code)
+   ================================================================ */
+
+.bill-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+}
+
+.bill-info {
+    flex: 1;
+}
+
+.bill-card-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: var(--color-text-primary);
+}
+
+.bill-details {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+}
+
+.bill-amount {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+}
+
+.bill-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.bill-action-btn {
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: background-color 0.2s, color 0.2s;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Boton de status (visto/no visto) reutilizando estilo similar a Notes */
+.bill-action-btn.toggle {
+    color: var(--color-text-secondary);
+}
+
+.bill-action-btn.toggle:hover {
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+}
+
+.bill-action-btn.toggle.completed {
+    color: var(--color-accent-red);
+    /* Para cancelar pago/marcar pendiente */
+}
+
+.bill-action-btn.toggle.pending {
+    color: var(--color-accent-green);
+    /* Para marcar pagado */
+}
+
+/* Boton de eliminar idéntico a Notes */
+.bill-action-btn.delete {
+    color: var(--color-accent-red);
+}
+
+.bill-action-btn.delete:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.bill-action-btn.view-image {
+    color: var(--color-text-secondary);
+}
+
+.bill-action-btn.view-image:hover {
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
 }

@@ -159,7 +159,6 @@ html.light-mode body {
     display: flex;
     flex-direction: column;
     border-top: 1px solid #ffffff;
-    margin-bottom: 1.5rem;
 }
 
 .card-inner-content {
@@ -514,4 +513,97 @@ html.light-mode body {
     font-size: 1rem;
     word-break: break-word;
     color: var(--color-text-primary);
+}
+
+/* ================================================================
+   NUEVOS ESTILOS PARA REFACTORIZACION (Clean Code)
+   ================================================================ */
+
+/* Estado vacío */
+.empty-state-message {
+    padding: 1rem;
+    text-align: center;
+    border-radius: 0.5rem;
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+}
+
+/* Header de la nota */
+.note-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.note-title-container {
+    flex: 1;
+    min-width: 0;
+}
+
+.note-card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--color-text-primary);
+    margin: 0;
+}
+
+.note-date-badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+}
+
+/* Acciones en la nota */
+.note-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--color-border);
+    gap: 0.5rem;
+    margin-top: auto;
+}
+
+.note-action-btn {
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: background-color 0.2s, color 0.2s;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.note-action-btn.edit {
+    color: var(--color-accent-blue, #3b82f6);
+}
+
+.note-action-btn.edit:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+.note-action-btn.delete {
+    color: var(--color-accent-red);
+}
+
+.note-action-btn.delete:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.note-card-content {
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+    white-space: pre-line;
+    min-height: 40px;
 }

@@ -409,7 +409,7 @@ function renderNotes(notes, updateCache = true) {
 
     if (filteredNotes.length === 0) {
         listContainer.innerHTML = `
-            <div class="p-4 text-center rounded-lg" style="background-color: var(--color-bg-secondary); color: var(--color-text-secondary);">
+            <div class="empty-state-message">
                 ${searchTerm ? 'No se encontraron notas.' : 'No hay notas guardadas.'}
             </div>
         `;
@@ -445,25 +445,25 @@ function renderNotes(notes, updateCache = true) {
             ${imageHtml}
             <div class="note-header">
                 <div class="note-title-container">
-                    <h3 class="font-bold text-xl truncate note-card-title" title="${note.title}">${note.title}</h3>
+                    <h3 class="note-card-title" title="${note.title}">${note.title}</h3>
                 </div>
-                <span class="text-xs font-medium px-2 py-1 rounded-full note-card-date bg-gray-100 dark:bg-gray-800 note-date-badge">
+                <span class="note-date-badge">
                     ${formattedDate}
                 </span>
             </div>
             
-            <div class="text-sm mb-4 whitespace-pre-line note-card-content line-clamp-3" style="min-height: 40px;">
+            <div class="note-card-content line-clamp-3">
                 ${note.content || '<span class="italic opacity-50">Sin contenido...</span>'}
             </div>
 
-            <div class="flex justify-end items-center pt-3 border-t gap-2 mt-auto" style="border-color: var(--color-border);">
+            <div class="note-actions">
                 <button data-action="edit" data-id="${note.id}"
-                    class="action-btn edit-btn p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-blue-500" 
+                    class="note-action-btn edit" 
                     title="Editar nota">
                     <i class="ph ph-pencil-simple text-lg pointer-events-none"></i>
                 </button>
                 <button data-action="delete" data-id="${note.id}"
-                    class="action-btn delete-btn p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-500" 
+                    class="note-action-btn delete" 
                     title="Eliminar nota">
                     <i class="ph ph-trash text-lg pointer-events-none"></i>
                 </button>
@@ -485,16 +485,7 @@ function renderNotes(notes, updateCache = true) {
  * Actualiza la opacidad del borde superior de las tarjetas.
  */
 function updateCardBorderOpacity() {
-    // 1. Contenedores (Border TOP por scroll interno)
-    const innerContents = document.querySelectorAll('.card-inner-content');
-    innerContents.forEach(inner => {
-        const container = inner.closest('.card-container');
-        if (container) {
-            const scrollTop = inner.scrollTop;
-            const opacity = Math.min(scrollTop / 50, 1);
-            container.style.borderTopColor = `rgba(255, 255, 255, ${0.1 + (opacity * 0.9)})`;
-        }
-    });
+    // 1. Contenedores (Border TOP static now, logic removed)
 
     // 2. Tarjetas de Notas (Border TOP por posición en pantalla)
     const elements = document.querySelectorAll('.note-card');

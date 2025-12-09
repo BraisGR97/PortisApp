@@ -127,17 +127,30 @@ html.light-mode body {
 }
 
 /* ================================================================
+   LAYOUT GENERAL
+   ================================================================ */
+
+/* ... body styles keep same ... */
+
+.app-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* ================================================================
    CONTENIDO PRINCIPAL
    ================================================================ */
 
 #app-content {
     flex: 1;
-    display: flex;
-    flex-direction: column;
+    /* Ocupa el espacio restante (entre top-navbar y bottom-edge) */
     position: relative;
     overflow: hidden;
+    /* El scroll lo maneja card-inner-content */
     padding: 0;
-    /* El padding lo manejarÃ¡n las vistas hijas si es necesario, o el slider */
+    width: 100%;
 }
 
 /* ================================================================
@@ -147,9 +160,8 @@ html.light-mode body {
 #views-slider {
     display: flex;
     width: 200%;
-    /* Dos vistas de ancho */
     height: 100%;
-    /* Ocupa todo el alto disponible en #app-content */
+    /* Del padre #app-content */
     transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
@@ -157,22 +169,18 @@ html.light-mode body {
     width: 50%;
     height: 100%;
     flex-shrink: 0;
-    padding: 1rem;
-    /* Margen alrededor de la tarjeta */
-    padding-bottom: 5rem;
-    /* Espacio para el bottom-navbar */
-    box-sizing: border-box;
+
+    /* Layout Flexible Vertical */
     display: flex;
     flex-direction: column;
-}
 
-/* Estados del slider */
-.slider-show-upload {
-    transform: translateX(0%);
-}
+    /* Espaciado */
+    padding: 1rem;
 
-.slider-show-download {
-    transform: translateX(-50%);
+    /* Espacio vital para librar el Bottom Navbar (Fixed, h-16 ~ 4rem) */
+    padding-bottom: 5.5rem;
+
+    box-sizing: border-box;
 }
 
 /* ================================================================
@@ -180,20 +188,28 @@ html.light-mode body {
    ================================================================ */
 
 .card-container {
+    /* Flex Child: Ocupar todo el espacio disponible en .view-section */
+    flex: 1;
+    height: auto;
+    /* Dejar que flex mande */
+    display: flex;
+    flex-direction: column;
+
     background-color: var(--color-bg-secondary);
     border-radius: 1rem;
     box-shadow: 0 4px 6px var(--color-shadow);
     border: 1px solid var(--color-border);
     border-bottom: 1px solid var(--color-bg-secondary);
-    flex-grow: 1;
-    /* Ocupa todo el espacio vertical disponible en .view-section */
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
     border-top: 1px solid #ffffff;
-    /* margin-bottom eliminado, lo maneja el padding de .view-section */
-    height: calc(100vh - 11rem);
+    /* Borde estático */
+
+    overflow: hidden;
+    /* Scroll interno en .card-inner-content */
+    margin: 0;
+    /* Sin margen externo, controlado por padding padre */
 }
+
+/* ... rest of styles ... */
 
 .card-inner-content {
     padding: 1.5rem;
@@ -630,91 +646,13 @@ html.light-mode .custom-select {
    RESPONSIVE
    ================================================================ */
 
+/* ================================================================
+   RESPONSIVE
+   ================================================================ */
+
 @media (max-width: 640px) {
-    #app-content {
-        /* En mÃ³vil, el nav superior puede ocupar espacio o ser fixed.
-           Asumimos layout standard:
-           Top Nav: sticky (height ~4rem)
-           Bottom Nav: fixed (height 4rem) 
-           Views Slider: ocupa resto
-        */
-        height: calc(100vh - 4rem);
-        /* Ajuste si top nav scroll o sticky */
-    }
-
-    .view-section {
-        padding-bottom: 6rem;
-        /* MÃ¡s espacio para bottom nav en mÃ³vil si flota sobre contenido */
-    }
-}
-
-html.light-mode body {
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    background-attachment: fixed;
-}
-
-.app-layout {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    overflow: hidden;
-}
-
-/* Scrollbar oculta */
-* {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-
-*::-webkit-scrollbar {
-    display: none;
-}
-
-/* ================================================================
-   NAVBAR
-   ================================================================ */
-
-#top-navbar {
-    background-color: var(--color-bg-glass);
-    border-bottom: 1px solid var(--color-border-light);
-    box-shadow: 0 0 25px var(--color-shadow-light);
-    border-radius: 0;
-}
-
-.navbar-title {
-    color: var(--color-text-light);
-}
-
-/* ================================================================
-   CONTENIDO PRINCIPAL
-   ================================================================ */
-
-#app-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 1rem;
-    padding-bottom: 5rem;
-    height: auto;
-    overflow: hidden;
-}
-
-/* ================================================================
-   CARDS Y CONTENEDORES
-   ================================================================ */
-
-.card-container {
-    background-color: var(--color-bg-secondary);
-    border-radius: 1rem;
-    box-shadow: 0 4px 6px var(--color-shadow);
-    border: 1px solid var(--color-border);
-    border-bottom: 1px solid var(--color-bg-secondary);
-    height: calc(100vh - 11rem);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    border-top: 1px solid #ffffff;
-    margin-bottom: 1.5rem;
+    /* Ajustes menores si son necesarios, pero el layout flex principal 
+       debería funcionar bien en móvil */
 }
 
 .card-inner-content {
