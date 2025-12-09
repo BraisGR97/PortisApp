@@ -35,6 +35,7 @@
     --color-accent-magenta: #E91E63;
     --color-accent-red: #dc3545;
     --color-accent-green: #4CAF50;
+    --color-accent-blue: #2196F3;
     --color-accent-orange: #FF9800;
 
     --gradient-primary: linear-gradient(135deg, #FF5722, #E91E63);
@@ -66,6 +67,7 @@ html.light-mode body {
     --color-accent-magenta: #E91E63;
     --color-accent-red: #dc3545;
     --color-accent-green: #198754;
+    --color-accent-blue: #0d6efd;
     --color-accent-orange: #fd7e14;
     --gradient-primary: linear-gradient(135deg, #FF5722, #E91E63);
 }
@@ -335,4 +337,135 @@ html.light-mode body {
     body {
         padding: 0;
     }
+}
+
+/* ================================================================
+   ELEMENTOS DINÁMICOS (JS)
+   ================================================================ */
+
+/* --- Card Styles --- */
+.maintenance-card-title {
+    color: var(--color-text-primary);
+}
+
+.maintenance-card-tag {
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+}
+
+.maintenance-card-info {
+    color: var(--color-text-secondary);
+}
+
+.maintenance-card-footer {
+    border-color: var(--color-border);
+}
+
+.priority-badge {
+    color: var(--color-text-primary);
+}
+
+/* --- Record Card Styles --- */
+.record-card-date {
+    color: var(--color-text-secondary);
+}
+
+.record-card-user {
+    color: var(--color-text-primary);
+}
+
+.record-card-status {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: var(--color-accent-green);
+}
+
+html.light-mode .record-card-status {
+    background-color: rgba(76, 175, 80, 0.2);
+}
+
+.record-card-info {
+    color: var(--color-text-secondary);
+}
+
+.record-card-description-container {
+    border-color: var(--color-border);
+}
+
+.record-card-description {
+    color: var(--color-text-secondary);
+}
+
+/* --- Modal Styles --- */
+.modal-highlight-box {
+    background-color: var(--color-bg-tertiary);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+}
+
+.modal-date-text {
+    color: var(--color-accent-blue);
+}
+
+/* Note: we don't have --color-accent-blue defined in :root, usually it's best to stick to defined colors or add it. 
+   Assuming standard blue for now or defined elsewhere, but better to define it or use one of the existing accents.
+   I will add --color-accent-blue to :root for consistency if needed, but for now I'll use a hardcoded fallback or existing var.
+   Let's check :root again. There is no accent-blue. I will add it to the variables section in a separate edit or just use a hex code that fits.
+*/
+
+.modal-user-text {
+    color: var(--color-text-secondary);
+}
+
+.modal-user-name {
+    color: var(--color-text-primary);
+}
+
+.modal-section-title {
+    color: var(--color-text-light);
+}
+
+.modal-label {
+    color: var(--color-text-secondary);
+}
+
+.modal-value {
+    color: var(--color-text-primary);
+}
+
+.modal-description-label {
+    color: var(--color-text-secondary);
+}
+
+.modal-description-text {
+    color: var(--color-text-primary);
+}
+
+.modal-contact-header {
+    color: var(--color-accent-red);
+}
+
+
+/* --- Estado Vacío --- */
+.empty-state-container {
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+}
+
+/* --- Error Styles --- */
+.error-message {
+    padding: 0.75rem;
+    margin-top: 1rem;
+    color: #f87171;
+    /* text-red-400 */
+    background-color: rgba(127, 29, 29, 0.4);
+    /* bg-red-900/40 */
+    border: 1px solid #7f1d1d;
+    /* border-red-900 */
+    border-radius: 0.5rem;
+}
+
+html.light-mode .error-message {
+    color: #dc3545;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
 }

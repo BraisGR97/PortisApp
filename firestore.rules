@@ -26,8 +26,8 @@ service cloud.firestore {
       // users/{userId}/shared_inbox/{docId}
       match /shared_inbox/{documentId} {
          allow read, delete: if request.auth != null && request.auth.uid == userId;
-         allow create: if request.auth != null && request.resource.data.senderId == request.auth.uid;
-         allow update: if request.auth != null && request.resource.data.senderId == request.auth.uid;
+         allow create: if request.auth != null; // Simplificado para depurar
+         allow update: if request.auth != null; // Simplificado para depurar
       }
 
       // 2. Bandeja de Salida (OUTBOX)

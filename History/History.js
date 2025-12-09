@@ -69,7 +69,7 @@ async function initializeAppAndAuth() {
     } catch (error) {
         console.error("Error al inicializar Firebase o al autenticar:", error);
         document.getElementById('maintenances-list').innerHTML = `
-            <div class="p-3 mt-4 text-red-400 bg-red-900/40 border border-red-900 rounded-lg">
+            <div class="error-message">
                 Error de conexión. No se pudo cargar el historial.
             </div>
         `;
@@ -148,7 +148,7 @@ async function loadRecords(maintenanceId, location) {
     } catch (error) {
         console.error("Error al cargar registros:", error);
         document.getElementById('records-list').innerHTML = `
-            <div class="p-3 text-red-400 bg-red-900/40 border border-red-900 rounded-lg">
+            <div class="error-message">
                 Error al cargar los registros.
             </div>
         `;
@@ -165,7 +165,7 @@ function renderMaintenances(maintenances) {
 
     if (maintenances.length === 0) {
         listContainer.innerHTML = `
-            <div class="p-4 text-center rounded-lg" style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);">
+            <div class="p-4 text-center rounded-lg empty-state-container">
                 <i class="ph ph-folder-open text-4xl mb-2"></i>
                 <p>No hay mantenimientos registrados.</p>
             </div>
@@ -200,13 +200,13 @@ function createMaintenanceCard(item) {
 
     card.innerHTML = `
         <div class="flex justify-between items-start mb-2">
-            <h3 class="font-bold text-lg truncate pr-8" style="color: var(--color-text-primary);">${item.location || 'Sin Ubicación'}</h3>
-            <span class="text-xs font-medium px-2 py-1 rounded-full text-gray-500 bg-gray-100 dark:bg-gray-800">
+            <h3 class="font-bold text-lg truncate pr-8 maintenance-card-title">${item.location || 'Sin Ubicación'}</h3>
+            <span class="text-xs font-medium px-2 py-1 rounded-full maintenance-card-tag">
                 ${item.contract || 'N/A'}
             </span>
         </div>
         
-        <div class="text-sm mb-3 space-y-1" style="color: var(--color-text-secondary);">
+        <div class="text-sm mb-3 space-y-1 maintenance-card-info">
             <p class="flex items-center gap-2">
                 <i class="ph ph-calendar-blank"></i>
                 ${maintenanceDate}
@@ -219,8 +219,8 @@ function createMaintenanceCard(item) {
             ` : ''}
         </div>
 
-        <div class="flex justify-between items-center mt-3 pt-3 border-t" style="border-color: var(--color-border);">
-            <span class="text-sm font-semibold flex items-center gap-1">
+        <div class="flex justify-between items-center mt-3 pt-3 border-t maintenance-card-footer">
+            <span class="text-sm font-semibold flex items-center gap-1 priority-badge">
                 <i class="ph ph-warning-circle"></i> ${displayPriority}
             </span>
             
@@ -244,7 +244,7 @@ function renderRecords(records) {
 
     if (records.length === 0) {
         listContainer.innerHTML = `
-            <div class="p-4 text-center rounded-lg" style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);">
+            <div class="p-4 text-center rounded-lg empty-state-container">
                 <i class="ph ph-clock-counter-clockwise text-4xl mb-2"></i>
                 <p>No hay registros de este mantenimiento.</p>
             </div>
@@ -276,19 +276,19 @@ function createRecordCard(record) {
     card.innerHTML = `
         <div class="flex justify-between items-start mb-2">
             <div class="flex-1">
-                <p class="text-sm font-light mb-1" style="color: var(--color-text-secondary);">
+                <p class="text-sm font-light mb-1 record-card-date">
                     <i class="ph ph-calendar-check mr-1"></i> ${completedDate}
                 </p>
-                <p class="text-sm font-medium" style="color: var(--color-text-primary);">
+                <p class="text-sm font-medium record-card-user">
                     <i class="ph ph-user mr-1"></i> Completado por: ${record.username || 'Usuario desconocido'}
                 </p>
             </div>
-            <span class="text-xs font-medium px-2 py-1 rounded-full text-green-500 bg-green-100 dark:bg-green-900/30">
+            <span class="text-xs font-medium px-2 py-1 rounded-full record-card-status">
                 Completado
             </span>
         </div>
 
-        <div class="text-sm" style="color: var(--color-text-secondary);">
+        <div class="text-sm record-card-info">
             <p class="flex items-center gap-2">
                 <i class="ph ph-map-pin"></i>
                 ${record.location}
@@ -301,8 +301,8 @@ function createRecordCard(record) {
             ` : ''}
         </div>
 
-        <div class="mt-3 pt-3 border-t" style="border-color: var(--color-border);">
-            <p class="${record.description && record.description.trim() ? 'text-sm' : 'text-sm italic opacity-70'}" style="color: var(--color-text-secondary);">
+        <div class="mt-3 pt-3 border-t record-card-description-container">
+            <p class="${record.description && record.description.trim() ? 'text-sm' : 'text-sm italic opacity-70'} record-card-description">
                 <i class="ph ph-note mr-1"></i>
                 ${record.description && record.description.trim() ? record.description : 'Mantenimiento sin contratiempos'}
             </p>
@@ -410,73 +410,73 @@ function showRecordDetailsModal(record) {
         </div>
 
         <div class="modal-body p-4">
-            <div class="mb-4 p-3 rounded-lg info-box">
-                <p class="text-lg font-semibold mb-2" style="color: var(--color-accent-blue);">
+            <div class="mb-4 modal-highlight-box">
+                <p class="text-lg font-semibold mb-2 modal-date-text">
                     <i class="ph ph-calendar-check mr-2"></i> ${completedDate}
                 </p>
-                <p class="text-sm" style="color: var(--color-text-secondary);">
-                    <i class="ph ph-user mr-2"></i> Completado por: <span class="font-medium" style="color: var(--color-text-primary);">${record.username || 'Usuario desconocido'}</span>
+                <p class="text-sm modal-user-text">
+                    <i class="ph ph-user mr-2"></i> Completado por: <span class="font-medium modal-user-name">${record.username || 'Usuario desconocido'}</span>
                 </p>
             </div>
 
-            <h3 class="text-lg font-bold mb-3" style="color: var(--color-text-light);">Información del Mantenimiento</h3>
+            <h3 class="text-lg font-bold mb-3 modal-section-title">Información del Mantenimiento</h3>
             
             <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
                 <div class="space-y-1">
-                    <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Ubicación</label>
-                    <p class="font-semibold" style="color: var(--color-text-primary);">${record.location}</p>
+                    <label class="text-xs font-medium modal-label">Ubicación</label>
+                    <p class="font-semibold modal-value">${record.location}</p>
                 </div>
                 <div class="space-y-1">
-                    <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Modelo</label>
-                    <p class="font-semibold" style="color: var(--color-text-primary);">${record.model || 'N/A'}</p>
+                    <label class="text-xs font-medium modal-label">Modelo</label>
+                    <p class="font-semibold modal-value">${record.model || 'N/A'}</p>
                 </div>
                 <div class="space-y-1">
-                    <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Contrato</label>
-                    <p class="font-semibold" style="color: var(--color-text-primary);">${record.contract}</p>
+                    <label class="text-xs font-medium modal-label">Contrato</label>
+                    <p class="font-semibold modal-value">${record.contract}</p>
                 </div>
                 <div class="space-y-1">
-                    <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Fecha Programada</label>
-                    <p class="font-semibold" style="color: var(--color-text-primary);">${scheduledDate}</p>
+                    <label class="text-xs font-medium modal-label">Fecha Programada</label>
+                    <p class="font-semibold modal-value">${scheduledDate}</p>
                 </div>
                 ${record.key_id ? `
                 <div class="space-y-1">
-                    <label class="text-xs font-medium" style="color: var(--color-text-secondary);">ID Clave/TAG</label>
-                    <p class="font-semibold" style="color: var(--color-text-primary);">${record.key_id}</p>
+                    <label class="text-xs font-medium modal-label">ID Clave/TAG</label>
+                    <p class="font-semibold modal-value">${record.key_id}</p>
                 </div>
                 ` : ''}
                 <div class="space-y-1">
-                    <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Prioridad</label>
-                    <p class="font-semibold" style="color: var(--color-text-primary);">${record.priority || 'Media'}</p>
+                    <label class="text-xs font-medium modal-label">Prioridad</label>
+                    <p class="font-semibold modal-value">${record.priority || 'Media'}</p>
                 </div>
             </div>
 
             ${record.description ? `
             <div class="mb-4">
-                <label class="text-xs font-medium block mb-1" style="color: var(--color-text-secondary);">Descripción</label>
-                <p class="text-sm italic" style="color: var(--color-text-primary);">${record.description}</p>
+                <label class="text-xs font-medium block mb-1 modal-description-label">Descripción</label>
+                <p class="text-sm italic modal-description-text">${record.description}</p>
             </div>
             ` : ''}
 
             ${(contact.name || contact.phone || contact.notes) ? `
-            <h3 class="text-sm font-semibold mt-4 mb-2" style="color: var(--color-accent-red);">Contacto</h3>
+            <h3 class="text-sm font-semibold mt-4 mb-2 modal-contact-header">Contacto</h3>
             <div class="grid grid-cols-2 gap-4 text-sm">
                 ${contact.name ? `
                 <div class="space-y-1">
-                    <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Nombre</label>
-                    <p class="font-semibold" style="color: var(--color-text-primary);">${contact.name}</p>
+                    <label class="text-xs font-medium modal-label">Nombre</label>
+                    <p class="font-semibold modal-value">${contact.name}</p>
                 </div>
                 ` : ''}
                 ${contact.phone ? `
                 <div class="space-y-1">
-                    <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Teléfono</label>
-                    <p class="font-semibold" style="color: var(--color-text-primary);">${contact.phone}</p>
+                    <label class="text-xs font-medium modal-label">Teléfono</label>
+                    <p class="font-semibold modal-value">${contact.phone}</p>
                 </div>
                 ` : ''}
             </div>
             ${contact.notes ? `
             <div class="space-y-1 mt-4 text-sm">
-                <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Notas de Contacto</label>
-                <p class="italic" style="color: var(--color-text-primary);">${contact.notes}</p>
+                <label class="text-xs font-medium modal-label">Notas de Contacto</label>
+                <p class="italic modal-value">${contact.notes}</p>
             </div>
             ` : ''}
             ` : ''}
