@@ -131,26 +131,22 @@ html.light-mode body {
    ================================================================ */
 
 #app-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
+    /* Toma el espacio restante: 100vh - TopNavbar */
+    flex: 1 1 auto;
     position: relative;
     overflow: hidden;
-    padding: 0;
     width: 100%;
-    min-height: 0;
-    /* CRUCIAL para que flex anidado haga scroll correctamente */
+    height: 100%;
 }
 
 /* ================================================================
-   SLIDER DE VISTAS (ANIMACION TIPO APP MOVIL)
+   SLIDER DE VISTAS
    ================================================================ */
 
 #views-slider {
     display: flex;
     width: 200%;
     height: 100%;
-    /* Del padre #app-content */
     transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
@@ -159,17 +155,13 @@ html.light-mode body {
     height: 100%;
     flex-shrink: 0;
 
-    /* Layout Flexible Vertical */
+    /* Padding estratégico para posicionar el Card Container */
+    /* Arriba: 1rem (margen con TopNavbar) */
+    /* Abajo: 6rem (4rem BottomNavbar + 2rem margen) */
+    padding: 1rem 1rem 6rem 1rem;
+
     display: flex;
     flex-direction: column;
-
-    /* MARGENES: Pequeño arriba, espacio para navbar abajo */
-    padding: 0.5rem 1rem 5.5rem 1rem;
-    /* Top: 0.5rem gap */
-    /* Bottom: 5.5rem (4rem navbar + 1.5rem gap) */
-    /* Side: 1rem */
-
-    box-sizing: border-box;
 }
 
 /* ================================================================
@@ -177,12 +169,9 @@ html.light-mode body {
    ================================================================ */
 
 .card-container {
-    /* Flex Child: Ocupar todo el espacio disponible en .view-section */
-    flex: 1;
-    height: auto;
-    /* Dejar que flex mande */
-    display: flex;
-    flex-direction: column;
+    /* Ocupar el 100% del espacio disponible dentro del padding de .view-section */
+    height: 100%;
+    width: 100%;
 
     background-color: var(--color-bg-secondary);
     border-radius: 1rem;
@@ -192,13 +181,12 @@ html.light-mode body {
     border-top: 1px solid #ffffff;
     /* Borde estático */
 
-    overflow: hidden;
-    /* Scroll interno en .card-inner-content */
     margin: 0;
-    /* Sin margen externo, controlado por padding padre */
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
 }
-
-/* ... rest of styles ... */
 
 .card-inner-content {
     padding: 1.5rem;
