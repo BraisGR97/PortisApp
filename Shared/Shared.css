@@ -98,8 +98,12 @@ html.light-mode body {
     overflow: hidden;
 }
 
-/* Scrollbar oculta */
-* {
+/* Reset & Scrollbar */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    /* CRITICAL for layout */
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
@@ -124,19 +128,6 @@ html.light-mode body {
 
 .navbar-title {
     color: var(--color-text-light);
-}
-
-/* ================================================================
-   CONTENIDO PRINCIPAL
-   ================================================================ */
-
-#app-content {
-    /* Toma el espacio restante: 100vh - TopNavbar */
-    flex: 1 1 auto;
-    position: relative;
-    overflow: hidden;
-    width: 100%;
-    height: 100%;
 }
 
 /* ================================================================
@@ -901,7 +892,6 @@ html.light-mode .custom-select {
         flex: 1;
         display: flex;
         flex-direction: column;
-        padding-top: 4rem;
         padding-bottom: 5rem;
         height: 100vh;
         box-sizing: border-box;
@@ -942,7 +932,6 @@ html.light-mode .custom-select {
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding-top: 4rem;
     padding-bottom: 5rem;
     height: 100vh;
     box-sizing: border-box;
