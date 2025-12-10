@@ -154,6 +154,12 @@
                 if (locA < locB) return -1;
                 if (locA > locB) return 1;
                 return 0;
+            } else if (currentSortMethod === 'ai') {
+                // Por Distancia (IA): Menor distancia primero
+                // Se asume que 'distance' ya ha sido calculado en el objeto
+                const distA = a.distance !== undefined ? a.distance : Infinity;
+                const distB = b.distance !== undefined ? b.distance : Infinity;
+                return distA - distB;
             } else {
                 // Por Prioridad (Default): Alta > Media > Baja
                 const priorityOrder = { 'Alta': 1, 'Media': 2, 'Baja': 3 };
@@ -436,28 +442,115 @@
         }
     }
 
-    window.setMaintenanceSort = function (method) {
-        if (method === 'ai') return; // Disabled
+    async function getCoordinatesForAddress(address) {
+        // Simple cache
+        const cacheKey = `geo_${address}`;
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) return JSON.parse(cached);
+
+        try {
+            // Nominatim OpenStreetMap (Free, requires User-Agent)
+            // En produccion se deberia usar un servicio mas robusto o Google Maps Platform
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`, {
+                headers: { 'User-Agent': 'PortisApp/1.0' }
+            });
+            const data = await response.json();
+            if (data && data.length > 0) {
+                const coords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+                localStorage.setItem(cacheKey, JSON.stringify(coords));
+                return coords;
+            }
+        } catch (e) {
+            console.error("Geocoding error", e);
+        }
+        return null;
+    }
+
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+        const R = 6371; // Radio de la tierra en km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    window.setMaintenanceSort = async function (method) {
         currentSortMethod = method;
         localStorage.setItem('portis-maintenance-sort', method);
-
-        updateSortMenuUI();
 
         // Ocultar menú
         const menu = document.getElementById('maintenance-sort-menu');
         if (menu) menu.classList.add('hidden');
+        updateSortMenuUI();
 
-        // Re-renderizar
-        renderMaintenanceList(currentMaintenanceData, currentViewDate);
+        if (method === 'ai') {
+            // Lógica Async para IA
+            // 1. Obtener ubicación del dispositivo
+            if (!navigator.geolocation) {
+                showMessage('error', 'Geolocalización no soportada.');
+                return;
+            }
+
+            // Mostrar estado de carga
+            const listContainer = document.getElementById('monthly-maintenance-list');
+            if (listContainer) listContainer.innerHTML = '<div class="loading-spinner"></div><p class="text-center text-sm text-gray-500 mt-2">Calculando distancias (IA)...</p>';
+
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const userLat = position.coords.latitude;
+                const userLon = position.coords.longitude;
+
+                // 2. Calcular distancias para todos los items
+                // Bloqueante para la UI, pero necesario para el sort
+                const itemsWithDistance = await Promise.all(currentMaintenanceData.map(async (item) => {
+                    let coords = item.coords;
+                    if (!coords) {
+                        coords = await getCoordinatesForAddress(item.location);
+                        // Guardar coords en el objeto en memoria para no re-fetchear en la misma sesion
+                        item.coords = coords;
+                    }
+
+                    if (coords) {
+                        item.distance = calculateDistance(userLat, userLon, coords.lat, coords.lon);
+                    } else {
+                        item.distance = Infinity; // Si falla, al final
+                    }
+                    return item;
+                }));
+
+                currentMaintenanceData = itemsWithDistance;
+                renderMaintenanceList(currentMaintenanceData, currentViewDate);
+
+            }, (error) => {
+                console.error(error);
+                showMessage('error', 'Error al obtener ubicación. Asegúrate de permitir el acceso.');
+                // Fallback a prioridad
+                window.setMaintenanceSort('priority');
+            });
+
+        } else {
+            // Métodos síncronos (priority, location)
+            renderMaintenanceList(currentMaintenanceData, currentViewDate);
+        }
     }
 
     function updateSortMenuUI() {
         // Actualizar checkmarks visuales
         const checkPriority = document.getElementById('sort-check-priority');
         const checkLocation = document.getElementById('sort-check-location');
+        const checkAi = document.getElementById('sort-check-ai');
+
+        if (checkPriority) checkPriority.classList.toggle('active', currentSortMethod === 'priority');
+        if (checkLocation) checkLocation.classList.toggle('active', currentSortMethod === 'location');
+        if (checkAi) checkAi.classList.toggle('active', currentSortMethod === 'ai');
 
         if (checkPriority) checkPriority.classList.toggle('opacity-0', currentSortMethod !== 'priority');
         if (checkLocation) checkLocation.classList.toggle('opacity-0', currentSortMethod !== 'location');
+        if (checkAi) checkAi.classList.toggle('opacity-0', currentSortMethod !== 'ai');
+
     }
 
     // Cerrar menú si se hace click fuera

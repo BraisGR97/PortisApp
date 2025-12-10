@@ -250,24 +250,20 @@
                                 </button>
 
                                 <!-- Menú de Ordenación (Dropdown) -->
-                                <div id="maintenance-sort-menu"
-                                    class="hidden absolute right-0 top-12 bg-white dark:bg-gray-800 shadow-xl rounded-xl z-20 w-48 border border-gray-200 dark:border-gray-700 p-1">
+                                <div id="maintenance-sort-menu" class="hidden maintenance-sort-menu">
                                     <button onclick="window.setMaintenanceSort('priority')"
-                                        class="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center justify-between text-sm transition-colors">
+                                        class="maintenance-sort-option">
                                         <span>Por Prioridad</span>
-                                        <i class="ph ph-check text-accent-magenta opacity-0"
-                                            id="sort-check-priority"></i>
+                                        <i class="ph ph-check sort-check-icon" id="sort-check-priority"></i>
                                     </button>
                                     <button onclick="window.setMaintenanceSort('location')"
-                                        class="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center justify-between text-sm transition-colors">
+                                        class="maintenance-sort-option">
                                         <span>Por Ubicación</span>
-                                        <i class="ph ph-check text-accent-magenta opacity-0"
-                                            id="sort-check-location"></i>
+                                        <i class="ph ph-check sort-check-icon" id="sort-check-location"></i>
                                     </button>
-                                    <button
-                                        class="w-full text-left px-3 py-2 text-gray-400 dark:text-gray-500 cursor-not-allowed rounded-lg flex items-center justify-between text-sm">
+                                    <button onclick="window.setMaintenanceSort('ai')" class="maintenance-sort-option">
                                         <span>Por IA</span>
-                                        <i class="ph ph-sparkle"></i>
+                                        <i class="ph ph-check sort-check-icon" id="sort-check-ai"></i>
                                     </button>
                                 </div>
                             </div>
