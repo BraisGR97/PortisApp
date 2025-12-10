@@ -148,6 +148,38 @@ async function saveNote(e) {
         const notesRef = getNotesCollectionRef();
         if (!notesRef) return;
 
+        // VERIFICAR LIMITE DE IMAGENES (100)
+        // Si estamos guardando una imagen, verificar si excedemos el limite
+        if (imageUrl) {
+            let existingNotesWithImages = window.currentNotesData.filter(n => n.imageUrl);
+            let isAddingNewImage = true;
+
+            if (editId) {
+                const currentNote = window.currentNotesData.find(n => n.id === editId);
+                // Si ya tenía imagen, no estamos sumando una nueva al total
+                if (currentNote && currentNote.imageUrl) isAddingNewImage = false;
+            }
+
+            if (isAddingNewImage && existingNotesWithImages.length >= 100) {
+                // Ordenar por fecha (timestmap) ascendente (más viejas primero)
+                existingNotesWithImages.sort((a, b) => {
+                    const timeA = a.timestamp && a.timestamp.toMillis ? a.timestamp.toMillis() : (a.timestamp || 0);
+                    const timeB = b.timestamp && b.timestamp.toMillis ? b.timestamp.toMillis() : (b.timestamp || 0);
+                    return timeA - timeB;
+                });
+
+                const oldestNote = existingNotesWithImages[0];
+
+                // 1. Borrar de Cloudinary
+                if (typeof window.deleteCloudinaryImage === 'function') {
+                    await window.deleteCloudinaryImage(oldestNote.imageUrl);
+                }
+
+                // 2. Borrar referencia en Firestore (sin borrar la nota)
+                await notesRef.doc(oldestNote.id).update({ imageUrl: "" });
+            }
+        }
+
         if (editId) {
             await notesRef.doc(editId).update({
                 title,

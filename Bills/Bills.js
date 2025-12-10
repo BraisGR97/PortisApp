@@ -229,6 +229,35 @@ window.saveBill = async function (e) {
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
+        // VERIFICAR LIMITE DE IMAGENES (100)
+        if (imageUrl) {
+            // Bills solo tiene CREATE, no UPDATE via formulario (saveBill usa add).
+            // (Nota: El código original solo tiene saveBill haciendo add, no update? 
+            //  Revisando saveBill: Solo hace collection.add. NO soporta edición completa de formulario, 
+            //  solo toggle status. Por tanto SIEMPRE es tarjeta nueva.)
+
+            let existingBillsWithImages = window.currentBillsData.filter(b => b.imageUrl);
+
+            if (existingBillsWithImages.length >= 100) {
+                // Ordenar por fecha (createdAt) ascendente (más viejas primero)
+                existingBillsWithImages.sort((a, b) => {
+                    const timeA = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : (a.createdAt || 0);
+                    const timeB = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : (b.createdAt || 0);
+                    return timeA - timeB;
+                });
+
+                const oldestBill = existingBillsWithImages[0];
+
+                // 1. Borrar de Cloudinary
+                if (typeof window.deleteCloudinaryImage === 'function') {
+                    await window.deleteCloudinaryImage(oldestBill.imageUrl);
+                }
+
+                // 2. Borrar referencia en Firestore
+                await getBillsCollectionRef().doc(oldestBill.id).update({ imageUrl: "" });
+            }
+        }
+
         await getBillsCollectionRef().add(billData);
         finishSave(form, submitButton, originalButtonText);
 

@@ -19,6 +19,69 @@ window.cloudinaryConfig = {
 };
 
 /**
+ * Genera un SHA-1 Hex del string dado (para firmas de Cloudinary).
+ */
+async function sha1Hex(str) {
+    const msgBuffer = new TextEncoder().encode(str);
+    const hashBuffer = await crypto.subtle.digest('SHA-1', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Elimina una imagen de Cloudinary usando la API y firma generada en cliente.
+ * REQUISITO: API Key y Secret deben estar en cloudinaryConfig.
+ */
+window.deleteCloudinaryImage = async function (imageUrl) {
+    if (!window.cloudinaryConfig || !imageUrl) return;
+
+    // Extraer public_id de la URL
+    // Formato habitual: .../upload/v123456789/folder/image.jpg
+    // Necesitamos lo que está después de la version (v...) y sin extension
+    // O simplemente el nombre de archivo sin extension si está en root.
+    // Regex robusto para extraer public_id:
+    const regex = /\/v\d+\/(.+)\.[a-z]{3,4}$/;
+    const match = imageUrl.match(regex);
+    if (!match || !match[1]) {
+        console.warn("No se pudo extraer public_id de:", imageUrl);
+        return;
+    }
+    const public_id = match[1];
+
+    const timestamp = Math.round((new Date()).getTime() / 1000);
+    const { cloudName, apiKey, apiSecret } = window.cloudinaryConfig;
+
+    if (!apiKey || !apiSecret) {
+        console.warn("Faltan credenciales Cloudinary API Key/Secret para borrar.");
+        return;
+    }
+
+    // Generar firma: public_id=...&timestamp=... + api_secret
+    const paramsToSign = `public_id=${public_id}&timestamp=${timestamp}`;
+    const stringToSign = paramsToSign + apiSecret;
+    const signature = await sha1Hex(stringToSign);
+
+    const formData = new FormData();
+    formData.append('public_id', public_id);
+    formData.append('api_key', apiKey);
+    formData.append('timestamp', timestamp);
+    formData.append('signature', signature);
+
+    try {
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+        console.log("Cloudinary Delete Result:", data);
+        return data.result === 'ok';
+    } catch (e) {
+        console.error("Error deleting from Cloudinary:", e);
+        return false;
+    }
+};
+
+/**
  * Función para cambiar entre modo claro y oscuro.
  * La inicialización del tema se hace con script inline en cada HTML para evitar FOUC.
  * Esta función solo maneja el TOGGLE del tema.

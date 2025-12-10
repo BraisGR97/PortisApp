@@ -163,7 +163,8 @@ html.light-mode body {
     /* Colores de eventos del calendario (iguales en light mode) */
     --color-event-overtime-bg: rgba(234, 88, 12, 0.7);
     --color-event-overtime-border: #ea580c;
-    --color-event-overtime-text: rgba(255, 255, 255, 0.7);
+    --color-event-overtime-text: #374151;
+    /* Dark Gray for visibility on white */
 
     --color-event-shift-bg: rgba(37, 99, 235, 0.7);
     --color-event-shift-border: #2563eb;
@@ -196,16 +197,13 @@ html.light-mode body {
 
     /* Chat Light Mode */
     --color-chat-sent-bg: #dc2626;
-    /* red-600 */
     --color-chat-sent-text: #ffffff;
-    --color-chat-received-bg: #f1f5f9;
-    /* slate-100 */
-    --color-chat-received-text: #1e293b;
-    /* slate-800 */
+    --color-chat-received-bg: #374151;
+    /* Dark background for white text */
+    --color-chat-received-text: #ffffff;
+    /* White text requested */
     --color-chat-separator-bg: #e2e8f0;
-    /* slate-200 */
     --color-chat-separator-text: #64748b;
-    /* slate-500 */
     --color-chat-input-bg: #ffffff;
     --color-chat-header-bg: rgba(255, 255, 255, 0.95);
     --color-user-avatar-bg: #e5e7eb;
@@ -619,9 +617,9 @@ html.light-mode #bottom-navbar {
 }
 
 .message-bubble.received {
-    background-color: var(--color-bg-primary);
+    background-color: var(--color-chat-received-bg);
     border: 1px solid var(--color-border);
-    color: var(--color-text-primary);
+    color: var(--color-chat-received-text);
     align-self: flex-start;
     border-bottom-left-radius: 0.25rem;
 }
@@ -630,7 +628,15 @@ html.light-mode #bottom-navbar {
     font-size: 0.65rem;
     margin-top: 0.25rem;
     opacity: 0.7;
+    /* Default for Dark Mode */
     text-align: right;
+}
+
+/* Light Mode Time Override */
+html.light-mode .message-time {
+    color: #e5e7eb;
+    /* Gris clarito para contrastar sobre el fondo oscuro del chat light mode */
+    opacity: 1;
 }
 
 
@@ -755,6 +761,23 @@ html.light-mode #bottom-navbar {
 /* Clase para texto en eventos (siempre blanco) */
 .calendar-event-text {
     color: var(--color-text-on-event);
+}
+
+/* CALENDAR LIGHT MODE OVERRIDES */
+html.light-mode .calendar-day {
+    background-color: #ffffff;
+    color: #000000;
+    border: 1px solid #e5e7eb;
+}
+
+html.light-mode .calendar-weekend-text {
+    color: var(--color-accent-magenta);
+    /* Mantener magenta en fines de semana */
+}
+
+html.light-mode .calendar-day.empty {
+    background-color: transparent;
+    border: none;
 }
 
 /* ================================================================

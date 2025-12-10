@@ -267,11 +267,11 @@ async function loadAndCalculateStats() {
         let inProgressRepairs = 0;
 
         repairs.forEach(repair => {
-            // Asumimos 'Pendiente' con mayúscula inicial, o minúscula. Normalizamos.
-            const s = repair.status || 'Pendiente';
-            if (s === 'Pendiente') {
+            const s = (repair.status || 'Pendiente').toLowerCase().trim();
+            if (s === 'pendiente') {
                 pendingRepairs++;
             } else {
+                // Cualquier otro estado cuenta como "En Progreso"
                 inProgressRepairs++;
             }
         });
