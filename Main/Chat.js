@@ -328,7 +328,7 @@
             lastRenderedDate = messageDate;
         }
 
-        const messageClass = isCurrentUser ? 'bg-red-600 ml-auto' : 'bg-gray-700 mr-auto';
+        const messageClass = isCurrentUser ? 'message-bubble sent ml-auto' : 'message-bubble received mr-auto';
         const timeString = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         // Detectar si es una imagen de Cloudinary
@@ -350,11 +350,13 @@
         // ID único para el elemento DOM
         const domId = `msg-${messageId || Date.now()}`;
 
+        // NOTA: Eliminamos style="color: var(--color-text-light);" para que herede el color de la clase CSS (.message-bubble.received -> white)
+        // Eliminamos bg-red-600 / bg-gray-700 porque ahora lo maneja .message-bubble.sent / .received en CSS
         const messageHtml = `
             <div class="flex ${isCurrentUser ? 'justify-end' : 'justify-start'}">
-                <div id="${domId}" class="max-w-xs md:max-w-md p-3 rounded-xl ${messageClass} shadow-md relative group select-none transition-transform active:scale-95 touch-manipulation cursor-pointer" style="color: var(--color-text-light);">
+                <div id="${domId}" class="max-w-xs md:max-w-md p-3 ${messageClass} shadow-md relative group select-none transition-transform active:scale-95 touch-manipulation cursor-pointer">
                     ${contentHtml}
-                    <span class="text-xs opacity-75 block mt-1 text-right select-none">${timeString}</span>
+                    <span class="message-time block mt-1 select-none">${timeString}</span>
                 </div>
             </div>
         `;
