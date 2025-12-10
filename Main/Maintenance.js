@@ -18,6 +18,7 @@
     let currentViewDate = new Date();
     let currentMaintenanceData = []; // Almacenar datos actuales para filtrado
     let currentSortMethod = localStorage.getItem('portis-maintenance-sort') || 'priority'; // 'priority' | 'location'
+    let distanceCache = {}; // Cache de distancias: { id: distance }
 
     function showMessage(type, message) {
         if (typeof window.showAppMessage === 'function') {
@@ -128,13 +129,20 @@
             if (noDataMessage) noDataMessage.classList.remove('hidden');
             if (countDisplay) countDisplay.textContent = '0';
         } else {
-            // Si el método es 'ai', necesitamos calcular distancias ANTES de renderizar si no están calculadas
+            // Si el método es 'ai', aplicamos distancias CACHEADAS si existen
             if (currentSortMethod === 'ai') {
-                // Trigger async AI sort calculation, render loop handles spinner
-                applyAiSorting(maintenanceItems);
-            } else {
-                renderMaintenanceList(maintenanceItems, currentViewDate);
+                maintenanceItems.forEach(item => {
+                    if (distanceCache[item.id] !== undefined) {
+                        item.distance = distanceCache[item.id];
+                    } else {
+                        item.distance = Infinity; // Nuevo item sin calcular
+                    }
+                });
             }
+
+            // Render (incluye el sort interno que usa item.distance si method es 'ai')
+            renderMaintenanceList(maintenanceItems, currentViewDate);
+
             if (countDisplay) countDisplay.textContent = maintenanceItems.length;
         }
     }
@@ -448,6 +456,10 @@
         }
     }
 
+    window.refreshAiSort = function () {
+        applyAiSorting();
+    }
+
     async function getCoordinatesForAddress(address) {
         // Simple cache
         const cacheKey = `geo_${address}`;
@@ -523,6 +535,10 @@
                 } else {
                     newItem.distance = Infinity;
                 }
+
+                // Guardar en cache de sesión
+                if (newItem.id) distanceCache[newItem.id] = newItem.distance;
+
                 return newItem;
             }));
 
@@ -570,8 +586,13 @@
         if (checkLocation) checkLocation.classList.toggle('opacity-0', currentSortMethod !== 'location');
         if (checkAi) checkAi.classList.toggle('opacity-0', currentSortMethod !== 'ai');
 
+        // Botón Refresh
+        const refreshBtn = document.getElementById('ai-refresh-btn');
+        if (refreshBtn) {
+            if (currentSortMethod === 'ai') refreshBtn.classList.remove('hidden');
+            else refreshBtn.classList.add('hidden');
+        }
     }
-
     // Cerrar menú si se hace click fuera
     document.addEventListener('click', (e) => {
         const menu = document.getElementById('maintenance-sort-menu');
