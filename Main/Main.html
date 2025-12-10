@@ -239,10 +239,38 @@
                                 <i class="ph ph-list-checks card-icon"></i>
                                 Pendientes
                             </h2>
-                            <button onclick="window.toggleMaintenanceSearch()"
-                                class="secondary-icon-btn p-2 rounded-full" title="Buscar">
-                                <i class="ph ph-magnifying-glass text-xl"></i>
-                            </button>
+                            <div class="flex items-center gap-2 relative">
+                                <button onclick="window.toggleMaintenanceSortMenu()"
+                                    class="secondary-icon-btn p-2 rounded-full" title="Organizar">
+                                    <i class="ph ph-sort-ascending text-xl"></i>
+                                </button>
+                                <button onclick="window.toggleMaintenanceSearch()"
+                                    class="secondary-icon-btn p-2 rounded-full" title="Buscar">
+                                    <i class="ph ph-magnifying-glass text-xl"></i>
+                                </button>
+
+                                <!-- Menú de Ordenación (Dropdown) -->
+                                <div id="maintenance-sort-menu"
+                                    class="hidden absolute right-0 top-12 bg-white dark:bg-gray-800 shadow-xl rounded-xl z-20 w-48 border border-gray-200 dark:border-gray-700 p-1">
+                                    <button onclick="window.setMaintenanceSort('priority')"
+                                        class="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center justify-between text-sm transition-colors">
+                                        <span>Por Prioridad</span>
+                                        <i class="ph ph-check text-accent-magenta opacity-0"
+                                            id="sort-check-priority"></i>
+                                    </button>
+                                    <button onclick="window.setMaintenanceSort('location')"
+                                        class="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center justify-between text-sm transition-colors">
+                                        <span>Por Ubicación</span>
+                                        <i class="ph ph-check text-accent-magenta opacity-0"
+                                            id="sort-check-location"></i>
+                                    </button>
+                                    <button
+                                        class="w-full text-left px-3 py-2 text-gray-400 dark:text-gray-500 cursor-not-allowed rounded-lg flex items-center justify-between text-sm">
+                                        <span>Por IA</span>
+                                        <i class="ph ph-sparkle"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         <div id="maintenance-search-container" class="hidden mb-4 transition-all duration-300">

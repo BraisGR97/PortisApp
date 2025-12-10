@@ -17,6 +17,7 @@
 
     let currentViewDate = new Date();
     let currentMaintenanceData = []; // Almacenar datos actuales para filtrado
+    let currentSortMethod = localStorage.getItem('portis-maintenance-sort') || 'priority'; // 'priority' | 'location'
 
     function showMessage(type, message) {
         if (typeof window.showAppMessage === 'function') {
@@ -143,13 +144,24 @@
 
         listContainer.innerHTML = '';
 
-        // Ordenar: Prioridad Alta primero, luego por ubicación
+        // Lógica de ordenación dinámica
         data.sort((a, b) => {
-            const priorityOrder = { 'Alta': 1, 'Media': 2, 'Baja': 3 };
-            const pA = priorityOrder[a.priority] || 99;
-            const pB = priorityOrder[b.priority] || 99;
-            if (pA !== pB) return pA - pB;
-            return a.location.localeCompare(b.location);
+            if (currentSortMethod === 'location') {
+                // Por Ubicación: Alfabético por location
+                // "cuantas mas palabras tengan en comun" -> Alfabético agrupa palabras iniciales idénticas
+                const locA = (a.location || '').toLowerCase();
+                const locB = (b.location || '').toLowerCase();
+                if (locA < locB) return -1;
+                if (locA > locB) return 1;
+                return 0;
+            } else {
+                // Por Prioridad (Default): Alta > Media > Baja
+                const priorityOrder = { 'Alta': 1, 'Media': 2, 'Baja': 3 };
+                const pA = priorityOrder[a.priority] || 99;
+                const pB = priorityOrder[b.priority] || 99;
+                if (pA !== pB) return pA - pB;
+                return a.location.localeCompare(b.location);
+            }
         });
 
         data.forEach(item => {
@@ -411,6 +423,54 @@
             renderMaintenanceList(currentMaintenanceData, currentViewDate);
         }
     }
+
+    // ====================================
+    // LÓGICA DE ORDENACIÓN (NUEVO)
+    // ====================================
+
+    window.toggleMaintenanceSortMenu = function () {
+        const menu = document.getElementById('maintenance-sort-menu');
+        if (menu) {
+            menu.classList.toggle('hidden');
+            updateSortMenuUI();
+        }
+    }
+
+    window.setMaintenanceSort = function (method) {
+        if (method === 'ai') return; // Disabled
+        currentSortMethod = method;
+        localStorage.setItem('portis-maintenance-sort', method);
+
+        updateSortMenuUI();
+
+        // Ocultar menú
+        const menu = document.getElementById('maintenance-sort-menu');
+        if (menu) menu.classList.add('hidden');
+
+        // Re-renderizar
+        renderMaintenanceList(currentMaintenanceData, currentViewDate);
+    }
+
+    function updateSortMenuUI() {
+        // Actualizar checkmarks visuales
+        const checkPriority = document.getElementById('sort-check-priority');
+        const checkLocation = document.getElementById('sort-check-location');
+
+        if (checkPriority) checkPriority.classList.toggle('opacity-0', currentSortMethod !== 'priority');
+        if (checkLocation) checkLocation.classList.toggle('opacity-0', currentSortMethod !== 'location');
+    }
+
+    // Cerrar menú si se hace click fuera
+    document.addEventListener('click', (e) => {
+        const menu = document.getElementById('maintenance-sort-menu');
+        const btn = document.querySelector('button[title="Organizar"]'); // Selector un poco frágil pero funcional por ahora
+
+        if (menu && !menu.classList.contains('hidden')) {
+            if (!menu.contains(e.target) && (!btn || !btn.contains(e.target))) {
+                menu.classList.add('hidden');
+            }
+        }
+    });
 
     // Listener para búsqueda en tiempo real
     document.addEventListener('DOMContentLoaded', () => {
