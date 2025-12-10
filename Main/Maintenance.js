@@ -630,6 +630,9 @@
             window.applyColorMode();
         }
 
+        // Asegurar que la UI (boton refresh) refleja el estado actual
+        updateSortMenuUI();
+
         setupFirebase().then(() => {
             window.fetchMaintenanceData();
         });
