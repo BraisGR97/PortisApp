@@ -128,7 +128,13 @@
             if (noDataMessage) noDataMessage.classList.remove('hidden');
             if (countDisplay) countDisplay.textContent = '0';
         } else {
-            renderMaintenanceList(maintenanceItems, currentViewDate);
+            // Si el método es 'ai', necesitamos calcular distancias ANTES de renderizar si no están calculadas
+            if (currentSortMethod === 'ai') {
+                // Trigger async AI sort calculation, render loop handles spinner
+                applyAiSorting(maintenanceItems);
+            } else {
+                renderMaintenanceList(maintenanceItems, currentViewDate);
+            }
             if (countDisplay) countDisplay.textContent = maintenanceItems.length;
         }
     }
@@ -478,6 +484,61 @@
         return R * c;
     }
 
+    // Nueva función dedicada a la lógica de IA para ser reutilizable y estable
+    async function applyAiSorting(baseItems) {
+        if (!navigator.geolocation) {
+            showMessage('error', 'Geolocalización no soportada.');
+            window.setMaintenanceSort('priority');
+            return;
+        }
+
+        // Mostrar estado de carga solo si vamos a tardar
+        const listContainer = document.getElementById('monthly-maintenance-list');
+        // Solo mostrar spinner si no hay items pintados o si es una acción explícita
+        if (listContainer && (baseItems || currentMaintenanceData.length > 0)) {
+            listContainer.innerHTML = '<div class="loading-spinner"></div><p class="text-center text-sm text-gray-400 mt-2 animate-pulse">Analizando rutas...</p>';
+        }
+
+        const itemsToProcess = baseItems || currentMaintenanceData;
+
+        navigator.geolocation.getCurrentPosition(async (position) => {
+            const userLat = position.coords.latitude;
+            const userLon = position.coords.longitude;
+
+            // Procesamos una copia para evitar problemas de mutación durante el render
+            // Usamos Promise.all para esperar a todas las geocodificaciones
+            const processedItems = await Promise.all(itemsToProcess.map(async (item) => {
+                // Clonamos item para no mutar el original de currentMaintenanceData inmediatamente si algo falla
+                const newItem = { ...item };
+
+                let coords = newItem.coords;
+                // Intentar recuperar de cache si no tiene coords (la cache ya la maneja getCoordinatesForAddress pero validamos aqui)
+                if (!coords) {
+                    coords = await getCoordinatesForAddress(newItem.location);
+                    newItem.coords = coords;
+                }
+
+                if (coords) {
+                    newItem.distance = calculateDistance(userLat, userLon, coords.lat, coords.lon);
+                } else {
+                    newItem.distance = Infinity;
+                }
+                return newItem;
+            }));
+
+            // Actualizamos la referencia global con los items enriquecidos
+            currentMaintenanceData = processedItems;
+
+            // Renderizamos FINALMENTE
+            renderMaintenanceList(currentMaintenanceData, currentViewDate);
+
+        }, (error) => {
+            console.error("Geoloc error:", error);
+            showMessage('error', 'Error de ubicación. Volviendo a prioridad.');
+            window.setMaintenanceSort('priority');
+        });
+    }
+
     window.setMaintenanceSort = async function (method) {
         currentSortMethod = method;
         localStorage.setItem('portis-maintenance-sort', method);
@@ -488,49 +549,7 @@
         updateSortMenuUI();
 
         if (method === 'ai') {
-            // Lógica Async para IA
-            // 1. Obtener ubicación del dispositivo
-            if (!navigator.geolocation) {
-                showMessage('error', 'Geolocalización no soportada.');
-                return;
-            }
-
-            // Mostrar estado de carga
-            const listContainer = document.getElementById('monthly-maintenance-list');
-            if (listContainer) listContainer.innerHTML = '<div class="loading-spinner"></div><p class="text-center text-sm text-gray-500 mt-2">Calculando distancias (IA)...</p>';
-
-            navigator.geolocation.getCurrentPosition(async (position) => {
-                const userLat = position.coords.latitude;
-                const userLon = position.coords.longitude;
-
-                // 2. Calcular distancias para todos los items
-                // Bloqueante para la UI, pero necesario para el sort
-                const itemsWithDistance = await Promise.all(currentMaintenanceData.map(async (item) => {
-                    let coords = item.coords;
-                    if (!coords) {
-                        coords = await getCoordinatesForAddress(item.location);
-                        // Guardar coords en el objeto en memoria para no re-fetchear en la misma sesion
-                        item.coords = coords;
-                    }
-
-                    if (coords) {
-                        item.distance = calculateDistance(userLat, userLon, coords.lat, coords.lon);
-                    } else {
-                        item.distance = Infinity; // Si falla, al final
-                    }
-                    return item;
-                }));
-
-                currentMaintenanceData = itemsWithDistance;
-                renderMaintenanceList(currentMaintenanceData, currentViewDate);
-
-            }, (error) => {
-                console.error(error);
-                showMessage('error', 'Error al obtener ubicación. Asegúrate de permitir el acceso.');
-                // Fallback a prioridad
-                window.setMaintenanceSort('priority');
-            });
-
+            await applyAiSorting(); // Usamos los datos actuales
         } else {
             // Métodos síncronos (priority, location)
             renderMaintenanceList(currentMaintenanceData, currentViewDate);
