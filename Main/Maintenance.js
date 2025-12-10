@@ -129,8 +129,8 @@
             if (noDataMessage) noDataMessage.classList.remove('hidden');
             if (countDisplay) countDisplay.textContent = '0';
         } else {
-            // Si el método es 'ai', aplicamos distancias CACHEADAS si existen
-            if (currentSortMethod === 'ai') {
+            // Si el método es 'ai' o 'location', aplicamos distancias CACHEADAS si existen
+            if (currentSortMethod === 'ai' || currentSortMethod === 'location') {
                 maintenanceItems.forEach(item => {
                     if (distanceCache[item.id] !== undefined) {
                         item.distance = distanceCache[item.id];
@@ -156,24 +156,40 @@
         const listContainer = document.getElementById('monthly-maintenance-list');
         if (!listContainer) return;
 
+        // Smart Score Helper (Definido aquí para acceso al contexto o aislado)
+        function calculateSmartScore(item) {
+            let score = item.distance !== undefined ? item.distance : 99999;
+
+            // 1. Penalización por Historial (< 21 dias)
+            // Si se completó hace poco y NO es prioridad Alta, se va al fondo
+            if (item.isRecentPenalty && item.priority !== 'Alta') {
+                score += 100000; // Penalización masiva
+            }
+
+            // 2. Modificadores de Prioridad (Reducen la distancia virtual)
+            if (item.priority === 'Alta') {
+                score *= 0.1; // Se siente 10 veces más cerca (gana a objetos cercanos de baja prioridad)
+            } else if (item.priority === 'Media') {
+                score *= 0.8; // Pequeña ventaja
+            }
+
+            return score;
+        }
+
         listContainer.innerHTML = '';
 
         // Lógica de ordenación dinámica
         data.sort((a, b) => {
             if (currentSortMethod === 'location') {
-                // Por Ubicación: Alfabético por location
-                // "cuantas mas palabras tengan en comun" -> Alfabético agrupa palabras iniciales idénticas
-                const locA = (a.location || '').toLowerCase();
-                const locB = (b.location || '').toLowerCase();
-                if (locA < locB) return -1;
-                if (locA > locB) return 1;
-                return 0;
-            } else if (currentSortMethod === 'ai') {
-                // Por Distancia (IA): Menor distancia primero
-                // Se asume que 'distance' ya ha sido calculado en el objeto
+                // Por Ubicación (AHORA ES POR DISTANCIA): Menor distancia primero
                 const distA = a.distance !== undefined ? a.distance : Infinity;
                 const distB = b.distance !== undefined ? b.distance : Infinity;
                 return distA - distB;
+            } else if (currentSortMethod === 'ai') {
+                // Por IA (Smart Score): Distancia + Prioridad + Historial
+                const scoreA = calculateSmartScore(a);
+                const scoreB = calculateSmartScore(b);
+                return scoreA - scoreB;
             } else {
                 // Por Prioridad (Default): Alta > Media > Baja
                 const priorityOrder = { 'Alta': 1, 'Media': 2, 'Baja': 3 };
@@ -457,7 +473,7 @@
     }
 
     window.refreshAiSort = function () {
-        applyAiSorting();
+        enrichMaintenanceData();
     }
 
     async function getCoordinatesForAddress(address) {
@@ -496,35 +512,56 @@
         return R * c;
     }
 
-    // Nueva función dedicada a la lógica de IA para ser reutilizable y estable
-    async function applyAiSorting(baseItems) {
+    // Función unificada para enriquecer datos (Geo + Historial) según el modo
+    async function enrichMaintenanceData(baseItems) {
         if (!navigator.geolocation) {
             showMessage('error', 'Geolocalización no soportada.');
             window.setMaintenanceSort('priority');
             return;
         }
 
-        // Mostrar estado de carga solo si vamos a tardar
+        const mode = currentSortMethod; // 'location' or 'ai'
+
+        // Mostrar estado de carga
         const listContainer = document.getElementById('monthly-maintenance-list');
-        // Solo mostrar spinner si no hay items pintados o si es una acción explícita
         if (listContainer && (baseItems || currentMaintenanceData.length > 0)) {
-            listContainer.innerHTML = '<div class="loading-spinner"></div><p class="text-center text-sm text-gray-400 mt-2 animate-pulse">Analizando rutas...</p>';
+            const msg = mode === 'ai' ? 'Analizando rutas y prioridades...' : 'Calculando distancias...';
+            listContainer.innerHTML = `<div class="loading-spinner"></div><p class="text-center text-sm text-gray-400 mt-2 animate-pulse">${msg}</p>`;
         }
 
         const itemsToProcess = baseItems || currentMaintenanceData;
+
+        // Preparar fetch de historial si es modo AI
+        let recentHistoryLocations = new Set();
+        if (mode === 'ai' && isFirebaseReady) {
+            try {
+                // Buscar completados en los ultimos 21 dias
+                const date21DaysAgo = new Date();
+                date21DaysAgo.setDate(date21DaysAgo.getDate() - 21);
+
+                const historyRef = db.collection(`users/${userId}/history`);
+                const snapshot = await historyRef
+                    .where('completedAt', '>=', date21DaysAgo)
+                    .get(); // Optimize: select only location field if possible but client filtering is ok for small scale
+
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.location) recentHistoryLocations.add(data.location);
+                });
+            } catch (err) {
+                console.error("Error fetching history for AI sort:", err);
+            }
+        }
 
         navigator.geolocation.getCurrentPosition(async (position) => {
             const userLat = position.coords.latitude;
             const userLon = position.coords.longitude;
 
-            // Procesamos una copia para evitar problemas de mutación durante el render
-            // Usamos Promise.all para esperar a todas las geocodificaciones
             const processedItems = await Promise.all(itemsToProcess.map(async (item) => {
-                // Clonamos item para no mutar el original de currentMaintenanceData inmediatamente si algo falla
                 const newItem = { ...item };
 
+                // 1. Geolocalización
                 let coords = newItem.coords;
-                // Intentar recuperar de cache si no tiene coords (la cache ya la maneja getCoordinatesForAddress pero validamos aqui)
                 if (!coords) {
                     coords = await getCoordinatesForAddress(newItem.location);
                     newItem.coords = coords;
@@ -535,22 +572,28 @@
                 } else {
                     newItem.distance = Infinity;
                 }
-
-                // Guardar en cache de sesión
                 if (newItem.id) distanceCache[newItem.id] = newItem.distance;
+
+                // 2. Comprobación de Historial (Solo AI)
+                if (mode === 'ai') {
+                    // Check if location is in recent history
+                    newItem.isRecentPenalty = recentHistoryLocations.has(newItem.location);
+                } else {
+                    newItem.isRecentPenalty = false;
+                }
 
                 return newItem;
             }));
 
-            // Actualizamos la referencia global con los items enriquecidos
+            // Actualizar referencia global
             currentMaintenanceData = processedItems;
 
-            // Renderizamos FINALMENTE
+            // Render
             renderMaintenanceList(currentMaintenanceData, currentViewDate);
 
         }, (error) => {
             console.error("Geoloc error:", error);
-            showMessage('error', 'Error de ubicación. Volviendo a prioridad.');
+            showMessage('error', 'Error de ubicación.');
             window.setMaintenanceSort('priority');
         });
     }
@@ -564,10 +607,10 @@
         if (menu) menu.classList.add('hidden');
         updateSortMenuUI();
 
-        if (method === 'ai') {
-            await applyAiSorting(); // Usamos los datos actuales
+        if (method === 'ai' || method === 'location') {
+            await enrichMaintenanceData();
         } else {
-            // Métodos síncronos (priority, location)
+            // Métodos síncronos (priority)
             renderMaintenanceList(currentMaintenanceData, currentViewDate);
         }
     }
@@ -586,10 +629,10 @@
         if (checkLocation) checkLocation.classList.toggle('opacity-0', currentSortMethod !== 'location');
         if (checkAi) checkAi.classList.toggle('opacity-0', currentSortMethod !== 'ai');
 
-        // Botón Refresh
+        // Botón Refresh (Visible en AI y en Location)
         const refreshBtn = document.getElementById('ai-refresh-btn');
         if (refreshBtn) {
-            if (currentSortMethod === 'ai') refreshBtn.classList.remove('hidden');
+            if (currentSortMethod === 'ai' || currentSortMethod === 'location') refreshBtn.classList.remove('hidden');
             else refreshBtn.classList.add('hidden');
         }
     }
