@@ -104,6 +104,10 @@
     --color-maint-summary-border: #47475f;
     --color-maint-item-bg: rgba(31, 31, 51, 0.5);
     --color-maint-item-border: #47475f;
+    /* Calendar Day Modern Variables */
+    --color-calendar-day-bg: #1f1f33;
+    --color-calendar-day-border: #2a2a3e;
+    --color-calendar-day-text: #ffffff;
 }
 
 /* Light Mode Variables */
@@ -126,6 +130,12 @@ html.light-mode body {
     --color-dash-notes-text: #ca8a04;
     --color-dash-profile-bg: #f3f4f6;
     --color-dash-profile-text: #4b5563;
+
+    /* Calendar Day Modern Variables (Light) */
+    --color-calendar-day-bg: #ffffff;
+    --color-calendar-day-border: #e2e8f0;
+    --color-calendar-day-text: #1f2937;
+    /* Gray-800 */
 
     /* Maintenance Module (Pendientes) - Light Mode */
     --color-maint-summary-bg: rgba(255, 255, 255, 0.7);
@@ -673,16 +683,16 @@ html.light-mode .message-time {
     border-radius: 0.5rem;
     /* Rounded corners like image */
     font-size: 0.875rem;
-    /* Reducido de 1rem a 0.875rem */
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    background-color: #1f1f33;
-    /* Dark background matching image */
-    border: 2px solid #2a2a3e;
-    /* Subtle border */
+
+    /* Variable-based theming */
+    background-color: var(--color-calendar-day-bg);
+    border: 2px solid var(--color-calendar-day-border);
+    color: var(--color-calendar-day-text);
+
     position: relative;
-    color: #ffffff;
     box-sizing: border-box;
     /* Incluir padding y border en el tamaño total */
     overflow: hidden;
@@ -764,11 +774,8 @@ html.light-mode .message-time {
 }
 
 /* CALENDAR LIGHT MODE OVERRIDES */
-html.light-mode .calendar-day {
-    background-color: #ffffff;
-    color: #000000;
-    border: 1px solid #e5e7eb;
-}
+/* The base class now uses variables, so strict overrides are not needed here
+   and often cause specificity issues with event colors. */
 
 html.light-mode .calendar-weekend-text {
     color: var(--color-accent-magenta);

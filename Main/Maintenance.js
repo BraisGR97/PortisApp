@@ -70,26 +70,55 @@
             const repairsRef = getRepairsCollectionRef();
             if (!repairsRef) return [];
 
-            // Consultar mantenimientos que coincidan con el mes y año, O que sean periódicos y toque este mes
-            // Simplificación: Traemos todos los pendientes y filtramos en cliente por ahora para manejar la lógica de periodicidad compleja
-            // En producción, esto debería ser una query compuesta optimizada.
+            // Consultamos tanto 'Pendiente' como 'En Progreso'
+            // Firestore no soporta 'IN' con array grande facilmente en v8, hacemos dos queries o client-side filtering.
+            // Dado que el volumen de repairs activas no deberia ser gigante, traemos las que no son 'Completado' o filtramos.
+            // Mejor strategy: Traer todo lo que NO sea 'Completado' (si existiera estado) o status 'in' ['Pendiente', 'En Progreso']
             const snapshot = await repairsRef
-                .where('status', '==', 'Pendiente')
+                .where('status', 'in', ['Pendiente', 'En Progreso'])
                 .get();
 
             const maintenanceList = [];
+            const batch = db.batch(); // Para actualizaciones automáticas
+            let batchCount = 0;
+
             snapshot.forEach(doc => {
                 const data = doc.data();
-                // Filtrar localmente por mes/año si es necesario, o incluir lógica de periodicidad
-                // Por ahora, asumimos que 'maintenance_month' y 'maintenance_year' indican la PRÓXIMA fecha
-                if (data.maintenance_month === targetMonth && data.maintenance_year === targetYear) {
+                const itemMonth = data.maintenance_month;
+                const itemYear = data.maintenance_year;
+                const currentStatus = data.status;
+
+                let shouldBeInProgress = (itemMonth === targetMonth && itemYear === targetYear);
+
+                // Lógica de transición de estado
+                // 1. Si debería estar En Progreso (es este mes) y está Pendiente -> Actualizar a En Progreso
+                if (shouldBeInProgress && currentStatus === 'Pendiente') {
+                    batch.update(doc.ref, { status: 'En Progreso' });
+                    data.status = 'En Progreso'; // Actualizamos localmente
+                    batchCount++;
+                }
+                // 2. Si NO debería estar En Progreso (es otro mes) y está En Progreso -> Volver a Pendiente
+                else if (!shouldBeInProgress && currentStatus === 'En Progreso') {
+                    batch.update(doc.ref, { status: 'Pendiente' });
+                    data.status = 'Pendiente'; // Actualizamos localmente
+                    batchCount++;
+                }
+
+                // Filtrar para la vista: Solo mostramos los que coinciden con el mes objetivo
+                if (itemMonth === targetMonth && itemYear === targetYear) {
                     maintenanceList.push({ id: doc.id, ...data });
                 }
             });
 
+            if (batchCount > 0) {
+                await batch.commit();
+                console.log(`[Maintenance] Actualizados ${batchCount} registros de estado.`);
+            }
+
             return maintenanceList;
 
         } catch (error) {
+            console.error("Error fetching/updating maintenance:", error);
             showMessage('error', 'Error al cargar mantenimientos.');
             return [];
         }
