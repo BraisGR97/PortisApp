@@ -30,6 +30,13 @@ service cloud.firestore {
       match /shared_outbox/{documentId} {
          allow read, write: if request.auth != null && request.auth.uid == userId;
       }
+
+      // Reglas para configuraciones de grupos (dentro de users)
+      // Permitir que el creador del grupo pueda crear configuraciones para todos los miembros
+      match /groupSettings/{groupId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null; // Permitir crear para cualquier usuario autenticado
+      }
     }
 
     // Regla global para collectionGroup 'shared_outbox'
@@ -52,10 +59,6 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && request.auth.uid in resource.data.members;
     }
 
-    // Reglas para configuraciones de grupos (dentro de users)
-    match /users/{userId}/groupSettings/{groupId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
 
     // Reglas para mensajes (colección global)
     match /messages/{messageId} {
