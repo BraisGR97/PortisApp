@@ -134,10 +134,63 @@
             <section id="chat-view" class="view-section">
                 <div class="card-container">
                     <div class="card-inner-content h-full flex flex-col">
-                        <h2 class="text-2xl font-bold mb-4 flex items-center gap-2 card-title">
-                            <i class="ph ph-chats-circle card-icon"></i>
-                            Mensajes
-                        </h2>
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-2xl font-bold flex items-center gap-2 card-title">
+                                <i class="ph ph-chats-circle card-icon"></i>
+                                Mensajes
+                            </h2>
+                            <div class="flex items-center gap-2 relative">
+                                <!-- Botón Crear Grupo (siempre visible) -->
+                                <button onclick="window.openCreateGroupModal()"
+                                    class="secondary-icon-btn p-2 rounded-full" title="Crear Grupo">
+                                    <i class="ph ph-plus text-xl"></i>
+                                </button>
+                                <!-- Botón Filtro por Empresa -->
+                                <button onclick="window.toggleChatCompanyMenu()"
+                                    class="secondary-icon-btn p-2 rounded-full" title="Filtrar por Empresa">
+                                    <i class="ph ph-buildings text-xl"></i>
+                                </button>
+                                <!-- Botón Buscar -->
+                                <button onclick="window.toggleChatSearch()" class="secondary-icon-btn p-2 rounded-full"
+                                    title="Buscar">
+                                    <i class="ph ph-magnifying-glass text-xl"></i>
+                                </button>
+
+                                <!-- Menú de Filtro por Empresa (Dropdown) -->
+                                <div id="chat-company-menu" class="hidden maintenance-sort-menu">
+                                    <button onclick="window.setChatCompanyFilter('all')"
+                                        class="maintenance-sort-option">
+                                        <span>Todos</span>
+                                        <i class="ph ph-check sort-check-icon" id="company-check-all"></i>
+                                    </button>
+                                    <button onclick="window.setChatCompanyFilter('otis')"
+                                        class="maintenance-sort-option">
+                                        <span>OTIS</span>
+                                        <i class="ph ph-check sort-check-icon" id="company-check-otis"></i>
+                                    </button>
+                                    <button onclick="window.setChatCompanyFilter('enor')"
+                                        class="maintenance-sort-option">
+                                        <span>ENOR</span>
+                                        <i class="ph ph-check sort-check-icon" id="company-check-enor"></i>
+                                    </button>
+                                    <button onclick="window.setChatCompanyFilter('portis')"
+                                        class="maintenance-sort-option">
+                                        <span>PORTIS</span>
+                                        <i class="ph ph-check sort-check-icon" id="company-check-portis"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Barra de búsqueda -->
+                        <div id="chat-search-container" class="hidden mb-4 transition-all duration-300">
+                            <div class="relative">
+                                <i
+                                    class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                <input id="chat-search-input" type="text" placeholder="Buscar por nombre de usuario..."
+                                    class="minimal-input w-full pl-10">
+                            </div>
+                        </div>
 
                         <div id="user-list-container" class="space-y-3 overflow-y-auto flex-grow">
                             <div class="loading-spinner"></div>
@@ -432,7 +485,12 @@
                     <i class="ph ph-arrow-left text-xl"></i>
                 </button>
                 <h3 id="chat-recipient-name" class="text-lg font-bold mx-auto">Chat</h3>
-                <div class="w-10"></div> <!-- Espaciador para centrar titulo -->
+                <!-- Botón de ajustes (solo visible para grupos) -->
+                <button id="group-settings-btn" onclick="window.openGroupSettings()"
+                    class="secondary-icon-btn p-2 rounded-full hidden">
+                    <i class="ph ph-gear text-xl"></i>
+                </button>
+                <div id="chat-header-spacer" class="w-10"></div> <!-- Espaciador para centrar titulo -->
             </div>
 
             <div id="chat-messages-container" class="chat-messages-area flex-grow p-4 overflow-y-auto space-y-3">
@@ -477,6 +535,75 @@
                 class="secondary-btn w-full rounded-lg justify-center h-12">
                 Cancelar
             </button>
+        </div>
+    </div>
+
+    <!-- Modal Crear Grupo -->
+    <div id="create-group-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 modal-backdrop"
+        onclick="closeModal('create-group-modal')">
+        <div class="modal-content w-full max-w-md rounded-xl p-6" onclick="event.stopPropagation()">
+            <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <i class="ph ph-users-three text-accent-magenta"></i>
+                Crear Grupo
+            </h3>
+
+            <!-- Nombre del grupo -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2">Nombre del Grupo</label>
+                <input type="text" id="group-name-input" placeholder="Ej: Equipo Técnico" class="minimal-input w-full"
+                    maxlength="50">
+            </div>
+
+            <!-- Selección de usuarios -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2">Seleccionar Usuarios</label>
+                <div id="group-users-list"
+                    class="max-h-60 overflow-y-auto space-y-2 p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
+                    <!-- Lista de usuarios generada por JS -->
+                </div>
+            </div>
+
+            <!-- Botones -->
+            <div class="flex gap-3">
+                <button onclick="closeModal('create-group-modal')"
+                    class="secondary-btn w-1/2 rounded-lg">Cancelar</button>
+                <button onclick="window.createGroup()" class="primary-btn w-1/2 rounded-lg">Crear Grupo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ajustes de Grupo -->
+    <div id="group-settings-modal" class="fixed inset-0 z-[110] hidden items-center justify-center p-4 modal-backdrop"
+        onclick="closeModal('group-settings-modal')">
+        <div class="modal-content w-full max-w-sm rounded-xl p-6" onclick="event.stopPropagation()">
+            <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <i class="ph ph-gear text-accent-magenta"></i>
+                Ajustes del Grupo
+            </h3>
+
+            <div class="space-y-3">
+                <!-- Silenciar grupo -->
+                <div class="flex items-center justify-between p-3 rounded-lg bg-gray-100 dark:bg-gray-800">
+                    <div class="flex items-center gap-3">
+                        <i class="ph ph-bell-slash text-xl text-gray-600 dark:text-gray-400"></i>
+                        <span class="font-medium">Silenciar Notificaciones</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="group-mute-toggle">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+
+                <!-- Salir del grupo -->
+                <button onclick="window.leaveGroup()"
+                    class="w-full p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-medium flex items-center justify-center gap-2 hover:bg-red-100 dark:hover:bg-red-900/30 transition">
+                    <i class="ph ph-sign-out text-xl"></i>
+                    Salir del Grupo
+                </button>
+            </div>
+
+            <button onclick="closeModal('group-settings-modal')"
+                class="secondary-btn w-full mt-4 rounded-lg">Cerrar</button>
         </div>
     </div>
 

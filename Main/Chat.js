@@ -510,9 +510,13 @@
             }
         }
 
-        // Renderizar solo si existe el contenedor (estamos en vista Chat)
+        // 🔑 CLAVE: Usar sistema de caché y filtrado si está disponible
         if (userListContainer) {
-            renderUserList(users, {});
+            if (typeof window.cacheAndFilterUsers === 'function') {
+                window.cacheAndFilterUsers(users);
+            } else {
+                renderUserList(users, {});
+            }
         }
 
         // Comprobar mensajes no leídos para cada usuario (siempre, para el badge global)
@@ -752,5 +756,311 @@
 
     // Hacer la función de inicialización global
     window.initChat = initChat;
+
+    // Exponer renderUserList para las funciones de filtrado
+    window.renderChatUserList = renderUserList;
+
+    // ===============================================
+    // FUNCIONALIDADES ADICIONALES: BÚSQUEDA, FILTROS Y GRUPOS
+    // ===============================================
+
+    // Variables para filtros y búsqueda
+    let currentCompanyFilter = 'all';
+    let currentSearchTerm = '';
+    let allUsers = []; // Cache de todos los usuarios
+    let currentGroupId = null; // ID del grupo actual en el modal
+
+    // ===============================================
+    // BÚSQUEDA DE USUARIOS
+    // ===============================================
+
+    window.toggleChatSearch = function () {
+        const searchContainer = document.getElementById('chat-search-container');
+        const searchInput = document.getElementById('chat-search-input');
+
+        if (searchContainer.classList.contains('hidden')) {
+            searchContainer.classList.remove('hidden');
+            setTimeout(() => searchInput?.focus(), 100);
+        } else {
+            searchContainer.classList.add('hidden');
+            searchInput.value = '';
+            currentSearchTerm = '';
+            filterAndRenderUsers();
+        }
+    };
+
+    // Event listener para búsqueda en tiempo real
+    document.addEventListener('DOMContentLoaded', () => {
+        const searchInput = document.getElementById('chat-search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                currentSearchTerm = e.target.value.toLowerCase().trim();
+                filterAndRenderUsers();
+            });
+        }
+    });
+
+    // ===============================================
+    // FILTRO POR EMPRESA
+    // ===============================================
+
+    window.toggleChatCompanyMenu = function () {
+        const menu = document.getElementById('chat-company-menu');
+        if (menu) {
+            menu.classList.toggle('hidden');
+        }
+    };
+
+    window.setChatCompanyFilter = function (company) {
+        currentCompanyFilter = company;
+
+        // Actualizar checks visuales
+        ['all', 'otis', 'enor', 'portis'].forEach(c => {
+            const check = document.getElementById(`company-check-${c}`);
+            if (check) {
+                check.style.opacity = c === company ? '1' : '0';
+            }
+        });
+
+        // Cerrar menú
+        const menu = document.getElementById('chat-company-menu');
+        if (menu) menu.classList.add('hidden');
+
+        // Filtrar usuarios
+        filterAndRenderUsers();
+    };
+
+    // ===============================================
+    // FILTRADO Y RENDERIZADO
+    // ===============================================
+
+    function filterAndRenderUsers() {
+        let filteredUsers = [...allUsers];
+
+        // Filtrar por empresa
+        if (currentCompanyFilter !== 'all') {
+            filteredUsers = filteredUsers.filter(user =>
+                (user.company || 'otis') === currentCompanyFilter
+            );
+        }
+
+        // Filtrar por búsqueda
+        if (currentSearchTerm) {
+            filteredUsers = filteredUsers.filter(user =>
+                user.name.toLowerCase().includes(currentSearchTerm)
+            );
+        }
+
+        // Renderizar
+        renderUserList(filteredUsers, {});
+    }
+
+    // Interceptar la carga de usuarios para cachearlos
+    window.cacheAndFilterUsers = function (users) {
+        allUsers = users;
+        filterAndRenderUsers();
+    };
+
+    // ===============================================
+    // CREAR GRUPO
+    // ===============================================
+
+    window.openCreateGroupModal = function () {
+        const modal = document.getElementById('create-group-modal');
+        const usersList = document.getElementById('group-users-list');
+        const groupNameInput = document.getElementById('group-name-input');
+
+        if (!modal || !usersList) return;
+
+        // Limpiar input
+        if (groupNameInput) groupNameInput.value = '';
+
+        // Renderizar lista de usuarios con checkboxes
+        usersList.innerHTML = allUsers.map(user => `
+            <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer transition">
+                <input type="checkbox" class="group-user-checkbox w-4 h-4 rounded" value="${user.id}" data-name="${user.name}">
+                <div class="flex items-center gap-2 flex-grow">
+                    <div class="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
+                        <img src="${user.photoURL || (typeof window.getCompanyLogo === 'function' ? window.getCompanyLogo(user.company || 'otis') : '../assets/Otis.png')}" 
+                             alt="${user.name.charAt(0)}" class="w-full h-full object-cover">
+                    </div>
+                    <span class="font-medium">${user.name}</span>
+                </div>
+            </label>
+        `).join('');
+
+        // Mostrar modal
+        if (typeof window.showModal === 'function') {
+            window.showModal('create-group-modal');
+        }
+    };
+
+    window.createGroup = async function () {
+        const groupNameInput = document.getElementById('group-name-input');
+        const groupName = groupNameInput?.value.trim();
+
+        if (!groupName) {
+            alert('Por favor, introduce un nombre para el grupo');
+            return;
+        }
+
+        // Obtener usuarios seleccionados
+        const checkboxes = document.querySelectorAll('.group-user-checkbox:checked');
+        const selectedUsers = Array.from(checkboxes).map(cb => cb.value);
+
+        if (selectedUsers.length === 0) {
+            alert('Por favor, selecciona al menos un usuario');
+            return;
+        }
+
+        try {
+            const userId = sessionStorage.getItem('portis-user-identifier');
+            if (!userId || !window.db) return;
+
+            // Agregar el usuario actual al grupo
+            const members = [userId, ...selectedUsers];
+
+            // Crear grupo en Firestore
+            const groupData = {
+                name: groupName,
+                members: members,
+                createdBy: userId,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                isGroup: true
+            };
+
+            const groupRef = await window.db.collection('groups').add(groupData);
+
+            // Crear documento de configuración para cada miembro
+            for (const memberId of members) {
+                await window.db.collection('users').doc(memberId).collection('groupSettings').doc(groupRef.id).set({
+                    muted: false,
+                    joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+
+            console.log('✅ Grupo creado:', groupRef.id);
+
+            // Cerrar modal
+            if (typeof window.closeModal === 'function') {
+                window.closeModal('create-group-modal');
+            }
+
+            // Recargar lista de usuarios/grupos
+            if (typeof window.loadChatList === 'function') {
+                window.loadChatList();
+            }
+
+        } catch (error) {
+            console.error('❌ Error creating group:', error);
+            alert('Error al crear el grupo. Inténtalo de nuevo.');
+        }
+    };
+
+    // ===============================================
+    // AJUSTES DE GRUPO
+    // ===============================================
+
+    window.openGroupSettings = function () {
+        if (!currentGroupId) return;
+
+        const userId = sessionStorage.getItem('portis-user-identifier');
+        if (!userId || !window.db) return;
+
+        // Cargar configuración del grupo
+        window.db.collection('users').doc(userId).collection('groupSettings').doc(currentGroupId).get()
+            .then(doc => {
+                const muteToggle = document.getElementById('group-mute-toggle');
+                if (muteToggle && doc.exists) {
+                    muteToggle.checked = doc.data().muted || false;
+                }
+
+                // Mostrar modal
+                if (typeof window.showModal === 'function') {
+                    window.showModal('group-settings-modal');
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error loading group settings:', error);
+            });
+
+        // Event listener para el toggle de silenciar
+        const muteToggle = document.getElementById('group-mute-toggle');
+        if (muteToggle) {
+            muteToggle.onchange = async function () {
+                try {
+                    await window.db.collection('users').doc(userId).collection('groupSettings').doc(currentGroupId).update({
+                        muted: muteToggle.checked
+                    });
+                    console.log('✅ Group mute status updated');
+                } catch (error) {
+                    console.error('❌ Error updating mute status:', error);
+                }
+            };
+        }
+    };
+
+    window.leaveGroup = async function () {
+        if (!currentGroupId) return;
+
+        const confirmed = confirm('¿Estás seguro de que quieres salir de este grupo?');
+        if (!confirmed) return;
+
+        try {
+            const userId = sessionStorage.getItem('portis-user-identifier');
+            if (!userId || !window.db) return;
+
+            // Eliminar usuario de la lista de miembros del grupo
+            const groupRef = window.db.collection('groups').doc(currentGroupId);
+            await groupRef.update({
+                members: firebase.firestore.FieldValue.arrayRemove(userId)
+            });
+
+            // Eliminar configuración del grupo para este usuario
+            await window.db.collection('users').doc(userId).collection('groupSettings').doc(currentGroupId).delete();
+
+            console.log('✅ Left group successfully');
+
+            // Cerrar modales
+            if (typeof window.closeModal === 'function') {
+                window.closeModal('group-settings-modal');
+                window.closeModal('message-modal');
+            }
+
+            // Recargar lista
+            if (typeof window.loadChatList === 'function') {
+                window.loadChatList();
+            }
+
+        } catch (error) {
+            console.error('❌ Error leaving group:', error);
+            alert('Error al salir del grupo. Inténtalo de nuevo.');
+        }
+    };
+
+    // ===============================================
+    // HELPER: GUARDAR ID DE GRUPO ACTUAL
+    // ===============================================
+
+    window.setCurrentGroupId = function (groupId) {
+        currentGroupId = groupId;
+
+        // Mostrar/ocultar botón de ajustes
+        const settingsBtn = document.getElementById('group-settings-btn');
+        const spacer = document.getElementById('chat-header-spacer');
+
+        if (groupId) {
+            // Es un grupo, mostrar botón de ajustes
+            if (settingsBtn) settingsBtn.classList.remove('hidden');
+            if (spacer) spacer.classList.add('hidden');
+        } else {
+            // Es un chat individual, ocultar botón de ajustes
+            if (settingsBtn) settingsBtn.classList.add('hidden');
+            if (spacer) spacer.classList.remove('hidden');
+        }
+    };
+
+    // Inicializar filtro por defecto
+    window.setChatCompanyFilter('all');
 
 })(); // ⬅️ FIN: Cierra la IIFE
