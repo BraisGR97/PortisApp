@@ -448,6 +448,13 @@ html.light-mode #geometric-wrapper {
     color: var(--color-accent-magenta);
 }
 
+.secondary-icon-btn.btn-active {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-accent-magenta);
+    color: var(--color-accent-magenta);
+}
+
+
 /* ================================================================
    NAVBARS
    ================================================================ */
@@ -562,6 +569,21 @@ html.light-mode #bottom-navbar {
     justify-content: flex-end;
     gap: 0.75rem;
 }
+
+/* Estilos para modal de crear grupo */
+#group-users-list {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+}
+
+#group-users-list label {
+    color: var(--color-text-primary);
+}
+
+#group-users-list label:hover {
+    background-color: var(--color-bg-tertiary);
+}
+
 
 /* ================================================================
    UTILIDADES

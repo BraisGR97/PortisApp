@@ -777,12 +777,15 @@
     window.toggleChatSearch = function () {
         const searchContainer = document.getElementById('chat-search-container');
         const searchInput = document.getElementById('chat-search-input');
+        const searchBtn = document.querySelector('[onclick="window.toggleChatSearch()"]');
 
         if (searchContainer.classList.contains('hidden')) {
             searchContainer.classList.remove('hidden');
+            if (searchBtn) searchBtn.classList.add('btn-active');
             setTimeout(() => searchInput?.focus(), 100);
         } else {
             searchContainer.classList.add('hidden');
+            if (searchBtn) searchBtn.classList.remove('btn-active');
             searchInput.value = '';
             currentSearchTerm = '';
             filterAndRenderUsers();
@@ -835,6 +838,9 @@
     // ===============================================
 
     function filterAndRenderUsers() {
+        const userListContainer = document.getElementById('user-list-container');
+        if (!userListContainer) return;
+
         let filteredUsers = [...allUsers];
 
         // Filtrar por empresa
@@ -877,10 +883,10 @@
 
         // Renderizar lista de usuarios con checkboxes
         usersList.innerHTML = allUsers.map(user => `
-            <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer transition">
+            <label class="flex items-center gap-3 p-2 rounded-lg cursor-pointer transition" style="color: var(--color-text-primary);">
                 <input type="checkbox" class="group-user-checkbox w-4 h-4 rounded" value="${user.id}" data-name="${user.name}">
                 <div class="flex items-center gap-2 flex-grow">
-                    <div class="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden" style="background-color: var(--color-bg-tertiary);">
                         <img src="${user.photoURL || (typeof window.getCompanyLogo === 'function' ? window.getCompanyLogo(user.company || 'otis') : '../assets/Otis.png')}" 
                              alt="${user.name.charAt(0)}" class="w-full h-full object-cover">
                     </div>
@@ -1003,23 +1009,94 @@
     window.leaveGroup = async function () {
         if (!currentGroupId) return;
 
-        const confirmed = confirm('¿Estás seguro de que quieres salir de este grupo?');
-        if (!confirmed) return;
-
         try {
             const userId = sessionStorage.getItem('portis-user-identifier');
             if (!userId || !window.db) return;
 
-            // Eliminar usuario de la lista de miembros del grupo
-            const groupRef = window.db.collection('groups').doc(currentGroupId);
-            await groupRef.update({
-                members: firebase.firestore.FieldValue.arrayRemove(userId)
-            });
+            // Obtener información del grupo
+            const groupDoc = await window.db.collection('groups').doc(currentGroupId).get();
 
-            // Eliminar configuración del grupo para este usuario
-            await window.db.collection('users').doc(userId).collection('groupSettings').doc(currentGroupId).delete();
+            if (!groupDoc.exists) {
+                console.error('❌ Group not found');
+                return;
+            }
 
-            console.log('✅ Left group successfully');
+            const groupData = groupDoc.data();
+            const members = groupData.members || [];
+
+            // Verificar si es el último miembro
+            if (members.length === 1 && members[0] === userId) {
+                // Es el último usuario - Confirmar eliminación completa del grupo
+                const confirmed = confirm('Eres el último miembro del grupo. ¿Estás seguro de que quieres eliminar el grupo completamente? Se borrarán todos los mensajes e imágenes.');
+                if (!confirmed) return;
+
+                console.log('🗑️ Deleting entire group:', currentGroupId);
+
+                // 1. Obtener todos los mensajes del grupo para eliminar imágenes de Cloudinary
+                const messagesSnapshot = await window.db.collection('messages')
+                    .where('chatId', '==', currentGroupId)
+                    .get();
+
+                // 2. Eliminar imágenes de Cloudinary
+                const cloudinaryDeletePromises = [];
+                messagesSnapshot.forEach(doc => {
+                    const messageData = doc.data();
+                    if (messageData.imageUrl && messageData.cloudinaryPublicId) {
+                        // Llamar a función de eliminación de Cloudinary si existe
+                        if (typeof window.deleteCloudinaryImage === 'function') {
+                            cloudinaryDeletePromises.push(
+                                window.deleteCloudinaryImage(messageData.cloudinaryPublicId)
+                            );
+                        }
+                    }
+                });
+
+                // Esperar a que se eliminen todas las imágenes de Cloudinary
+                if (cloudinaryDeletePromises.length > 0) {
+                    await Promise.all(cloudinaryDeletePromises);
+                    console.log('✅ Deleted', cloudinaryDeletePromises.length, 'images from Cloudinary');
+                }
+
+                // 3. Eliminar todos los mensajes del grupo
+                const messageDeletePromises = [];
+                messagesSnapshot.forEach(doc => {
+                    messageDeletePromises.push(doc.ref.delete());
+                });
+                await Promise.all(messageDeletePromises);
+                console.log('✅ Deleted', messageDeletePromises.length, 'messages');
+
+                // 4. Eliminar configuraciones de grupo de todos los usuarios
+                const settingsSnapshot = await window.db.collectionGroup('groupSettings')
+                    .where(firebase.firestore.FieldPath.documentId(), '==', currentGroupId)
+                    .get();
+
+                const settingsDeletePromises = [];
+                settingsSnapshot.forEach(doc => {
+                    settingsDeletePromises.push(doc.ref.delete());
+                });
+                await Promise.all(settingsDeletePromises);
+                console.log('✅ Deleted group settings for all users');
+
+                // 5. Eliminar el documento del grupo
+                await window.db.collection('groups').doc(currentGroupId).delete();
+                console.log('✅ Group completely deleted');
+
+            } else {
+                // No es el último usuario - Solo salir del grupo
+                const confirmed = confirm('¿Estás seguro de que quieres salir de este grupo?');
+                if (!confirmed) return;
+
+                // Eliminar usuario de la lista de miembros del grupo
+                const groupRef = window.db.collection('groups').doc(currentGroupId);
+                await groupRef.update({
+                    members: firebase.firestore.FieldValue.arrayRemove(userId)
+                });
+
+                // Eliminar configuración del grupo para este usuario
+                await window.db.collection('users').doc(userId).collection('groupSettings').doc(currentGroupId).delete();
+
+                console.log('✅ Left group successfully');
+            }
 
             // Cerrar modales
             if (typeof window.closeModal === 'function') {
@@ -1030,10 +1107,15 @@
             // Recargar lista
             if (typeof window.loadChatList === 'function') {
                 window.loadChatList();
+            } else {
+                // Recargar usuarios si loadChatList no existe
+                if (typeof window.loadUsers === 'function') {
+                    window.loadUsers();
+                }
             }
 
         } catch (error) {
-            console.error('❌ Error leaving group:', error);
+            console.error('❌ Error leaving/deleting group:', error);
             alert('Error al salir del grupo. Inténtalo de nuevo.');
         }
     };
