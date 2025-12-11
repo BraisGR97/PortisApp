@@ -1082,6 +1082,10 @@
     // CREAR GRUPO
     // ===============================================
 
+    // ===============================================
+    // CREAR GRUPO
+    // ===============================================
+
     window.openCreateGroupModal = function () {
         const modal = document.getElementById('create-group-modal');
         const usersList = document.getElementById('group-users-list');
@@ -1092,8 +1096,10 @@
         // Limpiar input
         if (groupNameInput) groupNameInput.value = '';
 
-        // Renderizar lista de usuarios con checkboxes
-        usersList.innerHTML = allUsers.map(user => `
+        // Renderizar lista de usuarios con checkboxes (Excluir grupos)
+        usersList.innerHTML = allUsers
+            .filter(user => !user.isGroup) // 🚨 FILTRO: No mostrar grupos en la selección
+            .map(user => `
             <label class="flex items-center gap-3 p-2 rounded-lg cursor-pointer transition" style="color: var(--color-text-primary);">
                 <input type="checkbox" class="group-user-checkbox w-4 h-4 rounded" value="${user.id}" data-name="${user.name}">
                 <div class="flex items-center gap-2 flex-grow">
@@ -1109,6 +1115,82 @@
         // Mostrar modal
         if (typeof window.showModal === 'function') {
             window.showModal('create-group-modal');
+        }
+    };
+
+    // Confirmación Genérica
+    window.showConfirmationModal = function (title, message, onConfirm) {
+        const modal = document.getElementById('confirmation-modal');
+        const titleEl = document.getElementById('confirmation-title');
+        const msgEl = document.getElementById('confirmation-message');
+        const okBtn = document.getElementById('confirmation-ok-btn');
+
+        if (titleEl) titleEl.textContent = title;
+        if (msgEl) msgEl.textContent = message;
+
+        // Limpiar listeners anteriores clonando
+        const newOkBtn = okBtn.cloneNode(true);
+        okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+
+        newOkBtn.addEventListener('click', () => {
+            onConfirm();
+            if (typeof window.closeModal === 'function') window.closeModal('confirmation-modal');
+        });
+
+        if (typeof window.showModal === 'function') window.showModal('confirmation-modal');
+    };
+
+    window.showLeaveGroupConfirmation = function () {
+        window.showConfirmationModal(
+            'Salir del Grupo',
+            '¿Estás seguro de que quieres salir de este grupo?',
+            window.leaveGroup
+        );
+    };
+
+    // ===============================================
+    // AJUSTES DEL GRUPO
+    // ===============================================
+
+    window.openGroupSettings = function () {
+        const modal = document.getElementById('group-settings-modal');
+        // Validar si estamos en un grupo real o chat individual
+        const isGroup = currentGroupId !== null && !currentGroupId.startsWith('chat_'); // Lógica simple, o consultar flag
+
+        // Si no es un grupo, ocultar el botón de "Salir del Grupo"
+        const btnLeave = document.getElementById('btn-leave-group');
+        if (btnLeave) {
+            btnLeave.style.display = currentGroupId ? 'flex' : 'none';
+        }
+
+        if (!modal || !currentGroupId) return;
+
+        // Configurar toggle de silenciado
+        const muteToggle = document.getElementById('group-mute-toggle');
+        if (muteToggle) {
+            // Obtener estado actual
+            db.collection('users').doc(getUserId()).collection('groupSettings').doc(currentGroupId)
+                .get()
+                .then(doc => {
+                    muteToggle.checked = doc.exists && doc.data().muted;
+                })
+                .catch(err => console.error("Error getting mute status", err));
+
+            // Listener cambio (corregido con set merge)
+            muteToggle.onchange = function () {
+                const isMuted = this.checked;
+                db.collection('users').doc(getUserId()).collection('groupSettings').doc(currentGroupId)
+                    .set({ muted: isMuted }, { merge: true }) // 🚨 CLAVE: merge: true crea si no existe
+                    .catch(err => {
+                        console.error('❌ Error updating mute status:', err);
+                        alert('Error al actualizar estado: ' + err.message);
+                        this.checked = !isMuted; // Revertir visualmente
+                    });
+            };
+        }
+
+        if (typeof window.showModal === 'function') {
+            window.showModal('group-settings-modal');
         }
     };
 
@@ -1179,47 +1261,8 @@
     };
 
     // ===============================================
-    // AJUSTES DE GRUPO
+    // LÓGICA DE SALIR / ELIMINAR GRUPO
     // ===============================================
-
-    window.openGroupSettings = function () {
-        if (!currentGroupId) return;
-
-        const userId = getUserId();
-        if (!userId || !db) return;
-
-        // Cargar configuración del grupo
-        db.collection('users').doc(userId).collection('groupSettings').doc(currentGroupId).get()
-            .then(doc => {
-                const muteToggle = document.getElementById('group-mute-toggle');
-                if (muteToggle && doc.exists) {
-                    muteToggle.checked = doc.data().muted || false;
-                }
-
-                // Mostrar modal
-                if (typeof window.showModal === 'function') {
-                    window.showModal('group-settings-modal');
-                }
-            })
-            .catch(error => {
-                console.error('❌ Error loading group settings:', error);
-            });
-
-        // Event listener para el toggle de silenciar
-        const muteToggle = document.getElementById('group-mute-toggle');
-        if (muteToggle) {
-            muteToggle.onchange = async function () {
-                try {
-                    await db.collection('users').doc(userId).collection('groupSettings').doc(currentGroupId).update({
-                        muted: muteToggle.checked
-                    });
-                    console.log('✅ Group mute status updated');
-                } catch (error) {
-                    console.error('❌ Error updating mute status:', error);
-                }
-            };
-        }
-    };
 
     window.leaveGroup = async function () {
         if (!currentGroupId) return;
@@ -1233,6 +1276,7 @@
 
             if (!groupDoc.exists) {
                 console.error('❌ Group not found');
+                finishGroupExit();
                 return;
             }
 
@@ -1241,92 +1285,105 @@
 
             // Verificar si es el último miembro
             if (members.length === 1 && members[0] === userId) {
-                // Es el último usuario - Confirmar eliminación completa del grupo
-                const confirmed = confirm('Eres el último miembro del grupo. ¿Estás seguro de que quieres eliminar el grupo completamente? Se borrarán todos los mensajes e imágenes.');
-                if (!confirmed) return;
-
-                console.log('🗑️ Deleting entire group:', currentGroupId);
-
-                // 1. Obtener todos los mensajes del grupo para eliminar imágenes de Cloudinary
-                const messagesSnapshot = await db.collection('messages')
-                    .where('chatId', '==', currentGroupId)
-                    .get();
-
-                // 2. Eliminar imágenes de Cloudinary
-                const cloudinaryDeletePromises = [];
-                messagesSnapshot.forEach(doc => {
-                    const messageData = doc.data();
-                    if (messageData.imageUrl && messageData.cloudinaryPublicId) {
-                        // Llamar a función de eliminación de Cloudinary si existe
-                        if (typeof window.deleteCloudinaryImage === 'function') {
-                            cloudinaryDeletePromises.push(
-                                window.deleteCloudinaryImage(messageData.cloudinaryPublicId)
-                            );
-                        }
-                    }
-                });
-
-                // Esperar a que se eliminen todas las imágenes de Cloudinary
-                if (cloudinaryDeletePromises.length > 0) {
-                    await Promise.all(cloudinaryDeletePromises);
-                    console.log('✅ Deleted', cloudinaryDeletePromises.length, 'images from Cloudinary');
-                }
-
-                // 3. Eliminar todos los mensajes del grupo
-                const messageDeletePromises = [];
-                messagesSnapshot.forEach(doc => {
-                    messageDeletePromises.push(doc.ref.delete());
-                });
-                await Promise.all(messageDeletePromises);
-                console.log('✅ Deleted', messageDeletePromises.length, 'messages');
-
-                // 4. Eliminar configuraciones de grupo de todos los usuarios
-                const settingsSnapshot = await db.collectionGroup('groupSettings')
-                    .where(firebase.firestore.FieldPath.documentId(), '==', currentGroupId)
-                    .get();
-
-                const settingsDeletePromises = [];
-                settingsSnapshot.forEach(doc => {
-                    settingsDeletePromises.push(doc.ref.delete());
-                });
-                await Promise.all(settingsDeletePromises);
-                console.log('✅ Deleted group settings for all users');
-
-                // 5. Eliminar el documento del grupo
-                await db.collection('groups').doc(currentGroupId).delete();
-                console.log('✅ Group completely deleted');
-
-            } else {
-                // No es el último usuario - Solo salir del grupo
-                const confirmed = confirm('¿Estás seguro de que quieres salir de este grupo?');
-                if (!confirmed) return;
-
-                // Eliminar usuario de la lista de miembros del grupo
-                const groupRef = db.collection('groups').doc(currentGroupId);
-                await groupRef.update({
-                    members: firebase.firestore.FieldValue.arrayRemove(userId)
-                });
-
-                // Eliminar configuración del grupo para este usuario
-                await db.collection('users').doc(userId).collection('groupSettings').doc(currentGroupId).delete();
-
-                console.log('✅ Left group successfully');
+                // Es el último usuario - Pedir confirmación para eliminar
+                window.showConfirmationModal(
+                    'Eliminar Grupo',
+                    'Eres el último miembro. Al salir, el grupo y todos sus mensajes se eliminarán permanentemente. ¿Continuar?',
+                    window.deleteGroup // Llamar a deleteGroup si confirma
+                );
+                return;
             }
 
-            // Cerrar modales
-            if (typeof window.closeModal === 'function') {
-                window.closeModal('group-settings-modal');
-                window.closeModal('message-modal');
-            }
+            // No es el último usuario - Proceder a salir
+            // Eliminar usuario de la lista de miembros del grupo
+            await db.collection('groups').doc(currentGroupId).update({
+                members: firebase.firestore.FieldValue.arrayRemove(userId)
+            });
 
-            // Recargar lista
-            loadUsers();
+            // Eliminar configuración del grupo para este usuario
+            await db.collection('users').doc(userId).collection('groupSettings').doc(currentGroupId).delete();
+
+            console.log('✅ Left group successfully');
+            finishGroupExit();
 
         } catch (error) {
-            console.error('❌ Error leaving/deleting group:', error);
-            alert('Error al salir del grupo. Inténtalo de nuevo.');
+            console.error('❌ Error leaving group:', error);
+            alert('Error al salir del grupo: ' + error.message);
         }
     };
+
+    window.deleteGroup = async function () {
+        if (!currentGroupId) return;
+
+        try {
+            console.log('🗑️ Deleting entire group:', currentGroupId);
+
+            // 1. Obtener mensajes (para borrar imágenes y docs)
+            const messagesSnapshot = await db.collection('messages')
+                .where('chatId', '==', currentGroupId)
+                .get();
+
+            // 2. Borrar imágenes de Cloudinary (si hubieran)
+            const cloudinaryDeletePromises = [];
+            messagesSnapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.cloudinaryPublicId && typeof window.deleteCloudinaryImage === 'function') {
+                    cloudinaryDeletePromises.push(window.deleteCloudinaryImage(data.cloudinaryPublicId));
+                }
+            });
+            if (cloudinaryDeletePromises.length > 0) {
+                await Promise.all(cloudinaryDeletePromises).catch(err => console.error("Error deleting images", err));
+            }
+
+            // 3. Borrar documentos de mensajes (Batch)
+            const batchSize = 400; // Safe limit
+            let batch = db.batch();
+            let count = 0;
+
+            for (const doc of messagesSnapshot.docs) {
+                batch.delete(doc.ref);
+                count++;
+                if (count >= batchSize) {
+                    await batch.commit();
+                    batch = db.batch();
+                    count = 0;
+                }
+            }
+            if (count > 0) await batch.commit();
+
+            // 4. Borrar settings de todos los usuarios
+            // Usamos una consulta collectionGroup para encontrar todas las referencias
+            const settingsSnapshot = await db.collectionGroup('groupSettings')
+                .where(firebase.firestore.FieldPath.documentId(), '==', currentGroupId)
+                .get();
+
+            const settingsDeletePromises = settingsSnapshot.docs.map(doc => doc.ref.delete());
+            await Promise.all(settingsDeletePromises);
+
+            // 5. Borrar el grupo
+            await db.collection('groups').doc(currentGroupId).delete();
+
+            console.log('✅ Group deleted successfully');
+            finishGroupExit();
+
+        } catch (error) {
+            console.error('❌ Error deleting group:', error);
+            alert('Error al eliminar el grupo: ' + error.message);
+        }
+    };
+
+    function finishGroupExit() {
+        // Cerrar modales
+        if (typeof window.closeModal === 'function') {
+            window.closeModal('group-settings-modal');
+            window.closeModal('message-modal');
+            window.closeModal('confirmation-modal');
+        }
+
+        // Recargar lista
+        loadUsers();
+        currentGroupId = null; // Reset
+    }
 
     // ===============================================
     // HELPER: GUARDAR ID DE GRUPO ACTUAL
