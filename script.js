@@ -107,7 +107,7 @@ async function handleLogin() {
         loginBtn.textContent = 'Entrando...';
     }
 
-    const inputIdentifier = document.getElementById('login-email').value.trim();
+    let inputIdentifier = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value.trim();
 
     // Validación de campos
@@ -125,10 +125,46 @@ async function handleLogin() {
             throw new Error("Firebase Auth no inicializado. Intenta recargar la página.");
         }
 
+        // Si el input no parece un correo, buscar el email por username
+        if (!inputIdentifier.includes('@')) {
+            if (loginBtn) loginBtn.textContent = 'Verificando usuario...';
+
+            try {
+                // Buscar por campo 'username'
+                let userQuery = await window.db.collection('users').where('username', '==', inputIdentifier).limit(1).get();
+
+                // Si no encuentra, intentar por 'displayName' (retrocompatibilidad)
+                if (userQuery.empty) {
+                    userQuery = await window.db.collection('users').where('displayName', '==', inputIdentifier).limit(1).get();
+                }
+
+                if (!userQuery.empty) {
+                    const userData = userQuery.docs[0].data();
+                    if (userData.email) {
+                        inputIdentifier = userData.email; // Usar el email encontrado
+                    } else {
+                        throw new Error("El usuario encontrado no tiene email asociado.");
+                    }
+                } else {
+                    // Si no encontramos usuario, dejamos que Firebase intente (probablemente fallará como email inválido)
+                    // o lanzamos error directo "Usuario no encontrado"
+                    throw new Error("Nombre de usuario no encontrado.");
+                }
+            } catch (err) {
+                // Si falla la búsqueda (permisos, etc) o no encuentra usuario, mostramos error
+                window.showMessage(loginMessageId, err.message === "Nombre de usuario no encontrado." ? err.message : 'Error al buscar usuario.', 'error');
+                if (loginBtn) {
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Entrar';
+                }
+                return;
+            }
+        }
+
         // Configurar persistencia de sesión
         await window.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-        // Iniciar sesión
+        // Iniciar sesión (ahora inputIdentifier es siempre un email)
         const userCredential = await window.auth.signInWithEmailAndPassword(inputIdentifier, password);
         const user = userCredential.user;
 

@@ -194,12 +194,29 @@ async function handleProfileEdit() {
 
     if (newUsername === initialUsername || !newUsername) return;
 
-    saveButton.innerHTML = '<i class="ph ph-circle-notch animate-spin mr-2"></i> Guardando...';
+    saveButton.innerHTML = '<i class="ph ph-circle-notch animate-spin mr-2"></i> Verificando...';
     saveButton.disabled = true;
 
     try {
         const user = auth.currentUser;
         if (!user) throw new Error("No autenticado.");
+
+        // 1. Validar que el nombre de usuario no esté en uso por otro usuario
+        const existingUsersSnapshot = await db.collection('users')
+            .where('username', '==', newUsername)
+            .get();
+
+        // Filtrar duplicates excluyendo al usuario actual
+        const isTaken = existingUsersSnapshot.docs.some(doc => doc.id !== userId);
+
+        if (isTaken) {
+            alert(`El nombre de usuario "${newUsername}" ya está en uso. Por favor, elige otro.`);
+            saveButton.innerHTML = '<i class="ph ph-floppy-disk mr-2"></i> Guardar Cambios';
+            saveButton.disabled = false;
+            return;
+        }
+
+        saveButton.innerHTML = '<i class="ph ph-circle-notch animate-spin mr-2"></i> Guardando...';
 
         await user.updateProfile({ displayName: newUsername });
 

@@ -240,7 +240,7 @@ async function saveRepair(e) {
 window.deleteRepair = async function (id) {
     if (!isAuthReady || !userId) return;
 
-    if (!confirm("¿Estás seguro de que quieres eliminar este mantenimiento?")) {
+    if (!confirm("¿Estás seguro de que quieres eliminar este mantenimiento? Esta acción borrará también todo su historial asociado.")) {
         return;
     }
 
@@ -253,6 +253,35 @@ window.deleteRepair = async function (id) {
     try {
         const repairsRef = getRepairsCollectionRef();
         if (repairsRef) {
+            // 1. Obtener datos para buscar en historial
+            const doc = await repairsRef.doc(id).get();
+
+            if (doc.exists) {
+                const repairData = doc.data();
+
+                // 2. Buscar y borrar historial asociado
+                // Usamos 'location' como clave principal, reforzada por 'key_id' si existe
+                const historyRef = db.collection(`users/${userId}/history`);
+                let historyQuery = historyRef.where('location', '==', repairData.location);
+
+                if (repairData.key_id) {
+                    historyQuery = historyQuery.where('key_id', '==', repairData.key_id);
+                }
+
+                const historySnapshot = await historyQuery.get();
+
+                // Usar batch para borrar historial (más eficiente)
+                if (!historySnapshot.empty) {
+                    const batch = db.batch();
+                    historySnapshot.forEach(hDoc => {
+                        batch.delete(hDoc.ref);
+                    });
+                    await batch.commit();
+                    console.log(`[Repairs] Eliminados ${historySnapshot.size} registros de historial.`);
+                }
+            }
+
+            // 3. Borrar el mantenimiento
             await repairsRef.doc(id).delete();
         }
     } catch (error) {
@@ -260,6 +289,7 @@ window.deleteRepair = async function (id) {
         if (repairElement) {
             repairElement.classList.remove('opacity-0', 'transform', '-translate-x-full');
         }
+        alert("Error al eliminar. Inténtalo de nuevo.");
     }
 }
 
