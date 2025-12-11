@@ -578,10 +578,19 @@ html.light-mode #bottom-navbar {
 
 #group-users-list label {
     color: var(--color-text-primary);
+    background-color: var(--color-bg-secondary);
 }
 
 #group-users-list label:hover {
     background-color: var(--color-bg-tertiary);
+}
+
+#group-users-list label span {
+    color: var(--color-text-primary) !important;
+}
+
+#group-users-list label div {
+    background-color: var(--color-bg-tertiary) !important;
 }
 
 

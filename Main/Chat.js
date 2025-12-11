@@ -882,6 +882,7 @@
     // Interceptar la carga de usuarios para cachearlos
     window.cacheAndFilterUsers = function (users) {
         allUsers = users;
+        console.log('📋 Cached users:', allUsers.map(u => ({ name: u.name, company: u.company || 'otis' })));
         filterAndRenderUsers();
     };
 
