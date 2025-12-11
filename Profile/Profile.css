@@ -11,7 +11,7 @@
    ================================================================ */
 
 :root {
-    color-scheme: dark;
+    color-scheme: only light dark;
 
     /* Colores de fondo (Dark Mode por defecto) */
     --color-bg-primary: #12121e;
@@ -42,7 +42,7 @@
 /* Light Mode Variables */
 html.light-mode,
 html.light-mode body {
-    color-scheme: light;
+    color-scheme: only light dark;
 
     /* Colores de fondo (Light Mode) */
     --color-bg-primary: #ffffff;

@@ -84,11 +84,21 @@
             return;
         }
 
-        const chatId = getChatId(recipientId);
-        // 🔑 CLAVE: Usar la API de compatibilidad: db.collection().doc().collection()
-        const chatCollectionRef = db.collection('chats').doc(chatId).collection('messages');
+        // Detectar si es un grupo (los grupos tienen currentGroupId configurado)
+        const isGroup = currentGroupId !== null;
 
-        // Usamos el timestamp de Firebase globalmente
+        let messagesRef;
+
+        if (isGroup) {
+            // Para grupos: guardar en colección global 'messages' con chatId = groupId
+            messagesRef = db.collection('messages');
+        } else {
+            // Para chats individuales: guardar en chats/{chatId}/messages
+            const chatId = getChatId(recipientId);
+            messagesRef = db.collection('chats').doc(chatId).collection('messages');
+        }
+
+        // Datos del mensaje
         const messageData = {
             senderId: getUserId(),
             text: text,
@@ -96,25 +106,37 @@
             clientTimestamp: timestamp,
         };
 
+        // Para grupos, agregar chatId
+        if (isGroup) {
+            messageData.chatId = recipientId; // recipientId es el groupId
+        }
+
         try {
-            await chatCollectionRef.add(messageData);
+            if (isGroup) {
+                // Para grupos: add directamente a la colección
+                await messagesRef.add(messageData);
+            } else {
+                // Para chats individuales: add a la subcolección
+                await messagesRef.add(messageData);
 
-            // Capping (eliminación de mensajes antiguos)
-            const q = chatCollectionRef.orderBy('timestamp', 'asc').limit(MESSAGE_LIMIT + 1);
-            const snapshot = await q.get(); // Usar .get() en la Query de compatibilidad
+                // Capping solo para chats individuales
+                const q = messagesRef.orderBy('timestamp', 'asc').limit(MESSAGE_LIMIT + 1);
+                const snapshot = await q.get();
 
-            if (snapshot.docs.length > MESSAGE_LIMIT) {
-                const messagesToDelete = snapshot.docs.slice(0, snapshot.docs.length - MESSAGE_LIMIT);
+                if (snapshot.docs.length > MESSAGE_LIMIT) {
+                    const messagesToDelete = snapshot.docs.slice(0, snapshot.docs.length - MESSAGE_LIMIT);
 
-                const batch = db.batch(); // Usar db.batch() de compatibilidad
-                messagesToDelete.forEach(docToDelete => {
-                    batch.delete(docToDelete.ref); // Usar la referencia del documento
-                });
+                    const batch = db.batch();
+                    messagesToDelete.forEach(docToDelete => {
+                        batch.delete(docToDelete.ref);
+                    });
 
-                await batch.commit();
+                    await batch.commit();
+                }
             }
 
         } catch (error) {
+            console.error('Error sending message:', error);
             showMessage('error', 'Error al enviar mensaje.');
         }
     }
@@ -186,6 +208,67 @@
         }, error => {
             console.error("Error en chat listener:", error);
             // Intentar reconectar o manejar error silenciosamente
+        });
+    }
+
+    // ----------------------------------------------------------------------------------
+    // 🚨 FUNCIÓN PARA ESCUCHAR MENSAJES DE GRUPO
+    // ----------------------------------------------------------------------------------
+    function listenForGroupMessages(groupId) {
+        if (!db || !groupId || !isFirebaseReady) return;
+
+        if (unsubscribeFromChat) {
+            unsubscribeFromChat();
+            unsubscribeFromChat = null;
+        }
+
+        const messagesContainer = document.getElementById('chat-messages-container');
+        if (messagesContainer) messagesContainer.innerHTML = '';
+        lastRenderedDate = null;
+
+        // Para grupos, los mensajes están en la colección global 'messages' con chatId = groupId
+        const messagesRef = db.collection('messages')
+            .where('chatId', '==', groupId)
+            .orderBy('timestamp', 'asc')
+            .limit(MESSAGE_LIMIT);
+
+        unsubscribeFromChat = messagesRef.onSnapshot(snapshot => {
+            if (!messagesContainer) return;
+
+            const messages = snapshot.docs.map(doc => {
+                const data = doc.data();
+
+                let timestamp;
+                if (data.timestamp === null) {
+                    timestamp = new Date();
+                } else if (data.timestamp && data.timestamp.toDate) {
+                    timestamp = data.timestamp.toDate();
+                } else if (data.clientTimestamp) {
+                    timestamp = new Date(data.clientTimestamp);
+                } else {
+                    timestamp = new Date(0);
+                }
+
+                return {
+                    id: doc.id,
+                    senderId: data.senderId,
+                    text: data.text,
+                    timestamp: timestamp,
+                    isCurrentUser: data.senderId === getUserId()
+                };
+            });
+
+            messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+            messagesContainer.innerHTML = '';
+            lastRenderedDate = null;
+
+            messages.forEach(msg => {
+                renderMessage(msg.id, msg.senderId, msg.text, msg.isCurrentUser, msg.timestamp);
+            });
+
+        }, error => {
+            console.error("Error en group chat listener:", error);
         });
     }
 
@@ -436,6 +519,37 @@
     }
 
     // ----------------------------------------------------------------------------------
+    // 🚨 FUNCIÓN PARA ABRIR CHAT DE GRUPO
+    // ----------------------------------------------------------------------------------
+    window.openGroupChat = function (groupId, groupName) {
+        // Para grupos, usamos el groupId como chatId
+        currentRecipientId = groupId;
+        lastRenderedDate = null;
+
+        // Configurar el groupId actual
+        if (typeof window.setCurrentGroupId === 'function') {
+            window.setCurrentGroupId(groupId);
+        }
+
+        const recipientNameEl = document.getElementById('chat-recipient-name');
+        const messagesContainer = document.getElementById('chat-messages-container');
+
+        if (recipientNameEl) recipientNameEl.textContent = groupName;
+        if (messagesContainer) messagesContainer.innerHTML = '';
+
+        // Mostrar modal
+        if (typeof window.showModal === 'function') {
+            window.showModal('message-modal');
+        }
+
+        if (isFirebaseReady) {
+            // Iniciar listener para mensajes del grupo
+            listenForGroupMessages(groupId);
+        }
+    };
+
+
+    // ----------------------------------------------------------------------------------
     // 🚨 FUNCIÓN CRÍTICA: Para cerrar el modal y el listener
     // ----------------------------------------------------------------------------------
     window.closeChatModal = function () {
@@ -489,23 +603,44 @@
             // Wait or handle not ready
         } else {
             try {
-                // 🔑 CLAVE: Usar la API de compatibilidad para colecciones
-                const usersCollectionRef = db.collection('users');
-                const snapshot = await usersCollectionRef.get();
+                const userId = getUserId();
 
-                snapshot.forEach(doc => {
+                // 1. Cargar usuarios individuales
+                const usersCollectionRef = db.collection('users');
+                const usersSnapshot = await usersCollectionRef.get();
+
+                usersSnapshot.forEach(doc => {
                     const data = doc.data();
-                    if (doc.id !== getUserId()) {
+                    if (doc.id !== userId) {
                         users.push({
                             id: doc.id,
                             name: data.username || data.displayName || `Usuario ${doc.id.substring(0, 6)}`,
                             photoURL: data.photoURL,
-                            company: data.company || 'otis' // 🔑 CLAVE: Cargar empresa del usuario
+                            company: data.company || 'otis',
+                            isGroup: false
                         });
                     }
                 });
+
+                // 2. Cargar grupos donde el usuario es miembro
+                const groupsSnapshot = await db.collection('groups')
+                    .where('members', 'array-contains', userId)
+                    .get();
+
+                groupsSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    users.push({
+                        id: doc.id,
+                        name: data.name || 'Grupo sin nombre',
+                        photoURL: null, // Los grupos no tienen foto
+                        company: null, // Los grupos no tienen empresa
+                        isGroup: true,
+                        members: data.members || []
+                    });
+                });
+
             } catch (error) {
-                // Silenciar error en background
+                console.error('Error loading users/groups:', error);
                 return;
             }
         }
@@ -894,10 +1029,10 @@
 
         let filteredUsers = [...allUsers];
 
-        // Filtrar por empresa
+        // Filtrar por empresa (pero NO filtrar grupos)
         if (currentCompanyFilter !== 'all') {
             filteredUsers = filteredUsers.filter(user =>
-                (user.company || 'otis').toLowerCase() === currentCompanyFilter.toLowerCase()
+                user.isGroup || (user.company || 'otis').toLowerCase() === currentCompanyFilter.toLowerCase()
             );
         }
 
@@ -912,14 +1047,20 @@
         const scrollTop = userListContainer.scrollTop;
 
         userListContainer.innerHTML = filteredUsers.map(user => {
-            const userImage = user.photoURL || (typeof window.getCompanyLogo === 'function' ? window.getCompanyLogo(user.company || 'otis') : '../assets/Otis.png');
+            // Icono diferente para grupos
+            const userImage = user.isGroup
+                ? '../assets/group-icon.png' // Puedes usar un icono de grupo o generar uno
+                : (user.photoURL || (typeof window.getCompanyLogo === 'function' ? window.getCompanyLogo(user.company || 'otis') : '../assets/Otis.png'));
 
             return `
             <div class="user-chat-card flex items-center p-3 rounded-xl cursor-pointer transition relative" 
-                 onclick="openChatModal('${user.id}', '${user.name}')">
+                 onclick="${user.isGroup ? `openGroupChat('${user.id}', '${user.name}')` : `openChatModal('${user.id}', '${user.name}')`}">
                 
                 <div class="relative w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold mr-4 overflow-hidden border border-gray-300 dark:border-gray-600">
-                    <img src="${userImage}" alt="${user.name.charAt(0)}" class="w-full h-full object-cover">
+                    ${user.isGroup
+                    ? `<i class="ph ph-users-three text-xl text-accent-magenta"></i>`
+                    : `<img src="${userImage}" alt="${user.name.charAt(0)}" class="w-full h-full object-cover">`
+                }
                 </div>
                 
                 <p class="font-semibold user-chat-item-name">${user.name}</p>

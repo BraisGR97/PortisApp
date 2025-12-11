@@ -12,7 +12,7 @@
 
 :root {
     /* Forzar color-scheme para evitar que el navegador modifique los colores */
-    color-scheme: dark;
+    color-scheme: only light dark;
 
     /* Colores de fondo (Dark Mode por defecto) */
     --color-bg-primary: #12121e;
@@ -45,7 +45,7 @@
 html.light-mode,
 html.light-mode body {
     /* Forzar color-scheme para evitar que el navegador modifique los colores */
-    color-scheme: light;
+    color-scheme: only light dark;
 
     /* Colores de fondo (Light Mode) */
     --color-bg-primary: #ffffff;
