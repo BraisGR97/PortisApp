@@ -185,24 +185,50 @@
         const listContainer = document.getElementById('monthly-maintenance-list');
         if (!listContainer) return;
 
-        // Smart Score Helper (Definido aquí para acceso al contexto o aislado)
+        // Smart Score Calculator (Sistema de Puntuación)
         function calculateSmartScore(item) {
-            let score = item.distance !== undefined ? item.distance : 99999;
+            let points = 0;
 
-            // 1. Penalización por Historial (< 21 dias)
-            // Si se completó hace poco y NO es prioridad Alta, se va al fondo
-            if (item.isRecentPenalty && item.priority !== 'Alta') {
-                score += 100000; // Penalización masiva
+            // 1. Prioridad: (Alta = +30 ; Media = +15 ; Baja = +0)
+            if (item.priority === 'Alta') points += 30;
+            else if (item.priority === 'Media') points += 15;
+
+            // 2. Contenido en campo Avería (Tiene = +50 ; No tiene = +0)
+            if (item.breakdown) points += 50;
+
+            // 3. Contenido en campo observaciones (tiene = +10 ; no tiene = +0)
+            if (item.description) points += 10;
+
+            // 4. Tipo de contrato (Menual = +10 ; Bimensual = +5 ; Trimestral... = +0)
+            if (item.contract === 'Mensual') points += 10;
+            else if (item.contract === 'Bimensual') points += 5;
+
+            // 5. Por fecha (<21 dias = +0 ; > 21 dias= + 40)
+            // item.isRecentPenalty es true si se encontró en el historial (< 21 dias)
+            // Por lo tanto: si NO es recent penalty -> > 21 dias -> +40
+            if (!item.isRecentPenalty) points += 40;
+
+            // 6. Por ubicacion (mas cercana al usuario) (< 1 km = +50 ; luego -2 por cada km extra)
+            const distUser = item.distance !== undefined ? item.distance : Infinity;
+            if (distUser < 1) {
+                points += 50;
+            } else if (distUser !== Infinity) {
+                const extraKm = distUser - 1;
+                const distPoints = 50 - (2 * extraKm);
+                points += Math.max(0, distPoints);
             }
 
-            // 2. Modificadores de Prioridad (Reducen la distancia virtual)
-            if (item.priority === 'Alta') {
-                score *= 0.1; // Se siente 10 veces más cerca (gana a objetos cercanos de baja prioridad)
-            } else if (item.priority === 'Media') {
-                score *= 0.8; // Pequeña ventaja
+            // 7. Por Ubicacion entre Tarjetas (Cluster) (< 1 km = +40 ; luego -2 por cada km extra)
+            const distNeighbor = item.nearestNeighborDistance !== undefined ? item.nearestNeighborDistance : Infinity;
+            if (distNeighbor < 1) {
+                points += 40;
+            } else if (distNeighbor !== Infinity) {
+                const extraKmNeigh = distNeighbor - 1;
+                const neighPoints = 40 - (2 * extraKmNeigh);
+                points += Math.max(0, neighPoints);
             }
 
-            return score;
+            return points;
         }
 
         listContainer.innerHTML = '';
@@ -210,15 +236,15 @@
         // Lógica de ordenación dinámica
         data.sort((a, b) => {
             if (currentSortMethod === 'location') {
-                // Por Ubicación (AHORA ES POR DISTANCIA): Menor distancia primero
+                // Por Ubicación: Menor distancia primero
                 const distA = a.distance !== undefined ? a.distance : Infinity;
                 const distB = b.distance !== undefined ? b.distance : Infinity;
                 return distA - distB;
             } else if (currentSortMethod === 'ai') {
-                // Por IA (Smart Score): Distancia + Prioridad + Historial
+                // Por IA (Smart Score): Mayor puntuación primero
                 const scoreA = calculateSmartScore(a);
                 const scoreB = calculateSmartScore(b);
-                return scoreA - scoreB;
+                return scoreB - scoreA;
             } else {
                 // Por Prioridad (Default): Alta > Media > Baja
                 const priorityOrder = { 'Alta': 1, 'Media': 2, 'Baja': 3 };
@@ -613,6 +639,25 @@
 
                 return newItem;
             }));
+
+            // 3. Calculo de Distancia entre Tarjetas (Nearest Neighbor) - Solo modo AI
+            if (mode === 'ai') {
+                for (let i = 0; i < processedItems.length; i++) {
+                    let minNeighborDist = Infinity;
+                    const itemA = processedItems[i];
+                    if (itemA.coords) {
+                        for (let j = 0; j < processedItems.length; j++) {
+                            if (i === j) continue;
+                            const itemB = processedItems[j];
+                            if (itemB.coords) {
+                                const d = calculateDistance(itemA.coords.lat, itemA.coords.lon, itemB.coords.lat, itemB.coords.lon);
+                                if (d < minNeighborDist) minNeighborDist = d;
+                            }
+                        }
+                    }
+                    itemA.nearestNeighborDistance = minNeighborDist;
+                }
+            }
 
             // Actualizar referencia global
             currentMaintenanceData = processedItems;
