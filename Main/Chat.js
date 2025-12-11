@@ -846,7 +846,7 @@
         // Filtrar por empresa
         if (currentCompanyFilter !== 'all') {
             filteredUsers = filteredUsers.filter(user =>
-                (user.company || 'otis') === currentCompanyFilter
+                (user.company || 'otis').toLowerCase() === currentCompanyFilter.toLowerCase()
             );
         }
 
@@ -857,8 +857,26 @@
             );
         }
 
-        // Renderizar
-        renderUserList(filteredUsers, {});
+        // Renderizar directamente sin pasar por renderUserList
+        const scrollTop = userListContainer.scrollTop;
+
+        userListContainer.innerHTML = filteredUsers.map(user => {
+            const userImage = user.photoURL || (typeof window.getCompanyLogo === 'function' ? window.getCompanyLogo(user.company || 'otis') : '../assets/Otis.png');
+
+            return `
+            <div class="user-chat-card flex items-center p-3 rounded-xl cursor-pointer transition relative" 
+                 onclick="openChatModal('${user.id}', '${user.name}')">
+                
+                <div class="relative w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold mr-4 overflow-hidden border border-gray-300 dark:border-gray-600">
+                    <img src="${userImage}" alt="${user.name.charAt(0)}" class="w-full h-full object-cover">
+                </div>
+                
+                <p class="font-semibold user-chat-item-name">${user.name}</p>
+            </div>
+        `}).join('');
+
+        // Restaurar scroll
+        userListContainer.scrollTop = scrollTop;
     }
 
     // Interceptar la carga de usuarios para cachearlos
@@ -920,8 +938,14 @@
         }
 
         try {
-            const userId = sessionStorage.getItem('portis-user-identifier');
-            if (!userId || !window.db) return;
+            const userId = getUserId();
+            if (!userId || !db) {
+                console.error('❌ Missing userId or db');
+                alert('Error: No se pudo obtener el ID de usuario o la base de datos no está disponible');
+                return;
+            }
+
+            console.log('Creating group with:', { groupName, userId, selectedUsers });
 
             // Agregar el usuario actual al grupo
             const members = [userId, ...selectedUsers];
@@ -935,11 +959,11 @@
                 isGroup: true
             };
 
-            const groupRef = await window.db.collection('groups').add(groupData);
+            const groupRef = await db.collection('groups').add(groupData);
 
             // Crear documento de configuración para cada miembro
             for (const memberId of members) {
-                await window.db.collection('users').doc(memberId).collection('groupSettings').doc(groupRef.id).set({
+                await db.collection('users').doc(memberId).collection('groupSettings').doc(groupRef.id).set({
                     muted: false,
                     joinedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
@@ -952,14 +976,12 @@
                 window.closeModal('create-group-modal');
             }
 
-            // Recargar lista de usuarios/grupos
-            if (typeof window.loadChatList === 'function') {
-                window.loadChatList();
-            }
+            // Recargar lista de usuarios
+            loadUsers();
 
         } catch (error) {
             console.error('❌ Error creating group:', error);
-            alert('Error al crear el grupo. Inténtalo de nuevo.');
+            alert('Error al crear el grupo: ' + error.message);
         }
     };
 
@@ -970,11 +992,11 @@
     window.openGroupSettings = function () {
         if (!currentGroupId) return;
 
-        const userId = sessionStorage.getItem('portis-user-identifier');
-        if (!userId || !window.db) return;
+        const userId = getUserId();
+        if (!userId || !db) return;
 
         // Cargar configuración del grupo
-        window.db.collection('users').doc(userId).collection('groupSettings').doc(currentGroupId).get()
+        db.collection('users').doc(userId).collection('groupSettings').doc(currentGroupId).get()
             .then(doc => {
                 const muteToggle = document.getElementById('group-mute-toggle');
                 if (muteToggle && doc.exists) {
@@ -995,7 +1017,7 @@
         if (muteToggle) {
             muteToggle.onchange = async function () {
                 try {
-                    await window.db.collection('users').doc(userId).collection('groupSettings').doc(currentGroupId).update({
+                    await db.collection('users').doc(userId).collection('groupSettings').doc(currentGroupId).update({
                         muted: muteToggle.checked
                     });
                     console.log('✅ Group mute status updated');
@@ -1010,11 +1032,11 @@
         if (!currentGroupId) return;
 
         try {
-            const userId = sessionStorage.getItem('portis-user-identifier');
-            if (!userId || !window.db) return;
+            const userId = getUserId();
+            if (!userId || !db) return;
 
             // Obtener información del grupo
-            const groupDoc = await window.db.collection('groups').doc(currentGroupId).get();
+            const groupDoc = await db.collection('groups').doc(currentGroupId).get();
 
             if (!groupDoc.exists) {
                 console.error('❌ Group not found');
@@ -1033,7 +1055,7 @@
                 console.log('🗑️ Deleting entire group:', currentGroupId);
 
                 // 1. Obtener todos los mensajes del grupo para eliminar imágenes de Cloudinary
-                const messagesSnapshot = await window.db.collection('messages')
+                const messagesSnapshot = await db.collection('messages')
                     .where('chatId', '==', currentGroupId)
                     .get();
 
@@ -1066,7 +1088,7 @@
                 console.log('✅ Deleted', messageDeletePromises.length, 'messages');
 
                 // 4. Eliminar configuraciones de grupo de todos los usuarios
-                const settingsSnapshot = await window.db.collectionGroup('groupSettings')
+                const settingsSnapshot = await db.collectionGroup('groupSettings')
                     .where(firebase.firestore.FieldPath.documentId(), '==', currentGroupId)
                     .get();
 
@@ -1078,7 +1100,7 @@
                 console.log('✅ Deleted group settings for all users');
 
                 // 5. Eliminar el documento del grupo
-                await window.db.collection('groups').doc(currentGroupId).delete();
+                await db.collection('groups').doc(currentGroupId).delete();
                 console.log('✅ Group completely deleted');
 
             } else {
@@ -1087,13 +1109,13 @@
                 if (!confirmed) return;
 
                 // Eliminar usuario de la lista de miembros del grupo
-                const groupRef = window.db.collection('groups').doc(currentGroupId);
+                const groupRef = db.collection('groups').doc(currentGroupId);
                 await groupRef.update({
                     members: firebase.firestore.FieldValue.arrayRemove(userId)
                 });
 
                 // Eliminar configuración del grupo para este usuario
-                await window.db.collection('users').doc(userId).collection('groupSettings').doc(currentGroupId).delete();
+                await db.collection('users').doc(userId).collection('groupSettings').doc(currentGroupId).delete();
 
                 console.log('✅ Left group successfully');
             }
@@ -1105,14 +1127,7 @@
             }
 
             // Recargar lista
-            if (typeof window.loadChatList === 'function') {
-                window.loadChatList();
-            } else {
-                // Recargar usuarios si loadChatList no existe
-                if (typeof window.loadUsers === 'function') {
-                    window.loadUsers();
-                }
-            }
+            loadUsers();
 
         } catch (error) {
             console.error('❌ Error leaving/deleting group:', error);
