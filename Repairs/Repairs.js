@@ -238,7 +238,6 @@ async function saveRepair(e) {
  * @param {string} id - ID del mantenimiento a eliminar
  */
 window.deleteRepair = async function (id) {
-    if (!isAuthReady || !userId) return;
 
     if (!confirm("¿Estás seguro de que quieres eliminar este mantenimiento? Esta acción borrará también todo su historial asociado.")) {
         return;
@@ -540,12 +539,12 @@ function renderRepairs(repairs, updateCache = true) {
                     <button data-action="edit" data-id="${repair.id}"
                         class="action-btn edit-btn p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-blue-500" 
                         title="Editar mantenimiento">
-                        <i class="ph ph-pencil-simple text-lg pointer-events-none"></i>
+                        <i class="ph ph-pencil-simple text-lg"></i>
                     </button>
                     <button data-action="delete" data-id="${repair.id}"
                         class="action-btn delete-btn p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-500" 
                         title="Eliminar mantenimiento">
-                        <i class="ph ph-trash text-lg pointer-events-none"></i>
+                        <i class="ph ph-trash text-lg"></i>
                     </button>
                 </div>
             </div>
@@ -564,14 +563,14 @@ function renderRepairs(repairs, updateCache = true) {
  */
 function handleRepairActions(e) {
     const button = e.target.closest('button[data-action][data-id]');
-    if (!button) return;
-
     const action = button.dataset.action;
     const id = button.dataset.id;
 
     if (action === 'delete') {
+
         window.deleteRepair(id);
     } else if (action === 'edit') {
+
         window.editRepair(id);
     }
 }
