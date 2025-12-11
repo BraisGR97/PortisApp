@@ -493,6 +493,12 @@
         currentRecipientId = recipientId;
         lastRenderedDate = null; // Resetear fecha al abrir chat
 
+        // Resetear GroupId para evitar mostrar botón de ajustes de grupo
+        currentGroupId = null;
+        if (typeof window.setCurrentGroupId === 'function') {
+            window.setCurrentGroupId(null);
+        }
+
         // 🔑 MARCAR COMO LEÍDO AL ABRIR
         const chatId = getChatId(recipientId);
         localStorage.setItem(`lastRead_${chatId}`, Date.now().toString());
@@ -1318,6 +1324,14 @@
         try {
             console.log('🗑️ Deleting entire group:', currentGroupId);
 
+            // 0. Obtener miembros para borrar sus settings
+            const groupDoc = await db.collection('groups').doc(currentGroupId).get();
+            if (!groupDoc.exists) {
+                finishGroupExit();
+                return;
+            }
+            const members = groupDoc.data().members || [];
+
             // 1. Obtener mensajes (para borrar imágenes y docs)
             const messagesSnapshot = await db.collection('messages')
                 .where('chatId', '==', currentGroupId)
@@ -1336,7 +1350,7 @@
             }
 
             // 3. Borrar documentos de mensajes (Batch)
-            const batchSize = 400; // Safe limit
+            const batchSize = 400;
             let batch = db.batch();
             let count = 0;
 
@@ -1351,13 +1365,12 @@
             }
             if (count > 0) await batch.commit();
 
-            // 4. Borrar settings de todos los usuarios
-            // Usamos una consulta collectionGroup para encontrar todas las referencias
-            const settingsSnapshot = await db.collectionGroup('groupSettings')
-                .where(firebase.firestore.FieldPath.documentId(), '==', currentGroupId)
-                .get();
-
-            const settingsDeletePromises = settingsSnapshot.docs.map(doc => doc.ref.delete());
+            // 4. Borrar settings de todos los miembros (Iterando individualmente)
+            // Esto evita necesitar índices compuestos para collectionGroup
+            const settingsDeletePromises = members.map(memberId => {
+                return db.collection('users').doc(memberId).collection('groupSettings').doc(currentGroupId).delete()
+                    .catch(err => console.warn(`Could not delete settings for ${memberId}`, err));
+            });
             await Promise.all(settingsDeletePromises);
 
             // 5. Borrar el grupo
