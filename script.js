@@ -143,6 +143,25 @@ async function handleLogin() {
             sessionStorage.setItem('portis-user-display-name', userDisplayName);
             sessionStorage.setItem('portis-show-welcome', 'true');
 
+            // 🔑 CLAVE: Cargar configuración del usuario desde Firestore
+            try {
+                const settingsDoc = await window.db.collection('users').doc(user.uid).collection('settings').doc('preferences').get();
+
+                if (settingsDoc.exists) {
+                    const data = settingsDoc.data();
+
+                    // Actualizar localStorage con la configuración del usuario
+                    if (data.theme) localStorage.setItem('portis-theme', data.theme);
+                    if (data.language) localStorage.setItem('portis-language', data.language);
+                    if (data.location) localStorage.setItem('portis-location', data.location);
+                    if (data.company) localStorage.setItem('portis-company', data.company);
+
+                    console.log('✅ User settings loaded on login:', data);
+                }
+            } catch (error) {
+                console.error('❌ Error loading user settings on login:', error);
+            }
+
             window.showMessage(loginMessageId, 'Inicio de sesión exitoso. Redirigiendo...', 'success');
             setTimeout(() => {
                 window.location.href = 'Main/Main.html';
@@ -204,7 +223,8 @@ async function handleRegister() {
             email: email,
             registrationDate: firebase.firestore.FieldValue.serverTimestamp(),
             totalRepairs: 0,
-            totalBills: 0
+            totalBills: 0,
+            company: 'otis' // 🔑 CLAVE: Empresa por defecto para nuevos usuarios
         });
 
         window.showMessage('register-message', '¡Cuenta creada! Se ha enviado un correo de verificación. Por favor, revísalo para iniciar sesión.', 'success');
@@ -301,13 +321,32 @@ function initializeButtons() {
  * Intenta iniciar sesión automáticamente si hay persistencia
  */
 async function authUser() {
-    window.auth.onAuthStateChanged((user) => {
+    window.auth.onAuthStateChanged(async (user) => {
         if (user && !user.isAnonymous && user.emailVerified) {
             console.log("Usuario autenticado y verificado. Redirigiendo a Main/Main.html.");
             const userDisplayName = user.displayName || user.email || 'Usuario';
 
             sessionStorage.setItem('portis-user-identifier', user.uid);
             sessionStorage.setItem('portis-user-display-name', userDisplayName);
+
+            // 🔑 CLAVE: Cargar configuración del usuario desde Firestore
+            try {
+                const settingsDoc = await window.db.collection('users').doc(user.uid).collection('settings').doc('preferences').get();
+
+                if (settingsDoc.exists) {
+                    const data = settingsDoc.data();
+
+                    // Actualizar localStorage con la configuración del usuario
+                    if (data.theme) localStorage.setItem('portis-theme', data.theme);
+                    if (data.language) localStorage.setItem('portis-language', data.language);
+                    if (data.location) localStorage.setItem('portis-location', data.location);
+                    if (data.company) localStorage.setItem('portis-company', data.company);
+
+                    console.log('✅ User settings loaded on auto-login:', data);
+                }
+            } catch (error) {
+                console.error('❌ Error loading user settings on auto-login:', error);
+            }
 
             window.location.href = 'Main/Main.html';
         } else {

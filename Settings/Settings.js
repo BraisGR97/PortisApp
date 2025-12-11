@@ -119,6 +119,9 @@
             return;
         }
 
+        // 🚀 OPTIMIZACIÓN: Cargar primero desde localStorage (instantáneo)
+        loadSettingsFromLocalStorage();
+
         try {
             console.log('📥 Loading settings from Firestore for user:', userId);
             const settingsDoc = await db.collection('users').doc(userId).collection('settings').doc('preferences').get();
@@ -127,23 +130,45 @@
                 const data = settingsDoc.data();
                 console.log('✅ Settings loaded from Firestore:', data);
 
-                if (themeToggle) themeToggle.checked = (data.theme || 'dark') === 'dark';
-                if (languageSelect) languageSelect.value = data.language || 'es';
-                if (locationSelect) locationSelect.value = data.location || 'nacional';
-                if (companySelect) companySelect.value = data.company || 'otis';
+                // Actualizar UI solo si los valores son diferentes
+                const currentTheme = localStorage.getItem('portis-theme') || 'dark';
+                const currentLanguage = localStorage.getItem('portis-language') || 'es';
+                const currentLocation = localStorage.getItem('portis-location') || 'nacional';
+                const currentCompany = localStorage.getItem('portis-company') || 'otis';
 
-                localStorage.setItem('portis-theme', data.theme || 'dark');
-                localStorage.setItem('portis-language', data.language || 'es');
-                localStorage.setItem('portis-location', data.location || 'nacional');
-                localStorage.setItem('portis-company', data.company || 'otis');
+                const firestoreTheme = data.theme || 'dark';
+                const firestoreLanguage = data.language || 'es';
+                const firestoreLocation = data.location || 'nacional';
+                const firestoreCompany = data.company || 'otis';
+
+                // Actualizar solo si hay diferencias
+                if (currentTheme !== firestoreTheme || currentLanguage !== firestoreLanguage ||
+                    currentLocation !== firestoreLocation || currentCompany !== firestoreCompany) {
+
+                    if (themeToggle) themeToggle.checked = firestoreTheme === 'dark';
+                    if (languageSelect) languageSelect.value = firestoreLanguage;
+                    if (locationSelect) locationSelect.value = firestoreLocation;
+                    if (companySelect) companySelect.value = firestoreCompany;
+
+                    localStorage.setItem('portis-theme', firestoreTheme);
+                    localStorage.setItem('portis-language', firestoreLanguage);
+                    localStorage.setItem('portis-location', firestoreLocation);
+                    localStorage.setItem('portis-company', firestoreCompany);
+
+                    // Actualizar logo si la empresa cambió
+                    if (currentCompany !== firestoreCompany && typeof window.updateAppLogo === 'function') {
+                        window.updateAppLogo();
+                    }
+
+                    console.log('🔄 Settings updated from Firestore');
+                }
             } else {
-                console.log('ℹ️ No settings found in Firestore, using defaults');
-                loadSettingsFromLocalStorage();
+                console.log('ℹ️ No settings found in Firestore, saving current settings');
                 await saveSettings();
             }
         } catch (error) {
             console.error('❌ Error loading settings from Firestore:', error);
-            loadSettingsFromLocalStorage();
+            // localStorage ya está cargado, no hacer nada más
         }
     }
 
@@ -168,7 +193,13 @@
 
         if (!IS_MOCK_MODE && db && userId) {
             try {
+                // Guardar en settings/preferences
                 await db.collection('users').doc(userId).collection('settings').doc('preferences').set(settings, { merge: true });
+
+                // 🔑 CLAVE: Guardar la empresa también en el documento principal del usuario
+                // para que otros usuarios puedan ver el logo correcto en el chat
+                await db.collection('users').doc(userId).set({ company: company }, { merge: true });
+
                 console.log('✅ Settings saved to Firestore successfully');
             } catch (error) {
                 console.error('❌ Error saving settings to Firestore:', error);

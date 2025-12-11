@@ -135,6 +135,16 @@ window.applyColorMode = function () {
  */
 window.getPortisImage = function () {
     const company = localStorage.getItem('portis-company') || 'otis';
+    return window.getCompanyLogo(company);
+};
+
+/**
+ * Obtiene la ruta del logo según el nombre de la empresa.
+ * Útil para mostrar el logo de otros usuarios en el chat.
+ * @param {string} company - Nombre de la empresa ('otis', 'enor', 'portis')
+ * @returns {string} Ruta del logo
+ */
+window.getCompanyLogo = function (company) {
     switch (company) {
         case 'enor':
             return '../assets/Enor.png';

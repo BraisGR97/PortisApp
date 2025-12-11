@@ -42,6 +42,51 @@
     // ====================================================================
 
     /**
+     * Carga la configuración del usuario desde Firestore y actualiza localStorage.
+     * Esto asegura que el logo y otras preferencias se muestren correctamente.
+     */
+    async function loadUserSettings(userId) {
+        if (!db || !userId) return;
+
+        try {
+            // Cargar configuración desde Firestore
+            const settingsDoc = await db.collection('users').doc(userId).collection('settings').doc('preferences').get();
+
+            if (settingsDoc.exists) {
+                const data = settingsDoc.data();
+
+                // Actualizar localStorage con la configuración del usuario
+                if (data.theme) localStorage.setItem('portis-theme', data.theme);
+                if (data.language) localStorage.setItem('portis-language', data.language);
+                if (data.location) localStorage.setItem('portis-location', data.location);
+                if (data.company) localStorage.setItem('portis-company', data.company);
+
+                console.log('✅ User settings loaded from Firestore:', data);
+
+                // Aplicar tema inmediatamente
+                if (data.theme) {
+                    if (data.theme === 'light') {
+                        document.documentElement.classList.add('light-mode');
+                        document.documentElement.classList.remove('dark-mode');
+                    } else {
+                        document.documentElement.classList.add('dark-mode');
+                        document.documentElement.classList.remove('light-mode');
+                    }
+                }
+
+                // Actualizar logo si es necesario
+                if (data.company && typeof window.updateAppLogo === 'function') {
+                    window.updateAppLogo();
+                }
+            } else {
+                console.log('ℹ️ No settings found in Firestore for user:', userId);
+            }
+        } catch (error) {
+            console.error('❌ Error loading user settings:', error);
+        }
+    }
+
+    /**
      * Inicializa Firebase y configura el listener de autenticacion.
      */
     async function setupAuthListener() {
@@ -68,7 +113,7 @@
             // Persistencia de sesion
             await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
 
-            auth.onAuthStateChanged((user) => {
+            auth.onAuthStateChanged(async (user) => {
                 if (user) {
                     userId = user.uid;
                     sessionStorage.setItem('portis-user-identifier', userId);
@@ -77,6 +122,9 @@
                     const displayName = sessionStorage.getItem('portis-user-display-name') || user.email;
                     const displayElement = document.getElementById('current-user-display');
                     if (displayElement) displayElement.textContent = displayName;
+
+                    // 🔑 CLAVE: Cargar configuración del usuario desde Firestore
+                    await loadUserSettings(userId);
 
                     // Resolver promesa para modulos dependientes
                     resolveFirebaseReady();

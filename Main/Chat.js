@@ -499,7 +499,8 @@
                         users.push({
                             id: doc.id,
                             name: data.username || data.displayName || `Usuario ${doc.id.substring(0, 6)}`,
-                            photoURL: data.photoURL
+                            photoURL: data.photoURL,
+                            company: data.company || 'otis' // 🔑 CLAVE: Cargar empresa del usuario
                         });
                     }
                 });
@@ -530,12 +531,15 @@
             const unreadIndicator = hasUnread ?
                 `<span class="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-800"></span>` : '';
 
+            // 🔑 CLAVE: Usar el logo de empresa del usuario si no tiene foto de perfil
+            const userImage = user.photoURL || (typeof window.getCompanyLogo === 'function' ? window.getCompanyLogo(user.company || 'otis') : '../assets/Otis.png');
+
             return `
             <div class="user-chat-card flex items-center p-3 rounded-xl cursor-pointer transition relative" 
                  onclick="openChatModal('${user.id}', '${user.name}')">
                 
                 <div class="relative w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold mr-4 overflow-hidden border border-gray-300 dark:border-gray-600">
-                    <img src="${user.photoURL || getProfileImagePath()}" alt="${user.name.charAt(0)}" class="w-full h-full object-cover">
+                    <img src="${userImage}" alt="${user.name.charAt(0)}" class="w-full h-full object-cover">
                     ${unreadIndicator}
                 </div>
                 
