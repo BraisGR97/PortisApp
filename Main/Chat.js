@@ -520,7 +520,8 @@
         }
 
         // Comprobar mensajes no leídos para cada usuario (siempre, para el badge global)
-        checkUnreadMessages(users);
+        // PERO NO renderizar de nuevo si ya se filtró
+        checkUnreadMessagesWithoutRender(users);
     }
 
     function renderUserList(users, unreadStatusMap) {
@@ -608,6 +609,56 @@
 
         updateUnreadBadge(totalUnread);
     }
+
+    // Versión sin renderizado para evitar sobrescribir filtros
+    async function checkUnreadMessagesWithoutRender(users) {
+        if (!db || !getUserId()) return;
+
+        let totalUnread = 0;
+
+        // Optimización: Promise.all para hacer las consultas en paralelo
+        const promises = users.map(async (user) => {
+            const chatId = [getUserId(), user.id].sort().join('_');
+            try {
+                // Obtener el último mensaje del chat
+                const snapshot = await db.collection('chats').doc(chatId).collection('messages')
+                    .orderBy('timestamp', 'desc')
+                    .limit(1)
+                    .get();
+
+                if (!snapshot.empty) {
+                    const lastMsg = snapshot.docs[0].data();
+                    // Solo contar como no leído si el mensaje NO es del usuario actual
+                    if (lastMsg.senderId !== getUserId()) {
+                        const lastReadTime = localStorage.getItem(`lastRead_${chatId}`);
+
+                        let msgTime = 0;
+
+                        if (lastMsg.timestamp && lastMsg.timestamp.toDate) {
+                            msgTime = lastMsg.timestamp.toDate().getTime();
+                        } else if (lastMsg.clientTimestamp) {
+                            msgTime = new Date(lastMsg.clientTimestamp).getTime();
+                        }
+
+                        // Si no hay fecha de lectura o el mensaje es más reciente
+                        if (!lastReadTime || msgTime > parseInt(lastReadTime)) {
+                            return 1;
+                        }
+                    }
+                }
+            } catch (e) {
+                // console.error("Error checking unread for", user.id, e);
+            }
+            return 0;
+        });
+
+        const results = await Promise.all(promises);
+        totalUnread = results.reduce((a, b) => a + b, 0);
+
+        // Solo actualizar badge, NO renderizar
+        updateUnreadBadge(totalUnread);
+    }
+
 
     // Función para actualizar el badge de mensajes sin leer
     function updateUnreadBadge(count = 0) {
