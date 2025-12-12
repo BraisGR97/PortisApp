@@ -361,8 +361,8 @@ html.light-mode #geometric-wrapper {
 .dashboard-card {
     background-color: var(--color-bg-primary);
     border-top: 1px solid var(--color-bg-secondary);
-    border-left: 1px solid transparent;
-    border-right: 1px solid transparent;
+    border-left: 1px solid var(--color-border);
+    border-right: 1px solid var(--color-border);
     border-bottom: 1px solid transparent;
     border-radius: 0.75rem;
     padding: 1rem;
@@ -627,8 +627,8 @@ html.light-mode #bottom-navbar {
 .user-chat-card {
     background-color: var(--color-bg-primary);
     border-top: 1px solid var(--color-bg-secondary);
-    border-left: 1px solid transparent;
-    border-right: 1px solid transparent;
+    border-left: 1px solid var(--color-border);
+    border-right: 1px solid var(--color-border);
     border-bottom: 1px solid transparent;
     border-radius: 0.75rem;
     padding: 1rem;

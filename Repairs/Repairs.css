@@ -594,6 +594,29 @@ html.light-mode body {
 }
 
 /* ================================================================
+   MODAL DE CONFIRMACIÓN
+   ================================================================ */
+
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+    transition: opacity 0.3s ease;
+}
+
+.modal-backdrop:not(.hidden) {
+    display: flex !important;
+}
+
+.modal-content {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 10px 25px var(--color-shadow);
+    transform: scale(0.95);
+    transition: transform 0.3s ease;
+    color: var(--color-text-primary);
+}
+
+/* ================================================================
    RESPONSIVE
    ================================================================ */
 
