@@ -517,9 +517,7 @@ function renderNotes(notes, updateCache = true) {
  * Actualiza la opacidad del borde superior de las tarjetas.
  */
 function updateCardBorderOpacity() {
-    // 1. Contenedores (Border TOP static now, logic removed)
-
-    // 2. Tarjetas de Notas (Border TOP por posición en pantalla)
+    // Tarjetas de Notas (Border TOP por posición en pantalla)
     const elements = document.querySelectorAll('.note-card');
     const viewportHeight = window.innerHeight;
 
@@ -655,18 +653,24 @@ window.addEventListener('load', () => {
         });
     }
 
-    // Ejecutar al hacer scroll en la página y en el contenedor de notas
-    window.addEventListener('scroll', updateCardBorderOpacity);
+    // Ejecutar al hacer scroll en todos los contenedores relevantes
+    window.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
 
     const appContent = document.getElementById('app-content');
     if (appContent) {
-        appContent.addEventListener('scroll', updateCardBorderOpacity);
+        appContent.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
     }
 
     // Escuchar scroll del contenedor interno de notas
     const scrollContainer = document.querySelector('.card-container.inverted-split .card-inner-content');
     if (scrollContainer) {
-        scrollContainer.addEventListener('scroll', updateCardBorderOpacity);
+        scrollContainer.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
+    }
+
+    // Escuchar scroll en el contenedor de lista de notas
+    const notesListContainer = document.querySelector('.card-inner-content');
+    if (notesListContainer) {
+        notesListContainer.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
     }
 
     // Ejecutar una vez al cargar y al redimensionar

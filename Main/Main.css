@@ -360,7 +360,6 @@ html.light-mode #geometric-wrapper {
 /* Tarjetas del Dashboard */
 .dashboard-card {
     background-color: var(--color-bg-primary);
-    border: 1px solid var(--color-border);
     border-top: 1px solid var(--color-bg-secondary);
     border-radius: 0.75rem;
     padding: 1rem;
@@ -368,12 +367,13 @@ html.light-mode #geometric-wrapper {
     display: flex;
     flex-direction: column;
     height: 100%;
-    border-bottom: 2px solid transparent;
+    border-bottom: 1px solid transparent;
     /* Para efecto de scroll */
 }
 
 .dashboard-card:hover {
     transform: translateY(-2px);
+    border: 1px solid var(--color-border);
     border-color: var(--color-accent-magenta) !important;
     box-shadow: 0 4px 12px var(--color-shadow);
 }
@@ -626,13 +626,12 @@ html.light-mode #bottom-navbar {
 /* Tarjeta de usuario en lista de chat */
 .user-chat-card {
     background-color: var(--color-bg-primary);
-    border: 1px solid var(--color-border);
     border-top: 1px solid var(--color-bg-secondary);
     border-radius: 0.75rem;
     padding: 1rem;
     transition: all 0.2s;
     cursor: pointer;
-    border-bottom: 2px solid transparent;
+    border-bottom: 1px solid transparent;
     /* Para efecto de scroll */
 }
 

@@ -399,9 +399,7 @@ function renderBills(bills, updateCache = true) {
  * Actualiza la opacidad del borde superior de las tarjetas (Efecto Visual).
  */
 function updateCardBorderOpacity() {
-    // 1. Contenedores (Border TOP static now, logic removed)
-
-    // 2. Tarjetas de Facturas (Border TOP por posición en pantalla)
+    // Tarjetas de Facturas (Border TOP por posición en pantalla)
     const elements = document.querySelectorAll('.bill-card');
     const viewportHeight = window.innerHeight;
 
@@ -532,9 +530,19 @@ window.addEventListener('load', () => {
         });
     }
 
-    // Efectos visuales
-    const scrollContainer = document.getElementById('app-content');
-    if (scrollContainer) scrollContainer.addEventListener('scroll', updateCardBorderOpacity);
+    // Efectos visuales - Event listeners para scroll
+    window.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
+
+    const appContent = document.getElementById('app-content');
+    if (appContent) {
+        appContent.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
+    }
+
+    // Escuchar scroll en el contenedor de lista de bills
+    const billsListContainer = document.querySelector('.card-inner-content');
+    if (billsListContainer) {
+        billsListContainer.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
+    }
 
     setTimeout(updateCardBorderOpacity, 100);
     window.addEventListener('resize', updateCardBorderOpacity);
