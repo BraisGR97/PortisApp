@@ -552,9 +552,9 @@ window.addEventListener('load', () => {
     }
 
     // Escuchar scroll en el contenedor de lista de bills
-    const billsListContainer = document.querySelector('.card-inner-content');
-    if (billsListContainer) {
-        billsListContainer.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
+    const billsScrollContainer = document.querySelector('#bills-list-container .card-inner-content');
+    if (billsScrollContainer) {
+        billsScrollContainer.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
     }
 
     setTimeout(updateCardBorderOpacity, 100);

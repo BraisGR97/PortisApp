@@ -675,21 +675,14 @@ window.addEventListener('load', () => {
     }
 
     // Escuchar scroll del contenedor interno de notas
-    const scrollContainer = document.querySelector('.card-container.inverted-split .card-inner-content');
-    if (scrollContainer) {
-        scrollContainer.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
+    const notesScrollContainer = document.querySelector('#notes-list-container .card-inner-content');
+    if (notesScrollContainer) {
+        notesScrollContainer.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
     }
 
-    // Escuchar scroll en el contenedor de lista de notas
-    const notesListContainer = document.querySelector('.card-inner-content');
-    if (notesListContainer) {
-        notesListContainer.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
-    }
-
-    // Ejecutar una vez al cargar y al redimensionar
+    // Ejecutar una vez al cargar
     setTimeout(updateCardBorderOpacity, 100);
     window.addEventListener('resize', updateCardBorderOpacity);
 });
 
 // Fin del archivo
-
