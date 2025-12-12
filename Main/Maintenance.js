@@ -883,11 +883,11 @@
             <div class="p-6 space-y-4 relative">
                 <!-- Botones Superiores -->
                 <div class="flex justify-between items-center mb-2">
-                    <button id="close-maintenance-modal-btn" class="secondary-icon-btn p-2 rounded-full">
-                        <i class="ph ph-x text-xl"></i>
-                    </button>
                     <button id="edit-toggle-btn" class="text-accent-magenta hover:text-accent-magenta/80 transition-colors p-2 rounded-full hover:bg-accent-magenta/10 border border-accent-magenta/30 hover:border-accent-magenta">
                         <i class="ph ph-pencil-simple text-xl"></i>
+                    </button>
+                    <button id="close-maintenance-modal-btn" class="secondary-icon-btn p-2 rounded-full">
+                        <i class="ph ph-x text-xl"></i>
                     </button>
                 </div>
 

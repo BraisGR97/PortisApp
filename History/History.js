@@ -187,7 +187,8 @@ function renderMaintenances(maintenances) {
         listContainer.appendChild(card);
     });
 
-
+    // Actualizar efectos de borde después de renderizar
+    setTimeout(updateCardBorderOpacity, 50);
 }
 
 function createMaintenanceCard(item) {
@@ -263,7 +264,8 @@ function renderRecords(records) {
         listContainer.appendChild(card);
     });
 
-
+    // Actualizar efectos de borde después de renderizar
+    setTimeout(updateCardBorderOpacity, 50);
 }
 
 function createRecordCard(record) {
@@ -637,33 +639,43 @@ window.addEventListener('load', () => {
     setupScrollEffects();
 });
 
-function setupScrollEffects() {
-    // Aplicar efecto de borde dinámico a todas las vistas que tengan lista
-    const scrollContainers = document.querySelectorAll('.card-inner-content');
+function updateCardBorderOpacity() {
+    const cards = document.querySelectorAll('.repair-card');
+    const viewportHeight = window.innerHeight;
 
-    scrollContainers.forEach(container => {
-        container.addEventListener('scroll', () => {
-            const cards = container.querySelectorAll('.repair-card');
-            const containerTop = container.getBoundingClientRect().top;
+    cards.forEach(element => {
+        const rect = element.getBoundingClientRect();
+        const elementTop = rect.top;
+        const elementHeight = rect.height;
 
-            cards.forEach(card => {
-                const rect = card.getBoundingClientRect();
-                const distanceToTop = rect.top - containerTop;
-
-                // Calcular opacidad basada en la posición
-                // Comienza a 0.2 (default) y sube a 1.0 cuando se acerca al top (e.g., < 100px)
-                let opacity = 0.2;
-                if (distanceToTop < 150) {
-                    opacity = 0.2 + ((150 - Math.max(0, distanceToTop)) / 150) * 0.8;
-                }
-
-                // Limitar
-                opacity = Math.max(0.2, Math.min(1, opacity));
-
-                card.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
-            });
-        });
+        let opacity = 0;
+        if (elementTop < viewportHeight && elementTop > -elementHeight) {
+            const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
+            opacity = 1 - normalizedPosition;
+            opacity = 0.2 + (opacity * 0.8);
+        }
+        element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
     });
+}
+
+function setupScrollEffects() {
+    // Event listeners para scroll
+    window.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
+
+    const appContent = document.getElementById('app-content');
+    if (appContent) {
+        appContent.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
+    }
+
+    // Escuchar scroll en contenedores internos
+    const scrollContainers = document.querySelectorAll('.card-inner-content');
+    scrollContainers.forEach(container => {
+        container.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
+    });
+
+    // Ejecutar una vez al cargar
+    setTimeout(updateCardBorderOpacity, 100);
+    window.addEventListener('resize', updateCardBorderOpacity);
 }
 
 // Fin del archivo

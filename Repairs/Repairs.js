@@ -233,14 +233,35 @@ async function saveRepair(e) {
 // CRUD - ELIMINAR MANTENIMIENTOS
 // ====================================================================
 
+// Variable para almacenar el ID del mantenimiento a eliminar
+let repairToDeleteId = null;
+
 /**
- * Elimina un mantenimiento después de confirmación del usuario.
+ * Muestra el modal de confirmación para eliminar un mantenimiento.
  * @param {string} id - ID del mantenimiento a eliminar
  */
-window.deleteRepair = async function (id) {
+window.deleteRepair = function (id) {
+    repairToDeleteId = id;
+    const modal = document.getElementById('delete-confirmation-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+};
 
-    if (!confirm("¿Estás seguro de que quieres eliminar este mantenimiento? Esta acción borrará también todo su historial asociado.")) {
-        return;
+/**
+ * Ejecuta la eliminación del mantenimiento después de la confirmación.
+ */
+async function executeDeleteRepair() {
+    if (!repairToDeleteId) return;
+
+    const id = repairToDeleteId;
+    const modal = document.getElementById('delete-confirmation-modal');
+
+    // Cerrar modal
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
     }
 
     const repairElement = document.querySelector(`.repair-card[data-id="${id}"]`);
@@ -290,6 +311,8 @@ window.deleteRepair = async function (id) {
         }
         alert("Error al eliminar. Inténtalo de nuevo.");
     }
+
+    repairToDeleteId = null;
 }
 
 // ====================================================================
@@ -683,6 +706,27 @@ window.addEventListener('load', () => {
             if (e.target.value.trim().length > 0) {
                 document.getElementById('priority').value = 'Alta';
             }
+        });
+    }
+
+    // Event listeners para el modal de confirmación de eliminación
+    const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+    const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+
+    if (cancelDeleteBtn) {
+        cancelDeleteBtn.addEventListener('click', () => {
+            const modal = document.getElementById('delete-confirmation-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+            repairToDeleteId = null;
+        });
+    }
+
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', () => {
+            executeDeleteRepair();
         });
     }
 });
