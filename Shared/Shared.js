@@ -540,7 +540,7 @@ function showSharedDetailModal(shared) {
         <div class="modal-container">
             <div class="modal-header">
                 <h2 class="modal-title">
-                    <i class="ph ph-share-network" style="color: var(--color-accent-magenta);"></i>
+                    <i class="ph ph-share-network text-accent-magenta"></i>
                     Detalles
                 </h2>
                 <button onclick="closeSharedModal()" class="secondary-icon-btn p-2 rounded-full border-none">
@@ -550,10 +550,10 @@ function showSharedDetailModal(shared) {
 
             <div class="modal-body">
                 <div class="modal-info-box">
-                    <p class="text-sm mb-1" style="color: var(--color-text-secondary);">
+                    <p class="text-sm mb-1 text-secondary-color">
                         <i class="ph ph-user mr-2"></i> Compartido por: <span class="font-semibold text-white">${shared.senderName || 'Usuario'}</span>
                     </p>
-                    <p class="text-sm" style="color: var(--color-text-secondary);">
+                    <p class="text-sm text-secondary-color">
                         <i class="ph ph-clock mr-2"></i> Expira: ${shared.expiresAt ? (shared.expiresAt.toDate ? shared.expiresAt.toDate().toLocaleString('es-ES') : new Date(shared.expiresAt).toLocaleString('es-ES')) : 'No disponible'}
                     </p>
                 </div>
@@ -562,38 +562,38 @@ function showSharedDetailModal(shared) {
                 
                 <div class="modal-grid">
                     <div class="space-y-1">
-                        <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Ubicación</label>
-                        <p class="font-semibold" style="color: var(--color-text-primary);">${repair.location}</p>
+                        <label class="text-xs font-medium text-secondary-color">Ubicación</label>
+                        <p class="font-semibold text-primary-color">${repair.location}</p>
                     </div>
                     <div class="space-y-1">
-                        <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Modelo</label>
-                        <p class="font-semibold" style="color: var(--color-text-primary);">${repair.model || 'N/A'}</p>
+                        <label class="text-xs font-medium text-secondary-color">Modelo</label>
+                        <p class="font-semibold text-primary-color">${repair.model || 'N/A'}</p>
                     </div>
                     <div class="space-y-1">
-                        <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Contrato</label>
-                        <p class="font-semibold" style="color: var(--color-text-primary);">${repair.contract}</p>
+                        <label class="text-xs font-medium text-secondary-color">Contrato</label>
+                        <p class="font-semibold text-primary-color">${repair.contract}</p>
                     </div>
                     <div class="space-y-1">
-                        <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Fecha Programada</label>
-                        <p class="font-semibold" style="color: var(--color-text-primary);">${scheduledDate}</p>
+                        <label class="text-xs font-medium text-secondary-color">Fecha Programada</label>
+                        <p class="font-semibold text-primary-color">${scheduledDate}</p>
                     </div>
                     ${repair.key_id ? `
                     <div class="space-y-1">
-                        <label class="text-xs font-medium" style="color: var(--color-text-secondary);">ID Clave/TAG</label>
-                        <p class="font-semibold" style="color: var(--color-text-primary);">${repair.key_id}</p>
+                        <label class="text-xs font-medium text-secondary-color">ID Clave/TAG</label>
+                        <p class="font-semibold text-primary-color">${repair.key_id}</p>
                     </div>
                     ` : ''}
                     <div class="space-y-1">
-                        <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Prioridad</label>
-                        <p class="font-semibold" style="color: var(--color-text-primary);">${repair.priority || 'Media'}</p>
+                        <label class="text-xs font-medium text-secondary-color">Prioridad</label>
+                        <p class="font-semibold text-primary-color">${repair.priority || 'Media'}</p>
                     </div>
                 </div>
 
                 <!-- Observaciones (si las tiene el mantenimiento original) -->
                 ${repair.description ? `
                 <div class="mb-4">
-                    <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Observaciones</label>
-                    <p class="text-sm p-2 rounded bg-opacity-20 bg-gray-600 border border-gray-700 mt-1" style="color: var(--color-text-primary);">
+                    <label class="text-xs font-medium text-secondary-color">Observaciones</label>
+                    <p class="text-sm p-2 rounded bg-opacity-20 bg-gray-600 border border-gray-700 mt-1 text-primary-color">
                         ${repair.description}
                     </p>
                 </div>
@@ -602,10 +602,10 @@ function showSharedDetailModal(shared) {
                 <!-- Averías (Breakdowns) handling singular or plural -->
                 ${(repair.breakdowns && repair.breakdowns.length > 0) || repair.breakdown ? `
                 <div class="mb-4">
-                     <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Avería(s)</label>
+                     <label class="text-xs font-medium text-secondary-color">Avería(s)</label>
                      ${repair.breakdown ?
                 `<p class="text-sm mt-1 p-2 rounded bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/30">${repair.breakdown}</p>` :
-                `<ul class="list-disc list-inside text-sm mt-1" style="color: var(--color-accent-red);">
+                `<ul class="list-disc list-inside text-sm mt-1 text-accent-red">
                             ${repair.breakdowns.map(b => `<li>${b}</li>`).join('')}
                          </ul>`
             }
@@ -613,31 +613,31 @@ function showSharedDetailModal(shared) {
                 ` : ''}
 
                 ${(contact.name || contact.phone || contact.notes) ? `
-                <h3 class="modal-subtitle" style="color: var(--color-accent-magenta); margin-top: 1.5rem;">Contacto</h3>
+                <h3 class="modal-subtitle text-accent-magenta mt-6">Contacto</h3>
                 <div class="modal-grid">
                     ${contact.name ? `
                     <div class="space-y-1">
-                        <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Nombre</label>
-                        <p class="font-semibold" style="color: var(--color-text-primary);">${contact.name}</p>
+                        <label class="text-xs font-medium text-secondary-color">Nombre</label>
+                        <p class="font-semibold text-primary-color">${contact.name}</p>
                     </div>
                     ` : ''}
                     ${contact.phone ? `
                     <div class="space-y-1">
-                        <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Teléfono</label>
-                        <p class="font-semibold" style="color: var(--color-text-primary);">${contact.phone}</p>
+                        <label class="text-xs font-medium text-secondary-color">Teléfono</label>
+                        <p class="font-semibold text-primary-color">${contact.phone}</p>
                     </div>
                     ` : ''}
                 </div>
                 ${contact.notes ? `
                 <div class="space-y-1 mt-4 text-sm">
-                    <label class="text-xs font-medium" style="color: var(--color-text-secondary);">Notas de Contacto</label>
-                    <p class="italic" style="color: var(--color-text-primary);">${contact.notes}</p>
+                    <label class="text-xs font-medium text-secondary-color">Notas de Contacto</label>
+                    <p class="italic text-primary-color">${contact.notes}</p>
                 </div>
                 ` : ''}
                 ` : ''}
 
                 ${shared.includeRecords && shared.records && shared.records.length > 0 ? `
-                <h3 class="modal-subtitle" style="margin-top: 1.5rem;">
+                <h3 class="modal-subtitle mt-6">
                     <i class="ph ph-clock-counter-clockwise mr-2"></i>Registros Históricos (${shared.records.length})
                 </h3>
                 <div class="modal-history-list">
@@ -649,16 +649,16 @@ function showSharedDetailModal(shared) {
                     'Fecha no disponible';
                 return `
                             <div class="modal-history-item">
-                                <p class="text-sm font-semibold" style="color: var(--color-text-primary);">
+                                <p class="text-sm font-semibold text-primary-color">
                                     <i class="ph ph-calendar-check mr-1"></i> ${completedDate}
                                 </p>
-                                <p class="text-xs mt-1" style="color: var(--color-text-secondary);">
+                                <p class="text-xs mt-1 text-secondary-color">
                                     Por: ${record.username || 'Usuario desconocido'}
                                 </p>
                                 ${record.description ? `
                                 <div class="mt-1">
-                                    <span class="text-xs font-medium" style="color: var(--color-text-secondary);">Observaciones:</span>
-                                    <p class="text-xs italic" style="color: var(--color-text-primary);">
+                                    <span class="text-xs font-medium text-secondary-color">Observaciones:</span>
+                                    <p class="text-xs italic text-primary-color">
                                         ${record.description}
                                     </p>
                                 </div>

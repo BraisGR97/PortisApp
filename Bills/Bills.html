@@ -166,8 +166,7 @@
                     </div>
 
                     <!-- Estado Vacío -->
-                    <div id="empty-state" class="hidden p-6 text-center rounded-lg"
-                        style="background-color: var(--color-bg-tertiary); color: var(--color-text-secondary);">
+                    <div id="empty-state" class="hidden p-6 text-center rounded-lg empty-state-box">
                         <i class="ph ph-folder-open text-4xl mb-2"></i>
                         <p>No hay presupuestos registrados.</p>
                         <p class="text-sm mt-2">Pulsa el botón + para agregar uno nuevo.</p>
@@ -180,18 +179,42 @@
                 </div>
             </div>
 
-            <!-- Modal de Visualización de Imagen -->
-            <div id="view-image-modal" class="view-modal-overlay hidden">
+            <!-- Modal de Visualización de Presupuesto -->
+            <div id="view-bill-modal" class="view-modal-overlay hidden">
                 <div class="view-modal-container max-w-2xl">
                     <div class="view-modal-header">
-                        <h3 id="modal-image-title" class="view-modal-title">Imagen del Presupuesto</h3>
-                        <button onclick="closeImageModal()" class="secondary-icon-btn p-2 rounded-full shrink-0"
+                        <div class="flex-1 min-w-0 mr-4">
+                            <h3 id="modal-bill-concept" class="view-modal-title">Detalle del Presupuesto</h3>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span id="modal-bill-date" class="text-sm text-gray-500"></span>
+                                <span id="modal-bill-status" class="status-badge"></span>
+                            </div>
+                        </div>
+                        <button onclick="closeBillModal()" class="secondary-icon-btn p-2 rounded-full shrink-0"
                             title="Cerrar">
                             <i class="ph ph-x text-xl"></i>
                         </button>
                     </div>
-                    <div class="view-modal-content flex justify-center bg-black/20">
-                        <img id="modal-image" src="" alt="Comprobante" class="max-h-[70vh] object-contain rounded-lg">
+                    <div class="view-modal-content space-y-4">
+
+                        <!-- Coste -->
+                        <div class="flex items-center gap-2 text-xl font-bold text-accent-magenta">
+                            <i class="ph ph-currency-eur"></i>
+                            <span id="modal-bill-cost">0.00</span>
+                        </div>
+
+                        <!-- Imagen -->
+                        <div id="modal-bill-image-container"
+                            class="hidden mb-4 bg-black/5 rounded-lg p-2 flex justify-center">
+                            <img id="modal-bill-image" src="" alt="Comprobante"
+                                class="max-h-[50vh] object-contain rounded-lg shadow-sm">
+                        </div>
+
+                        <!-- Notas Completas -->
+                        <div id="modal-bill-notes-container" class="hidden">
+                            <h4 class="text-sm font-semibold text-gray-500 uppercase mb-1">Notas</h4>
+                            <p id="modal-bill-notes" class="view-modal-text whitespace-pre-line"></p>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -620,6 +620,46 @@ html.light-mode #bottom-navbar {
 }
 
 /* ================================================================
+   ESTILOS DE AJUSTES Y MODALES (Refactorizados)
+   ================================================================ */
+
+.settings-item {
+    background-color: var(--color-bg-tertiary);
+}
+
+.settings-icon {
+    color: var(--color-text-secondary);
+}
+
+.settings-text {
+    color: var(--color-text-primary);
+}
+
+.btn-danger-soft {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: var(--color-accent-red);
+    border: 1px solid var(--color-accent-red);
+}
+
+.btn-danger-soft:hover {
+    background-color: rgba(220, 53, 69, 0.2);
+}
+
+.btn-confirm-danger {
+    background: var(--color-accent-red);
+    border-color: var(--color-accent-red);
+    color: white;
+}
+
+.btn-confirm-danger:hover {
+    background: #c82333;
+}
+
+.text-secondary-color {
+    color: var(--color-text-secondary);
+}
+
+/* ================================================================
    ESTILOS ESPECIFICOS - CHAT
    ================================================================ */
 

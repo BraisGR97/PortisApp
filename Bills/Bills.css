@@ -41,6 +41,10 @@
     --gradient-primary: linear-gradient(135deg, #FF5722, #E91E63);
 }
 
+.text-accent-magenta {
+    color: var(--color-accent-magenta);
+}
+
 /* Light Mode Variables */
 html.light-mode,
 html.light-mode body {
@@ -565,4 +569,9 @@ html.light-mode body {
 .bill-action-btn.view-image:hover {
     background-color: var(--color-bg-tertiary);
     color: var(--color-text-primary);
+}
+
+.empty-state-box {
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
 }

@@ -140,23 +140,57 @@ window.clearImage = function () {
 };
 
 /**
- * Abre el modal de visualización de imagen.
+ * Abre el modal de visualización de presupuesto.
  */
-window.openImageModal = function (imageUrl, title) {
-    const modal = document.getElementById('view-image-modal');
-    const img = document.getElementById('modal-image');
-    const titleEl = document.getElementById('modal-image-title');
+window.openBillModal = function (billId) {
+    const bills = window.currentBillsData;
+    const bill = bills.find(b => b.id === billId);
+    if (!bill) return;
 
-    img.src = imageUrl;
-    titleEl.textContent = title;
+    // Elementos
+    const modal = document.getElementById('view-bill-modal');
+    const conceptEl = document.getElementById('modal-bill-concept');
+    const dateEl = document.getElementById('modal-bill-date');
+    const statusEl = document.getElementById('modal-bill-status');
+    const costEl = document.getElementById('modal-bill-cost');
+    const notesContainer = document.getElementById('modal-bill-notes-container');
+    const notesEl = document.getElementById('modal-bill-notes');
+    const imageContainer = document.getElementById('modal-bill-image-container');
+    const imageEl = document.getElementById('modal-bill-image');
+
+    // Popular datos
+    conceptEl.textContent = bill.concept;
+    dateEl.textContent = bill.month; // Ya está formateada en display
+    costEl.textContent = parseFloat(bill.cost).toFixed(2) + ' €';
+
+    // Status
+    statusEl.textContent = bill.status === 'Pagado' ? 'Pagado' : 'Pendiente';
+    statusEl.className = 'status-badge ' + (bill.status === 'Pagado' ? 'paid' : 'pending');
+
+    // Notas
+    if (bill.notes) {
+        notesEl.textContent = bill.notes;
+        notesContainer.classList.remove('hidden');
+    } else {
+        notesContainer.classList.add('hidden');
+    }
+
+    // Imagen
+    if (bill.imageUrl) {
+        imageEl.src = bill.imageUrl;
+        imageContainer.classList.remove('hidden');
+    } else {
+        imageContainer.classList.add('hidden');
+    }
+
     modal.classList.remove('hidden');
 };
 
 /**
- * Cierra el modal de visualización de imagen.
+ * Cierra el modal de visualización.
  */
-window.closeImageModal = function () {
-    document.getElementById('view-image-modal').classList.add('hidden');
+window.closeBillModal = function () {
+    document.getElementById('view-bill-modal').classList.add('hidden');
 };
 
 // ====================================================================
@@ -349,7 +383,7 @@ function renderBills(bills, updateCache = true) {
             </button>` : '';
 
         return `
-            <div class="bill-card" data-id="${bill.id}">
+            <div class="bill-card" data-id="${bill.id}" onclick="handleBillCardClick(event, '${bill.id}')">
                 <div class="bill-header">
                     <div class="bill-info">
                         <h3 class="bill-card-title">${bill.concept}</h3>
@@ -375,7 +409,7 @@ function renderBills(bills, updateCache = true) {
                 ` : ''}
 
                 <div class="bill-actions">
-                    ${imageButton ? imageButton.replace('class="action-btn"', 'class="bill-action-btn view-image"') : ''}
+                    <!-- Image preview button removed as it is now in the main view modal -->
                     <button class="bill-action-btn toggle ${bill.status === 'Pagado' ? 'completed' : 'pending'}" 
                             data-action="toggle-status" data-id="${bill.id}" data-status="${bill.status}" 
                             title="${bill.status === 'Pagado' ? 'Marcar como Pendiente' : 'Marcar como Pagado'}">
@@ -432,8 +466,12 @@ function updateCardBorderOpacity() {
 }
 
 function handleBillActions(e) {
+    // This handler catches clicks on buttons specifically
     const button = e.target.closest('[data-action]');
     if (!button) return;
+
+    // Prevent the card click event from firing when clicking a specific action button
+    e.stopPropagation();
 
     const action = button.dataset.action;
     const id = button.dataset.id;
@@ -444,12 +482,17 @@ function handleBillActions(e) {
         const currentStatus = button.dataset.status;
         const newStatus = currentStatus === 'Pagado' ? 'Pendiente' : 'Pagado';
         toggleBillStatus(id, newStatus);
-    } else if (action === 'view-image') {
-        const imageUrl = button.dataset.url;
-        const concept = button.dataset.concept;
-        window.openImageModal(imageUrl, concept);
     }
 }
+
+// Nueva función para el click en la tarjeta completa
+window.handleBillCardClick = function (e, id) {
+    // Si el click fue en un botón, no hacemos nada (ya se manejó en handleBillActions o propagation stopped)
+    if (e.target.closest('button')) return;
+
+    // Abrir modal de detalle
+    window.openBillModal(id);
+};
 
 window.toggleSearch = function () {
     const searchContainer = document.getElementById('search-container');

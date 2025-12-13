@@ -375,8 +375,7 @@
                 <i class="ph ph-calendar-check text-2xl"></i>
             </button>
 
-            <button id="nav-messages-btn" data-target="chat-view" class="nav-button active" title="Chat"
-                style="position: relative;">
+            <button id="nav-messages-btn" data-target="chat-view" class="nav-button active" title="Chat">
                 <span id="unread-badge" class="hidden absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                 <i class="ph ph-chat-circle-text text-2xl"></i>
             </button>
@@ -584,11 +583,10 @@
 
             <div class="space-y-3">
                 <!-- Silenciar grupo -->
-                <div class="flex items-center justify-between p-3 rounded-lg"
-                    style="background-color: var(--color-bg-tertiary);">
+                <div class="flex items-center justify-between p-3 rounded-lg settings-item">
                     <div class="flex items-center gap-3">
-                        <i class="ph ph-bell-slash text-xl" style="color: var(--color-text-secondary);"></i>
-                        <span class="font-medium" style="color: var(--color-text-primary);">Silenciar
+                        <i class="ph ph-bell-slash text-xl settings-icon"></i>
+                        <span class="font-medium settings-text">Silenciar
                             Notificaciones</span>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
@@ -601,8 +599,7 @@
 
                 <!-- Salir del grupo -->
                 <button id="btn-leave-group" onclick="showLeaveGroupConfirmation()"
-                    class="w-full p-3 rounded-lg font-medium flex items-center justify-center gap-2 transition"
-                    style="background-color: rgba(220, 53, 69, 0.1); color: var(--color-accent-red); border: 1px solid var(--color-accent-red);">
+                    class="w-full p-3 rounded-lg font-medium flex items-center justify-center gap-2 transition btn-danger-soft">
                     <i class="ph ph-sign-out text-xl"></i>
                     Salir del Grupo
                 </button>
@@ -620,14 +617,14 @@
         onclick="closeModal('confirmation-modal')">
         <div class="modal-content w-full max-w-sm rounded-xl p-6" onclick="event.stopPropagation()">
             <h3 id="confirmation-title" class="text-xl font-bold mb-2">Confirmación</h3>
-            <p id="confirmation-message" class="mb-6 text-sm" style="color: var(--color-text-secondary);">¿Estás seguro?
+            <p id="confirmation-message" class="mb-6 text-sm text-secondary-color">¿Estás seguro?
             </p>
 
             <div class="flex gap-3">
                 <button onclick="closeModal('confirmation-modal')"
                     class="secondary-btn w-1/2 rounded-lg">Cancelar</button>
-                <button id="confirmation-ok-btn" class="primary-btn w-1/2 rounded-lg"
-                    style="background: var(--color-accent-red); border-color: var(--color-accent-red);">Confirmar</button>
+                <button id="confirmation-ok-btn"
+                    class="primary-btn w-1/2 rounded-lg btn-confirm-danger">Confirmar</button>
             </div>
         </div>
     </div>
