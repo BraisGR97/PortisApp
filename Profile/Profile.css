@@ -355,7 +355,7 @@ html.light-mode body {
    ================================================================ */
 
 .modal-overlay {
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);
 }
 
