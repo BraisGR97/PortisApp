@@ -759,7 +759,11 @@ function updateCardBorderOpacity() {
         const relativePos = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.8)));
         percentage = (1 - relativePos) * 100;
 
+        // Calculate opacity for the white part: 1 at top, 0 at bottom
+        const opacity = (1 - relativePos).toFixed(2);
+
         element.style.setProperty('--gradient-stop', `${percentage}%`);
+        element.style.setProperty('--white-opacity', opacity);
     });
 }
 
