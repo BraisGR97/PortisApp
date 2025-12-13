@@ -736,41 +736,47 @@ window.addEventListener('load', () => {
 // ================================================================
 
 /**
- * Actualiza la opacidad del borde superior de las tarjetas.
+ * Actualiza la posición del gradiente del borde superior de las tarjetas.
  */
 function updateCardBorderOpacity() {
-    // Obtener color base dinámico desde CSS
-    const rgbBase = getComputedStyle(document.documentElement).getPropertyValue('--rgb-border-dynamic').trim() || '255, 255, 255';
-
-    // 1. Contenedores
-    // REMOVED LOGIC: Containers now have static white border as requested.
-    // const innerContents = document.querySelectorAll('.card-inner-content');
-    // innerContents.forEach(inner => { ... });
-
-    // 2. Tarjetas de Reparación
     const elements = document.querySelectorAll('.repair-card');
     const viewportHeight = window.innerHeight;
+    const headerOffset = 60; // Offset approx for header
 
     elements.forEach(element => {
         const rect = element.getBoundingClientRect();
-        const elementTop = rect.top;
-        const elementHeight = rect.height;
+        const elementTop = rect.top - headerOffset;
 
-        let opacity = 0;
-        if (elementTop < viewportHeight && elementTop > -elementHeight) {
-            const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
-            opacity = 1 - normalizedPosition;
-            opacity = 0.2 + (opacity * 0.8);
-        }
-        element.style.borderTopColor = `rgba(${rgbBase}, ${opacity})`;
+        // Calculate percentage: Top of list (0) -> 100%, Bottom (~height) -> 0%
+        // We use a safe range for the viewport calculation
+        let percentage = 0;
+
+        // Map viewport range to 0-100 percentage
+        // If element is at top (approx 0), we want close to 100% (Black)
+        // If element is at bottom (approx viewportHeight), we want close to 0% (White)
+
+        const relativePos = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.8)));
+        percentage = (1 - relativePos) * 100;
+
+        element.style.setProperty('--gradient-stop', `${percentage}%`);
     });
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+    const mainContainer = document.querySelector('#app-content'); // Main scroll container if applicable
     const innerContents = document.querySelectorAll('.card-inner-content');
+
+    // Listen on multiple potential scroll sources
+    window.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
+
+    if (mainContainer) {
+        mainContainer.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
+    }
+
     innerContents.forEach(inner => {
         inner.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
     });
+
     // Trigger inicial
     updateCardBorderOpacity();
 });

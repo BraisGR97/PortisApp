@@ -219,22 +219,41 @@ html.light-mode body {
 .repair-card {
     background-color: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
-    border-top: 1px solid var(--color-card-border-top);
+    border-top: none;
+    /* Replaced by pseudo-element */
     border-bottom: 1px solid var(--color-card-border-bottom);
     box-shadow: 0 5px 10px var(--color-shadow);
     padding: 1rem;
+    padding-top: calc(1rem + 3px);
+    /* Compensate for pseudo-border */
     border-radius: 0.75rem;
     display: flex;
     flex-direction: column;
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, border-top-color 0.15s ease-out;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    position: relative;
+    /* Context for pseudo-element */
+    overflow: hidden;
+    /* Clip corners */
+}
+
+/* Pseudo-element for Gradient Border */
+.repair-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #ffffff 0%, var(--color-border) var(--gradient-stop, 50%), #000000 100%);
+    pointer-events: none;
+    z-index: 10;
 }
 
 .repair-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 15px var(--color-shadow);
     border-color: var(--color-accent-magenta);
-    border-top-color: var(--color-accent-magenta) !important;
 }
 
 .repair-card-title {
