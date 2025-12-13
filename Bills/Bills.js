@@ -373,55 +373,87 @@ function renderBills(bills, updateCache = true) {
         return dateB - dateA;
     });
 
-    container.innerHTML = sortedBills.map(bill => {
-        const statusClass = bill.status === 'Pagado' ? 'paid' : 'pending';
-        const statusText = bill.status === 'Pagado' ? 'Pagado' : 'Pendiente';
+    // Agrupar por Mes/Año
+    const billsByMonth = {};
+    const monthOrder = [];
 
-        const imageButton = bill.imageUrl ?
-            `<button class="action-btn" data-action="view-image" data-id="${bill.id}" data-url="${bill.imageUrl}" data-concept="${bill.concept}" title="Ver Imagen">
-                <i class="ph ph-image"></i>
-            </button>` : '';
+    sortedBills.forEach(bill => {
+        const dateRaw = bill.createdAt?.toDate ? bill.createdAt.toDate() : new Date(bill.rawDate || 0); // Fallback to rawDate if createdAt is missing
+        const monthYear = dateRaw.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
 
-        return `
-            <div class="bill-card" data-id="${bill.id}" onclick="handleBillCardClick(event, '${bill.id}')">
-                <div class="bill-header">
-                    <div class="bill-info">
-                        <h3 class="bill-card-title">${bill.concept}</h3>
-                        <p class="bill-details">
-                            <i class="ph ph-calendar-blank mr-1"></i>
-                            ${bill.month}
-                        </p>
-                        <p class="bill-amount">
-                            <i class="ph ph-currency-eur mr-1"></i>
-                            ${parseFloat(bill.cost).toFixed(2)} €
-                        </p>
-                    </div>
-                    <span class="status-badge ${statusClass}">${statusText}</span>
-                </div>
+        if (!billsByMonth[monthYear]) {
+            billsByMonth[monthYear] = {
+                bills: [],
+                total: 0
+            };
+            monthOrder.push(monthYear);
+        }
 
-                ${bill.notes ? `
-                    <div class="mb-3">
-                        <p class="bill-card-content line-clamp-2">
-                            <i class="ph ph-note mr-1"></i>
-                            ${bill.notes}
-                        </p>
-                    </div>
-                ` : ''}
+        billsByMonth[monthYear].bills.push(bill);
+        billsByMonth[monthYear].total += parseFloat(bill.cost) || 0;
+    });
 
-                <div class="bill-actions">
-                    <!-- Image preview button removed as it is now in the main view modal -->
-                    <button class="bill-action-btn toggle ${bill.status === 'Pagado' ? 'completed' : 'pending'}" 
-                            data-action="toggle-status" data-id="${bill.id}" data-status="${bill.status}" 
-                            title="${bill.status === 'Pagado' ? 'Marcar como Pendiente' : 'Marcar como Pagado'}">
-                        <i class="ph ${bill.status === 'Pagado' ? 'ph-x-circle' : 'ph-check-circle'} text-lg"></i>
-                    </button>
-                    <button class="bill-action-btn delete" data-action="delete" data-id="${bill.id}" title="Eliminar">
-                        <i class="ph ph-trash text-lg"></i>
-                    </button>
-                </div>
+    let htmlContent = '';
+
+    monthOrder.forEach(monthYear => {
+        const group = billsByMonth[monthYear];
+        const formattedTotal = group.total.toFixed(2);
+
+        // Separator
+        htmlContent += `
+            <div class="month-separator flex justify-between items-center mt-6 mb-3 px-2 border-b border-gray-700/50 pb-1">
+                <span class="capitalize text-sm font-bold text-gray-500">${monthYear}</span>
+                <span class="text-xs font-semibold text-gray-400 bg-gray-800 px-2 py-0.5 rounded-full">Total: ${formattedTotal} €</span>
             </div>
         `;
-    }).join('');
+
+        // Bills
+        htmlContent += group.bills.map(bill => {
+            const statusClass = bill.status === 'Pagado' ? 'paid' : 'pending';
+            const statusText = bill.status === 'Pagado' ? 'Pagado' : 'Pendiente';
+
+            return `
+                <div class="bill-card" data-id="${bill.id}" onclick="handleBillCardClick(event, '${bill.id}')">
+                    <div class="bill-header">
+                        <div class="bill-info">
+                            <h3 class="bill-card-title">${bill.concept}</h3>
+                            <p class="bill-details">
+                                <i class="ph ph-calendar-blank mr-1"></i>
+                                ${bill.month}
+                            </p>
+                            <p class="bill-amount">
+                                <i class="ph ph-currency-eur mr-1"></i>
+                                ${parseFloat(bill.cost).toFixed(2)} €
+                            </p>
+                        </div>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>
+
+                    ${bill.notes ? `
+                        <div class="mb-3">
+                            <p class="bill-card-content line-clamp-2">
+                                <i class="ph ph-note mr-1"></i>
+                                ${bill.notes}
+                            </p>
+                        </div>
+                    ` : ''}
+
+                    <div class="bill-actions">
+                        <button class="bill-action-btn toggle ${bill.status === 'Pagado' ? 'completed' : 'pending'}" 
+                                data-action="toggle-status" data-id="${bill.id}" data-status="${bill.status}" 
+                                title="${bill.status === 'Pagado' ? 'Marcar como Pendiente' : 'Marcar como Pagado'}">
+                            <i class="ph ${bill.status === 'Pagado' ? 'ph-x-circle' : 'ph-check-circle'} text-lg"></i>
+                        </button>
+                        <button class="bill-action-btn delete" data-action="delete" data-id="${bill.id}" title="Eliminar">
+                            <i class="ph ph-trash text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    });
+
+    container.innerHTML = htmlContent;
 
     setTimeout(updateCardBorderOpacity, 50);
 }

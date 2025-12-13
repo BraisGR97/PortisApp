@@ -12,6 +12,7 @@
 
 :root {
     color-scheme: only light dark;
+    background-color: var(--color-bg-primary);
 
     /* Colores de fondo (Dark Mode por defecto) */
     --color-bg-primary: #12121e;
@@ -83,7 +84,7 @@ body {
     margin: 0;
     padding: 0;
     width: 100%;
-    overflow-x: hidden;
+    overflow: hidden;
 }
 
 html.light-mode body {
@@ -105,6 +106,8 @@ html.light-mode body {
 
 *::-webkit-scrollbar {
     display: none;
+    width: 0;
+    height: 0;
 }
 
 /* ================================================================

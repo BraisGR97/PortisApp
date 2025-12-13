@@ -455,9 +455,21 @@ function renderNotes(notes, updateCache = true) {
         return timeB - timeA;
     });
 
+    let lastMonthYear = '';
+
     filteredNotes.forEach(note => {
         const dateRaw = note.timestamp && note.timestamp.toDate ? note.timestamp.toDate() : new Date(note.timestamp);
         const formattedDate = dateRaw.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+        // Month Separator Logic
+        const currentMonthYear = dateRaw.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+        if (currentMonthYear !== lastMonthYear) {
+            const separator = document.createElement('div');
+            separator.className = 'month-separator capitalize text-sm font-bold text-gray-500 mt-4 mb-2 pl-2 border-l-4 border-gray-500/30';
+            separator.textContent = currentMonthYear;
+            listContainer.appendChild(separator);
+            lastMonthYear = currentMonthYear;
+        }
 
         const card = document.createElement('div');
         card.className = 'note-card';
