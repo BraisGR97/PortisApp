@@ -218,42 +218,52 @@ html.light-mode body {
 
 .repair-card {
     background-color: var(--color-bg-secondary);
-    border: 1px solid var(--color-border);
-    border-top: none;
-    /* Replaced by pseudo-element */
-    border-bottom: 1px solid var(--color-card-border-bottom);
+    /* Border gradient implementation preserving radius */
+    border: 1px solid transparent;
+    border-left: 0;
+    /* Left side handled by priority strip */
+    border-radius: 0.75rem;
+
+    background-image: linear-gradient(var(--color-bg-secondary), var(--color-bg-secondary)),
+        linear-gradient(to bottom, #ffffff, #000000);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+
     box-shadow: 0 5px 10px var(--color-shadow);
     padding: 1rem;
-    padding-top: calc(1rem + 3px);
-    /* Compensate for pseudo-border */
-    border-radius: 0.75rem;
+    /* padding-left adjusted to account for the missing border-left width compared to other sides? 
+       Actually standard padding is fine, priority strip overlays. */
+
     display: flex;
     flex-direction: column;
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s;
     position: relative;
-    /* Context for pseudo-element */
     overflow: hidden;
-    /* Clip corners */
 }
 
-/* Pseudo-element for Gradient Border */
+/* Priority Strip using Pseudo-element */
 .repair-card::before {
     content: "";
     position: absolute;
     top: 0;
     left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #ffffff 0%, var(--color-border) var(--gradient-stop, 50%), #000000 100%);
-    pointer-events: none;
+    bottom: 0;
+    width: 4px;
     z-index: 10;
+    /* Colors defined by priority classes */
 }
 
 .repair-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 15px var(--color-shadow);
-    border-color: var(--color-accent-magenta);
+    /* Border color change on hover is tricky with gradient background. 
+       Maybe add a glow or change the gradient? 
+       For now, let's keep the user's requested white-black gradient stable or clarify.
+       The original had border-color: magenta on hover.
+       To support hover color change, we'd need to change the background-image on hover. */
+    background-image: linear-gradient(var(--color-bg-secondary), var(--color-bg-secondary)),
+        linear-gradient(to bottom, var(--color-accent-magenta), var(--color-accent-magenta));
 }
 
 .repair-card-title {
@@ -274,7 +284,6 @@ html.light-mode body {
 /* FOOTER Y ACCIONES (Updated) */
 .repair-footer {
     border-top: 1px solid var(--color-border);
-    /* Line restored */
     padding-top: 0.75rem;
 }
 
@@ -283,7 +292,6 @@ html.light-mode body {
     justify-content: flex-end;
     align-items: center;
     border-top: none;
-    /* Removed internal line */
     gap: 0.5rem;
     margin-top: 0;
 }
@@ -292,7 +300,6 @@ html.light-mode body {
 
 .repair-title-container h3 {
     color: var(--color-accent-magenta);
-    /* Locations in magenta */
     margin-bottom: 0.25rem;
 }
 
@@ -310,16 +317,16 @@ html.light-mode body {
 }
 
 /* Colores de prioridad (borde lateral) */
-.repair-card.priority-alta {
-    border-left: 4px solid var(--color-accent-red);
+.repair-card.priority-alta::before {
+    background-color: var(--color-accent-red);
 }
 
-.repair-card.priority-media {
-    border-left: 4px solid var(--color-accent-yellow);
+.repair-card.priority-media::before {
+    background-color: var(--color-accent-yellow);
 }
 
-.repair-card.priority-baja {
-    border-left: 4px solid var(--color-accent-green);
+.repair-card.priority-baja::before {
+    background-color: var(--color-accent-green);
 }
 
 /* Mensajes de estado */

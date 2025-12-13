@@ -577,7 +577,7 @@ function renderRepairs(repairs, updateCache = true) {
         listContainer.appendChild(card);
     });
 
-    setTimeout(updateCardBorderOpacity, 50);
+    // setTimeout(updateCardBorderOpacity, 50); // Removed: Scroll logic deprecated
 }
 
 /**
@@ -731,54 +731,9 @@ window.addEventListener('load', () => {
     }
 });
 
+
 // ================================================================
-// BORDE ANIMADO EN SCROLL
+// BORDE ANIMADO EN SCROLL (ELIMINADO - Ahora es estático)
 // ================================================================
+// La lógica de gradiente dinámico se ha reemplazado por un borde con gradiente fijo vertical en CSS.
 
-/**
- * Actualiza la posición del gradiente del borde superior de las tarjetas.
- */
-function updateCardBorderOpacity() {
-    const elements = document.querySelectorAll('.repair-card');
-    const viewportHeight = window.innerHeight;
-    const headerOffset = 60; // Offset approx for header
-
-    elements.forEach(element => {
-        const rect = element.getBoundingClientRect();
-        const elementTop = rect.top - headerOffset;
-
-        // Calculate percentage: Top of list (0) -> 100%, Bottom (~height) -> 0%
-        // We use a safe range for the viewport calculation
-        let percentage = 0;
-
-        // Map viewport range to 0-100 percentage
-        // If element is at top (approx 0), we want close to 100% (Black)
-        // If element is at bottom (approx viewportHeight), we want close to 0% (White)
-
-        const relativePos = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.8)));
-        percentage = (1 - relativePos) * 100;
-
-        element.style.setProperty('--gradient-stop', `${percentage}%`);
-    });
-}
-
-document.addEventListener('DOMContentLoaded', function () {
-    const mainContainer = document.querySelector('#app-content'); // Main scroll container if applicable
-    const innerContents = document.querySelectorAll('.card-inner-content');
-
-    // Listen on multiple potential scroll sources
-    window.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
-
-    if (mainContainer) {
-        mainContainer.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
-    }
-
-    innerContents.forEach(inner => {
-        inner.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
-    });
-
-    // Trigger inicial
-    updateCardBorderOpacity();
-});
-
-window.addEventListener('resize', updateCardBorderOpacity);
