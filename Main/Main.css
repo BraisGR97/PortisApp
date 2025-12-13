@@ -319,7 +319,7 @@ html.light-mode #geometric-wrapper {
     display: flex;
     flex-direction: column;
     padding: 1rem;
-    padding-bottom: 5rem;
+    padding-bottom: 0;
     height: 100vh;
     box-sizing: border-box;
 }
@@ -328,8 +328,8 @@ html.light-mode #geometric-wrapper {
     display: flex;
     width: 400%;
     /* 4 vistas */
-    height: calc(100vh - 9rem);
-    /* Altura total menos navbar superior (4rem) e inferior (5rem) */
+    height: 100%;
+    /* Altura total manejada por padding de view-section */
     transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
@@ -340,7 +340,7 @@ html.light-mode #geometric-wrapper {
     flex-shrink: 0;
     overflow: hidden;
     /* Sin scroll aquí, el scroll estará dentro de card-container */
-    padding: 1rem;
+    padding: 1rem 1rem 8rem 1rem;
     box-sizing: border-box;
 }
 
@@ -355,7 +355,9 @@ html.light-mode #geometric-wrapper {
     box-shadow: 0 4px 6px var(--color-shadow);
     border: 1px solid var(--color-border);
     border-bottom: 1px solid var(--color-bg-secondary);
-    height: calc(100vh - 11rem);
+    height: 100%;
+    width: 100%;
+    margin: 0;
     /* Altura total menos navbar superior (4rem), inferior (5rem) y padding de view-section (2rem) */
     overflow: hidden;
     display: flex;
