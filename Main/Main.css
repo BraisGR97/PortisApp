@@ -353,8 +353,18 @@ html.light-mode #geometric-wrapper {
     background-color: var(--color-bg-secondary);
     border-radius: 1rem;
     box-shadow: 0 4px 6px var(--color-shadow);
-    border: 1px solid var(--color-border);
-    border-bottom: 1px solid var(--color-bg-secondary);
+
+    /* Gradient Border Implementation (Inverse: White at Bottom, Black at Top) */
+    border: 1px solid transparent;
+    background-image: linear-gradient(var(--color-bg-secondary), var(--color-bg-secondary)),
+        linear-gradient(to top,
+            rgba(255, 255, 255, 0.8) 0%,
+            #47475f 25%,
+            #47475f 75%,
+            #12121e 100%);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+
     height: 100%;
     width: 100%;
     margin: 0;
@@ -362,9 +372,6 @@ html.light-mode #geometric-wrapper {
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    /* transition: border-top-color 0.3s ease; - Eliminado por borde estático */
-    border-top: 1px solid #ffffff;
-    /* Borde estático, blanco y opaco */
 }
 
 .card-inner-content {
@@ -388,11 +395,19 @@ html.light-mode #geometric-wrapper {
 /* Tarjetas del Dashboard */
 .dashboard-card {
     background-color: var(--color-bg-primary);
-    border-top: 1px solid var(--color-bg-secondary);
-    border-left: 1px solid var(--color-border);
-    border-right: 1px solid var(--color-border);
-    border-bottom: 1px solid transparent;
+
+    /* Gradient Border Implementation (Inverse: White at Bottom, Black at Top) */
+    border: 1px solid transparent;
     border-radius: 0.75rem;
+    background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
+        linear-gradient(to top,
+            rgba(255, 255, 255, 0.8) 0%,
+            #47475f 25%,
+            #47475f 75%,
+            #12121e 100%);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+
     padding: 1rem;
     transition: all 0.2s ease;
     display: flex;
@@ -402,8 +417,34 @@ html.light-mode #geometric-wrapper {
 
 .dashboard-card:hover {
     transform: translateY(-2px);
-    border-color: var(--color-accent-magenta) !important;
     box-shadow: 0 4px 12px var(--color-shadow);
+    /* Change border to magenta on hover */
+    background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
+        linear-gradient(to top, var(--color-accent-magenta), var(--color-accent-magenta));
+}
+
+/* Light Mode Overrides for Gradient Borders */
+html.light-mode .card-container {
+    background-image: linear-gradient(var(--color-bg-secondary), var(--color-bg-secondary)),
+        linear-gradient(to top,
+            rgba(0, 0, 0, 0.8) 0%,
+            #dee2e6 25%,
+            #dee2e6 75%,
+            #ffffff 100%);
+}
+
+html.light-mode .dashboard-card {
+    background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
+        linear-gradient(to top,
+            rgba(0, 0, 0, 0.8) 0%,
+            #dee2e6 25%,
+            #dee2e6 75%,
+            #ffffff 100%);
+}
+
+html.light-mode .dashboard-card:hover {
+    background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
+        linear-gradient(to top, var(--color-accent-magenta), var(--color-accent-magenta));
 }
 
 /* Inputs Minimalistas */
@@ -692,20 +733,45 @@ html.light-mode #bottom-navbar {
 /* Tarjeta de usuario en lista de chat */
 .user-chat-card {
     background-color: var(--color-bg-primary);
-    border-top: 1px solid var(--color-bg-secondary);
-    border-left: 1px solid var(--color-border);
-    border-right: 1px solid var(--color-border);
-    border-bottom: 1px solid transparent;
+
+    /* Gradient Border Implementation (Inverse: White at Bottom, Black at Top) */
+    border: 1px solid transparent;
     border-radius: 0.75rem;
+    background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
+        linear-gradient(to top,
+            rgba(255, 255, 255, 0.8) 0%,
+            #47475f 25%,
+            #47475f 75%,
+            #12121e 100%);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+
     padding: 1rem;
     transition: all 0.2s;
     cursor: pointer;
 }
 
 .user-chat-card:hover {
-    border-color: var(--color-accent-magenta) !important;
     transform: translateY(-1px);
     box-shadow: 0 2px 8px var(--color-shadow);
+    /* Change border to magenta on hover */
+    background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
+        linear-gradient(to top, var(--color-accent-magenta), var(--color-accent-magenta));
+}
+
+/* Light Mode Override for Chat Cards */
+html.light-mode .user-chat-card {
+    background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
+        linear-gradient(to top,
+            rgba(0, 0, 0, 0.8) 0%,
+            #dee2e6 25%,
+            #dee2e6 75%,
+            #ffffff 100%);
+}
+
+html.light-mode .user-chat-card:hover {
+    background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
+        linear-gradient(to top, var(--color-accent-magenta), var(--color-accent-magenta));
 }
 
 /* Mensajes de chat */
@@ -1521,6 +1587,21 @@ html.light-mode .calendar-day.empty {
     border-top-color: var(--color-accent-magenta) !important;
     border-right-color: var(--color-accent-magenta) !important;
     border-bottom-color: var(--color-accent-magenta) !important;
+}
+
+/* Light Mode Override for Maintenance Items */
+html.light-mode .maintenance-item {
+    background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
+        linear-gradient(to top,
+            rgba(0, 0, 0, 0.8) 0%,
+            #dee2e6 25%,
+            #dee2e6 75%,
+            #ffffff 100%);
+}
+
+html.light-mode .maintenance-item:hover {
+    background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
+        linear-gradient(to top, var(--color-accent-magenta), var(--color-accent-magenta));
 }
 
 /* Bordes de Prioridad */

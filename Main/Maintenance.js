@@ -254,11 +254,15 @@
 
         listContainer.innerHTML = '';
 
+        // DEBUG: Verificar método de ordenación
+        console.log('[Maintenance] Current sort method:', currentSortMethod);
+
         // Lógica de ordenación dinámica
         if (currentSortMethod === 'ai') {
             // Pre-calcular puntajes para visualización y ordenamiento
             data.forEach(item => {
                 item._tempScore = calculateSmartScore(item);
+                console.log(`[Maintenance] Item "${item.location}" score:`, item._tempScore);
             });
 
             data.sort((a, b) => b._tempScore - a._tempScore);
@@ -266,6 +270,7 @@
             // En modo location, también calculamos el score para mostrarlo (opcional)
             data.forEach(item => {
                 item._tempScore = calculateSmartScore(item);
+                console.log(`[Maintenance] Item "${item.location}" score:`, item._tempScore);
             });
 
             data.sort((a, b) => {
@@ -275,6 +280,7 @@
             });
         } else {
             // Por Prioridad (Default) - No calculamos score
+            console.log('[Maintenance] Priority mode - no scores calculated');
             data.sort((a, b) => {
                 const priorityOrder = { 'Alta': 1, 'Media': 2, 'Baja': 3 };
                 const pA = priorityOrder[a.priority] || 99;
