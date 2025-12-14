@@ -735,7 +735,28 @@ function switchView(targetViewId) {
 // EFECTOS VISUALES
 // ====================================================================
 
-// function updateCardBorderOpacity() removed
+function updateCardBorderOpacity() {
+    const elements = document.querySelectorAll('.repair-card');
+    const viewportHeight = window.innerHeight;
+    const headerOffset = 60;
+
+    elements.forEach(element => {
+        const rect = element.getBoundingClientRect();
+        const elementTop = rect.top - headerOffset;
+
+        let percentage = 0;
+        const relativePos = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.8)));
+        const progress = 1 - relativePos;
+
+        const opacity = (0.2 + (0.6 * progress)).toFixed(2);
+        const greyStart = (1 + (59 * progress));
+        const greyEnd = (35 + (59 * progress));
+
+        element.style.setProperty('--white-opacity', opacity);
+        element.style.setProperty('--grey-start', `${greyStart}%`);
+        element.style.setProperty('--grey-end', `${greyEnd}%`);
+    });
+}
 
 // ====================================================================
 // FUNCIONALIDAD DE SWIPE

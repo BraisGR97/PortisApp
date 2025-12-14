@@ -729,34 +729,24 @@ function handleProfileImageError(imgElement) {
 // ================================================================
 function updateCardBorderOpacity() {
     const elements = document.querySelectorAll('.card-container');
-    // En Profile.html el elemento con scroll es #app-content
-    const scrollContainer = document.getElementById('app-content');
-    const viewportHeight = window.innerHeight; // Usamos viewport completo para referencia visual
+    const viewportHeight = window.innerHeight;
+    const headerOffset = 60;
 
     elements.forEach(element => {
         const rect = element.getBoundingClientRect();
-        const elementTop = rect.top;
-        const elementHeight = rect.height;
+        const elementTop = rect.top - headerOffset;
 
-        let opacity = 0.1; // Base opacity
+        let percentage = 0;
+        const relativePos = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.8)));
+        const progress = 1 - relativePos;
 
-        // Logica simplificada: Cuanto mas arriba, mas opaco.
-        // Si elementTop es cerca de 0 (top de pantalla) o negativo, opacity -> 1.
-        // Si elementTop es abajo (viewportHeight), opacity -> 0.1.
+        const opacity = (0.2 + (0.6 * progress)).toFixed(2);
+        const greyStart = (1 + (59 * progress));
+        const greyEnd = (35 + (59 * progress));
 
-        // Bills logic: 
-        // normalized = elementTop / (viewportHeight * 0.7)
-        // opacity = 1 - normalized
-
-        if (elementTop < viewportHeight) {
-            const factor = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.6)));
-            // Si factor es 0 (arriba), opacity = 1. Si factor 1 (abajo), opacity = 0.
-            const calculatedOpacity = 1 - factor;
-            // Ajustar rango: 0.1 a 1.0
-            opacity = 0.1 + (calculatedOpacity * 0.9);
-        }
-
-        element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
+        element.style.setProperty('--white-opacity', opacity);
+        element.style.setProperty('--grey-start', `${greyStart}%`);
+        element.style.setProperty('--grey-end', `${greyEnd}%`);
     });
 }
 

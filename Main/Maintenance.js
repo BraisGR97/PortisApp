@@ -21,6 +21,21 @@
     let distanceCache = {}; // Cache de distancias: { id: distance }
     let customScoreModifiers = {}; // Almacenar modificadores de puntaje manuales: { id: scoreDelta }
 
+    // Init customScoreModifiers from LocalStorage
+    try {
+        const storedModifiers = localStorage.getItem('portis-maintenance-modifiers');
+        if (storedModifiers) {
+            customScoreModifiers = JSON.parse(storedModifiers);
+        }
+    } catch (e) {
+        console.error("Error loading modifiers from storage", e);
+    }
+
+    // Helper to persist modifiers
+    function saveModifiersToStorage() {
+        localStorage.setItem('portis-maintenance-modifiers', JSON.stringify(customScoreModifiers));
+    }
+
     function showMessage(type, message) {
         if (typeof window.showAppMessage === 'function') {
             window.showAppMessage(type, message);
@@ -328,23 +343,26 @@
 
             <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
                 <span class="text-xs text-gray-400">ID: ${item.key_id || '---'}</span>
-                <button class="text-accent-magenta hover:text-white hover:bg-accent-magenta p-1.5 rounded-full transition-colors" 
-                        onclick="event.stopPropagation(); window.openMaintenanceMap('${item.location}')" title="Ver Mapa">
-                    <i class="ph ph-map-pin text-lg"></i>
-                </button>
-                ${currentSortMethod === 'ai' ? (() => {
+                
+                <div class="flex items-center gap-2">
+                    <button class="text-accent-magenta hover:text-white hover:bg-accent-magenta p-1.5 rounded-full transition-colors" 
+                            onclick="event.stopPropagation(); window.openMaintenanceMap('${item.location}')" title="Ver Mapa">
+                        <i class="ph ph-map-pin text-lg"></i>
+                    </button>
+                    ${currentSortMethod === 'ai' ? (() => {
                 const mod = customScoreModifiers[item.id] || 0;
                 let iconColorClass = 'text-accent-orange'; // Default/Normal
                 if (mod === 50) iconColorClass = 'text-accent-green'; // Adelantar
                 if (mod === -50) iconColorClass = 'text-accent-red';   // Aplazar
 
                 return `
-                    <button class="${iconColorClass} hover:text-white p-1.5 rounded-full transition-colors relative ml-2" 
-                            onclick="event.stopPropagation(); window.openScoreMenu(event, '${item.id}')" title="Ajustar Prioridad IA">
-                        <i class="ph ph-hourglass-medium text-lg"></i>
-                    </button>
-                    `;
+                        <button class="${iconColorClass} hover:text-white p-1.5 rounded-full transition-colors relative" 
+                                onclick="event.stopPropagation(); window.openScoreMenu(event, '${item.id}')" title="Ajustar Prioridad IA">
+                            <i class="ph ph-hourglass-medium text-lg"></i>
+                        </button>
+                        `;
             })() : ''}
+                </div>
             </div>
         `;
 
@@ -449,6 +467,7 @@
             // Resetear modificador IA si existe
             if (customScoreModifiers[id]) {
                 delete customScoreModifiers[id];
+                saveModifiersToStorage();
             }
 
             hideMaintenanceModal();
@@ -561,16 +580,21 @@
             });
         }
 
+        const currentMod = customScoreModifiers[id] || 0;
+
         // Configurar contenido del menú
         menu.innerHTML = `
             <button onclick="window.applyScoreModifier('${id}', 50)" class="w-full text-left px-4 py-2 hover:bg-gray-700 text-green-500 text-sm font-medium flex items-center gap-2">
                 <i class="ph ph-arrow-up"></i> Adelantar
+                ${currentMod === 50 ? '<i class="ph ph-check text-accent-magenta ml-auto"></i>' : ''}
             </button>
             <button onclick="window.applyScoreModifier('${id}', 0)" class="w-full text-left px-4 py-2 hover:bg-gray-700 text-orange-500 text-sm font-medium flex items-center gap-2">
                 <i class="ph ph-minus"></i> Normal
+                 ${currentMod === 0 ? '<i class="ph ph-check text-accent-magenta ml-auto"></i>' : ''}
             </button>
             <button onclick="window.applyScoreModifier('${id}', -50)" class="w-full text-left px-4 py-2 hover:bg-gray-700 text-red-500 text-sm font-medium flex items-center gap-2">
                 <i class="ph ph-arrow-down"></i> Aplazar
+                 ${currentMod === -50 ? '<i class="ph ph-check text-accent-magenta ml-auto"></i>' : ''}
             </button>
         `;
 
@@ -585,6 +609,7 @@
 
     window.applyScoreModifier = function (id, value) {
         customScoreModifiers[id] = value;
+        saveModifiersToStorage();
         const menu = document.getElementById('ai-score-menu');
         if (menu) menu.classList.add('hidden');
 

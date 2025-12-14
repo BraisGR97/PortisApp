@@ -465,35 +465,33 @@ function renderBills(bills, updateCache = true) {
  * Actualiza la opacidad del borde superior de las tarjetas (Efecto Visual).
  */
 function updateCardBorderOpacity() {
-    // Tarjetas de Facturas (Border TOP por posición en el contenedor con scroll)
     const elements = document.querySelectorAll('.bill-card');
-
-    // Obtener el contenedor con scroll
-    const scrollContainer = document.querySelector('#bills-list-container .card-inner-content');
-    if (!scrollContainer) return;
-
-    const containerRect = scrollContainer.getBoundingClientRect();
-    const containerTop = containerRect.top;
-    const containerHeight = containerRect.height;
+    const viewportHeight = window.innerHeight;
+    const headerOffset = 60; // Offset approx for header
 
     elements.forEach(element => {
         const rect = element.getBoundingClientRect();
-        const elementTop = rect.top;
+        const elementTop = rect.top - headerOffset;
 
-        // Calcular la distancia desde el top del contenedor
-        const distanceFromContainerTop = elementTop - containerTop;
+        // Calculate percentage: Top of list (0) -> 100%, Bottom (~height) -> 0%
+        let percentage = 0;
 
-        let opacity = 0;
+        // Map viewport range to 0-100 percentage
+        const relativePos = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.8)));
+        const progress = 1 - relativePos; // 1 at Top, 0 at Bottom
 
-        // Solo aplicar opacidad si el elemento está visible dentro del contenedor
-        if (distanceFromContainerTop < containerHeight && distanceFromContainerTop > -rect.height) {
-            // Normalizar la posición: 0 en el top del contenedor, 1 en el 70% del contenedor
-            const normalizedPosition = Math.max(0, Math.min(1, distanceFromContainerTop / (containerHeight * 0.7)));
-            opacity = 1 - normalizedPosition;
-            opacity = 0.2 + (opacity * 0.8); // Rango de 0.2 a 1.0
-        }
+        // Opacity goes from 0.8 (Top) to 0.2 (Bottom)
+        const opacity = (0.2 + (0.6 * progress)).toFixed(2);
 
-        element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
+        // Grey start position goes from 1% (Top) to 60% (Bottom)
+        const greyStart = (1 + (59 * progress));
+
+        // Grey end position (Third color) goes from 35% (Bottom) to 95% (Top)
+        const greyEnd = (35 + (59 * progress));
+
+        element.style.setProperty('--white-opacity', opacity);
+        element.style.setProperty('--grey-start', `${greyStart}%`);
+        element.style.setProperty('--grey-end', `${greyEnd}%`);
     });
 }
 

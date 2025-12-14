@@ -529,35 +529,25 @@ function renderNotes(notes, updateCache = true) {
  * Actualiza la opacidad del borde superior de las tarjetas.
  */
 function updateCardBorderOpacity() {
-    // Tarjetas de Notas (Border TOP por posición en el contenedor con scroll)
     const elements = document.querySelectorAll('.note-card');
-
-    // Obtener el contenedor con scroll
-    const scrollContainer = document.querySelector('#notes-list-container .card-inner-content');
-    if (!scrollContainer) return;
-
-    const containerRect = scrollContainer.getBoundingClientRect();
-    const containerTop = containerRect.top;
-    const containerHeight = containerRect.height;
+    const viewportHeight = window.innerHeight;
+    const headerOffset = 60;
 
     elements.forEach(element => {
         const rect = element.getBoundingClientRect();
-        const elementTop = rect.top;
+        const elementTop = rect.top - headerOffset;
 
-        // Calcular la distancia desde el top del contenedor
-        const distanceFromContainerTop = elementTop - containerTop;
+        let percentage = 0;
+        const relativePos = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.8)));
+        const progress = 1 - relativePos;
 
-        let opacity = 0;
+        const opacity = (0.2 + (0.6 * progress)).toFixed(2);
+        const greyStart = (1 + (59 * progress));
+        const greyEnd = (35 + (59 * progress));
 
-        // Solo aplicar opacidad si el elemento está visible dentro del contenedor
-        if (distanceFromContainerTop < containerHeight && distanceFromContainerTop > -rect.height) {
-            // Normalizar la posición: 0 en el top del contenedor, 1 en el 70% del contenedor
-            const normalizedPosition = Math.max(0, Math.min(1, distanceFromContainerTop / (containerHeight * 0.7)));
-            opacity = 1 - normalizedPosition;
-            opacity = 0.2 + (opacity * 0.8); // Rango de 0.2 a 1.0
-        }
-
-        element.style.borderTopColor = `rgba(255, 255, 255, ${opacity})`;
+        element.style.setProperty('--white-opacity', opacity);
+        element.style.setProperty('--grey-start', `${greyStart}%`);
+        element.style.setProperty('--grey-end', `${greyEnd}%`);
     });
 }
 
