@@ -766,8 +766,8 @@ function updateCardBorderOpacity() {
         // Grey start position goes from 60% (Top) to 25% (Bottom)
         const greyStart = (1 + (59 * progress));
 
-        // Grey end position (Third color) goes from 70% (Bottom) to 90% (Top)
-        const greyEnd = (70 + (20 * progress));
+        // Grey end position (Third color) goes from 60% (Bottom) to 95% (Top)
+        const greyEnd = (60 + (35 * progress));
 
         element.style.setProperty('--white-opacity', opacity);
         element.style.setProperty('--grey-start', `${greyStart}%`);
