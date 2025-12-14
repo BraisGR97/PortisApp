@@ -736,13 +736,26 @@ function updateCardBorderOpacity() {
         const rect = element.getBoundingClientRect();
         const elementTop = rect.top - headerOffset;
 
+        // Calculate percentage: Top of list (0) -> 100%, Bottom (~height) -> 0%
+        // We use a safe range for the viewport calculation
         let percentage = 0;
-        const relativePos = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.8)));
-        const progress = 1 - relativePos;
 
+        // Map viewport range to 0-100 percentage
+        // If element is at top (approx 0), we want close to 100% (Black/Bottom of gradient)
+        const relativePos = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.8)));
+        const progress = 1 - relativePos; // 1 at Top, 0 at Bottom
+
+        // Opacity goes from 0.8 (Top) to 0.2 (Bottom)
         const opacity = (0.2 + (0.6 * progress)).toFixed(2);
+
+        // Grey start position goes from 1% (Top) to 60% (Bottom)
         const greyStart = (1 + (59 * progress));
-        const greyEnd = (35 + (59 * progress));
+
+        // Grey end position (Third color) goes from 35% (Bottom) to 35% (Top) to avoid white
+        // Actually, we want it to stay dark.
+        // If we set it to fixed 35%, it will always be dark grey.
+        // Let's try clamping it lower than 94%.
+        const greyEnd = (35 + (10 * progress)); // Max 45%
 
         element.style.setProperty('--white-opacity', opacity);
         element.style.setProperty('--grey-start', `${greyStart}%`);

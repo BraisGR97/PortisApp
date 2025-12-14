@@ -351,9 +351,10 @@
                     </button>
                     ${currentSortMethod === 'ai' ? (() => {
                 const mod = customScoreModifiers[item.id] || 0;
-                let iconColorClass = 'text-accent-orange'; // Default/Normal
-                if (mod === 50) iconColorClass = 'text-accent-green'; // Adelantar
-                if (mod === -50) iconColorClass = 'text-accent-red';   // Aplazar
+                let iconColorClass = 'text-orange-500'; // Default/Normal
+                // Use standard Tailwind colors to ensure visibility
+                if (mod === 50) iconColorClass = 'text-green-500'; // Adelantar
+                if (mod === -50) iconColorClass = 'text-red-500';   // Aplazar
 
                 return `
                         <button class="${iconColorClass} hover:text-white p-1.5 rounded-full transition-colors relative" 
