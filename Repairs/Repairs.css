@@ -228,6 +228,7 @@ html.light-mode body {
     /* Left side handled by priority strip */
     border-radius: 0.75rem;
     box-shadow: 0 3px 8px var(--color-shadow);
+    margin-bottom: 1rem;
 
     padding: 1rem;
     /* padding-left adjusted to account for the missing border-left width compared to other sides? 
@@ -263,6 +264,7 @@ html.light-mode body {
 }
 
 .repair-card:hover {
+    z-index: 10;
     transform: translateY(-2px);
     box-shadow: 0 6px 15px var(--color-shadow);
     /* Border color change on hover is tricky with gradient background. 
