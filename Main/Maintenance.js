@@ -263,13 +263,18 @@
 
             data.sort((a, b) => b._tempScore - a._tempScore);
         } else if (currentSortMethod === 'location') {
+            // En modo location, también calculamos el score para mostrarlo (opcional)
+            data.forEach(item => {
+                item._tempScore = calculateSmartScore(item);
+            });
+
             data.sort((a, b) => {
                 const distA = a.distance !== undefined ? a.distance : Infinity;
                 const distB = b.distance !== undefined ? b.distance : Infinity;
                 return distA - distB;
             });
         } else {
-            // Por Prioridad (Default)
+            // Por Prioridad (Default) - No calculamos score
             data.sort((a, b) => {
                 const priorityOrder = { 'Alta': 1, 'Media': 2, 'Baja': 3 };
                 const pA = priorityOrder[a.priority] || 99;
@@ -347,7 +352,7 @@
             <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
                 <span class="text-xs text-gray-400">
                     ID: ${item.key_id || '---'} 
-                    ${item._tempScore !== undefined ? `<span class="text-accent-magenta font-bold ml-2">(${item._tempScore} pts)</span>` : ''}
+                    ${item._tempScore !== undefined ? `<span class="text-accent-magenta font-bold ml-2">(${Math.round(item._tempScore)} pts)</span>` : ''}
                 </span>
                 
                 <div class="flex items-center gap-2">
