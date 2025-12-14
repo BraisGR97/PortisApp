@@ -784,7 +784,7 @@ function updateCardBorderOpacity() {
         const progress = 1 - relativePos; // 1 at Top, 0 at Bottom
 
         // Opacity goes from 0.8 (Top) to 0.2 (Bottom)
-        const opacity = (0.7 + (0.1 * progress)).toFixed(2);
+        const opacity = (0.2 + (0.8 * progress)).toFixed(2);
 
         // Grey start position goes from 1% (Top) to 60% (Bottom)
         const greyStart = (1 + (59 * progress));
