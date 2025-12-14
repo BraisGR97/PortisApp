@@ -760,11 +760,15 @@ function updateCardBorderOpacity() {
         // Opacity goes from 0.8 (Top) to 0.2 (Bottom)
         const opacity = (0.2 + (0.6 * progress)).toFixed(2);
 
-        // Grey start position goes from 50% (Top) to 1% (Bottom)
+        // Grey start position goes from 60% (Top) to 25% (Bottom)
         const greyStart = (1 + (59 * progress));
+
+        // Grey stop position goes from 25% (Top) to 5% (Bottom)
+        const greyStop = (1 + (24 * progress));
 
         element.style.setProperty('--white-opacity', opacity);
         element.style.setProperty('--grey-start', `${greyStart}%`);
+        element.style.setProperty('--grey-stop', `${greyStop}%`);
     });
 }
 
