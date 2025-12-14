@@ -204,7 +204,10 @@ html.light-mode body {
     /* Gradient Border Implementation */
     border: 1px solid transparent;
     background-image: linear-gradient(var(--color-bg-secondary), var(--color-bg-secondary)),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.8) 0%, #47475f 25%, #47475f 45%, #12121e 100%);
+        linear-gradient(to bottom,
+            rgba(255, 255, 255, var(--white-opacity, 0.2)) 0%,
+            hsl(240, 20%, var(--grey-start, 1%)) 25%,
+            hsl(240, 20%, var(--grey-end, 35%)) 100%);
     background-origin: border-box;
     background-clip: padding-box, border-box;
     box-shadow: 0 5px 10px var(--color-shadow);
