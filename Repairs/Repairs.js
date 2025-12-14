@@ -755,19 +755,16 @@ function updateCardBorderOpacity() {
         // Map viewport range to 0-100 percentage
         // If element is at top (approx 0), we want close to 100% (Black/Bottom of gradient)
         const relativePos = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.8)));
+        const progress = 1 - relativePos; // 1 at Top, 0 at Bottom
 
-        // White stop goes from 0% to 40%
-        const whiteStop = relativePos * 40;
+        // Opacity goes from 0.8 (Top) to 0.2 (Bottom)
+        const opacity = (0.2 + (0.6 * progress)).toFixed(2);
 
-        // Grey stop goes from 0% to 80% (2x white speed)
-        const greyStop = relativePos * 80;
+        // Grey start position goes from 50% (Top) to 1% (Bottom)
+        const greyStart = (1 + (49 * progress));
 
-        // Opacity goes from 0.2 to 1
-        const opacity = (0.2 + (relativePos * 0.8)).toFixed(2);
-
-        element.style.setProperty('--white-stop', `${whiteStop}%`);
-        element.style.setProperty('--grey-stop', `${greyStop}%`);
         element.style.setProperty('--white-opacity', opacity);
+        element.style.setProperty('--grey-start', `${greyStart}%`);
     });
 }
 
