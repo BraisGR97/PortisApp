@@ -146,9 +146,9 @@ html.light-mode body {
     border: 1px solid transparent;
     background-image: linear-gradient(var(--color-bg-secondary), var(--color-bg-secondary)),
         linear-gradient(to bottom,
-            rgba(255, 255, 255, var(--white-opacity, 0.2)) 0%,
-            hsl(240, 20%, var(--grey-start, 1%)) 25%,
-            hsl(240, 20%, var(--grey-end, 35%)) 95%,
+            rgba(255, 255, 255, var(--white-opacity, 0.8)) 0%,
+            #47475f var(--grey-start, 25%),
+            #47475f var(--grey-end, 45%),
             #12121e 100%);
     background-origin: border-box;
     background-clip: padding-box, border-box;

@@ -751,11 +751,8 @@ function updateCardBorderOpacity() {
         // Grey start position goes from 1% (Top) to 60% (Bottom)
         const greyStart = (1 + (59 * progress));
 
-        // Grey end position (Third color) goes from 35% (Bottom) to 35% (Top) to avoid white
-        // Actually, we want it to stay dark.
-        // If we set it to fixed 35%, it will always be dark grey.
-        // Let's try clamping it lower than 94%.
-        const greyEnd = (35 + (60 * progress));
+        // Grey end position (Third color) goes from 35% (Bottom) to 95% (Top)
+        const greyEnd = (35 + (59 * progress));
 
         element.style.setProperty('--white-opacity', opacity);
         element.style.setProperty('--grey-start', `${greyStart}%`);

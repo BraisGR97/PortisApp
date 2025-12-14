@@ -255,26 +255,29 @@
         listContainer.innerHTML = '';
 
         // Lógica de ordenación dinámica
-        data.sort((a, b) => {
-            if (currentSortMethod === 'location') {
-                // Por Ubicación: Menor distancia primero
+        if (currentSortMethod === 'ai') {
+            // Pre-calcular puntajes para visualización y ordenamiento
+            data.forEach(item => {
+                item._tempScore = calculateSmartScore(item);
+            });
+
+            data.sort((a, b) => b._tempScore - a._tempScore);
+        } else if (currentSortMethod === 'location') {
+            data.sort((a, b) => {
                 const distA = a.distance !== undefined ? a.distance : Infinity;
                 const distB = b.distance !== undefined ? b.distance : Infinity;
                 return distA - distB;
-            } else if (currentSortMethod === 'ai') {
-                // Por IA (Smart Score): Mayor puntuación primero
-                const scoreA = calculateSmartScore(a);
-                const scoreB = calculateSmartScore(b);
-                return scoreB - scoreA;
-            } else {
-                // Por Prioridad (Default): Alta > Media > Baja
+            });
+        } else {
+            // Por Prioridad (Default)
+            data.sort((a, b) => {
                 const priorityOrder = { 'Alta': 1, 'Media': 2, 'Baja': 3 };
                 const pA = priorityOrder[a.priority] || 99;
                 const pB = priorityOrder[b.priority] || 99;
                 if (pA !== pB) return pA - pB;
                 return a.location.localeCompare(b.location);
-            }
-        });
+            });
+        }
 
         data.forEach(item => {
             const card = createMaintenanceCard(item);
@@ -342,7 +345,10 @@
             ` : ''}
 
             <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-                <span class="text-xs text-gray-400">ID: ${item.key_id || '---'}</span>
+                <span class="text-xs text-gray-400">
+                    ID: ${item.key_id || '---'} 
+                    ${item._tempScore !== undefined ? `<span class="text-accent-magenta font-bold ml-2">(${item._tempScore} pts)</span>` : ''}
+                </span>
                 
                 <div class="flex items-center gap-2">
                     <button class="text-accent-magenta hover:text-white hover:bg-accent-magenta p-1.5 rounded-full transition-colors" 
