@@ -358,7 +358,10 @@
             <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
                 <span class="text-xs text-gray-400">
                     ID: ${item.key_id || '---'} 
-                    ${item._tempScore !== undefined ? `<span class="text-accent-magenta font-bold ml-2">(${Math.round(item._tempScore)} pts)</span>` : ''}
+                    ${item._tempScore !== undefined && item._tempScore !== null ?
+                `<span class="text-accent-magenta font-bold ml-2" title="Puntuación IA: ${item._tempScore}">(${Math.round(item._tempScore)} pts)</span>` :
+                (currentSortMethod === 'ai' || currentSortMethod === 'location' ?
+                    `<span class="text-yellow-500 font-bold ml-2" title="Score no calculado">(?)</span>` : '')}
                 </span>
                 
                 <div class="flex items-center gap-2">
