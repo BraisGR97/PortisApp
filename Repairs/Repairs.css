@@ -236,7 +236,7 @@ html.light-mode body {
         linear-gradient(to bottom,
             rgba(255, 255, 255, var(--white-opacity, 0.8)) 0%,
             #47475f var(--grey-start, 25%),
-            #47475f var(--grey-end, 75%),
+            #47475f var(--grey-end, 70%),
             #12121e 100%);
     background-origin: border-box;
     background-clip: padding-box, border-box;
