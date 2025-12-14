@@ -227,6 +227,7 @@ html.light-mode body {
     border-left: 0;
     /* Left side handled by priority strip */
     border-radius: 0.75rem;
+    box-shadow: 0 3px 8px var(--color-shadow);
 
     padding: 1rem;
     /* padding-left adjusted to account for the missing border-left width compared to other sides? 
