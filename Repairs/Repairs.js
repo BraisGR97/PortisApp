@@ -586,6 +586,9 @@ function renderRepairs(repairs, updateCache = true) {
  */
 function handleRepairActions(e) {
     const button = e.target.closest('button[data-action][data-id]');
+
+    if (!button) return;
+
     const action = button.dataset.action;
     const id = button.dataset.id;
 
@@ -763,12 +766,12 @@ function updateCardBorderOpacity() {
         // Grey start position goes from 60% (Top) to 25% (Bottom)
         const greyStart = (1 + (59 * progress));
 
-        // Grey stop position goes from 25% (Top) to 5% (Bottom)
-        const greyStop = (1 + (24 * progress));
+        // Grey stop position (Third color) goes from 75% (Bottom) to 90% (Top)
+        const greyEnd = (75 + (15 * progress));
 
         element.style.setProperty('--white-opacity', opacity);
         element.style.setProperty('--grey-start', `${greyStart}%`);
-        element.style.setProperty('--grey-stop', `${greyStop}%`);
+        element.style.setProperty('--grey-end', `${greyEnd}%`);
     });
 }
 
