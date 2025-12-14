@@ -757,7 +757,7 @@ function updateCardBorderOpacity() {
         // If element is at bottom (approx viewportHeight), we want close to 0% (White/Top of gradient)
 
         const relativePos = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.8)));
-        percentage = (1 - relativePos) * 100;
+        percentage = (1 - relativePos) * 75;
 
         // Calculate opacity for the white part: 1 at top, 0 at bottom
         const opacity = (1 - relativePos).toFixed(2);
