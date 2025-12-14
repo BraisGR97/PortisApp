@@ -200,7 +200,7 @@ async function saveRepair(e) {
         if (!repairsRef) return;
 
         if (editId) {
-            await repairsRef.doc(editId).update({
+            const updateData = {
                 location,
                 model,
                 key_id,
@@ -210,9 +210,20 @@ async function saveRepair(e) {
                 priority,
                 description,
                 breakdown,
-                ...contactData,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            };
+
+            // Gestionar campos de contacto en la actualización
+            if (contactCheckbox.checked) {
+                Object.assign(updateData, contactData);
+            } else {
+                // Si se desmarca, eliminar los campos de la base de datos
+                updateData.contact_name = firebase.firestore.FieldValue.delete();
+                updateData.contact_phone = firebase.firestore.FieldValue.delete();
+                updateData.contact_notes = firebase.firestore.FieldValue.delete();
+            }
+
+            await repairsRef.doc(editId).update(updateData);
         } else {
             await repairsRef.add(repairData);
         }
@@ -551,6 +562,18 @@ function renderRepairs(repairs, updateCache = true) {
             <div class="repair-observation-box" style="border-left: 3px solid var(--color-accent-red);">
                 <span class="repair-observation-box-title text-red-400">Avería:</span>
                 <p class="repair-observation-box-text">${repair.breakdown}</p>
+            </div>
+            ` : ''}
+
+            ${(repair.contact_name || repair.contact_phone) ? `
+            <div class="repair-observation-box" style="border-left: 3px solid var(--color-accent-blue); background-color: var(--color-bg-tertiary);">
+                <div class="flex items-center gap-2 mb-1">
+                    <i class="ph ph-user text-blue-400"></i>
+                    <span class="repair-observation-box-title text-blue-400" style="margin:0;">Contacto:</span>
+                </div>
+                ${repair.contact_name ? `<div class="text-sm"><span class="text-gray-500">Nombre:</span> ${repair.contact_name}</div>` : ''}
+                ${repair.contact_phone ? `<div class="text-sm"><span class="text-gray-500">Teléfono:</span> ${repair.contact_phone}</div>` : ''}
+                ${repair.contact_notes ? `<div class="text-sm mt-1 italic opacity-80 border-t border-gray-700 pt-1">"${repair.contact_notes}"</div>` : ''}
             </div>
             ` : ''}
 
