@@ -238,6 +238,8 @@ html.light-mode body {
             #47475f var(--grey-start, 25%),
             #47475f 75%,
             #000330 100%);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
 
     display: flex;
     flex-direction: column;
