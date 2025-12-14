@@ -19,6 +19,7 @@
     let currentMaintenanceData = []; // Almacenar datos actuales para filtrado
     let currentSortMethod = localStorage.getItem('portis-maintenance-sort') || 'priority'; // 'priority' | 'location'
     let distanceCache = {}; // Cache de distancias: { id: distance }
+    let customScoreModifiers = {}; // Almacenar modificadores de puntaje manuales: { id: scoreDelta }
 
     function showMessage(type, message) {
         if (typeof window.showAppMessage === 'function') {
@@ -228,6 +229,11 @@
                 points += Math.max(0, neighPoints);
             }
 
+            // 8. Modificador Manual (Adelantar/Aplazar)
+            if (customScoreModifiers[item.id]) {
+                points += customScoreModifiers[item.id];
+            }
+
             return points;
         }
 
@@ -326,6 +332,19 @@
                         onclick="event.stopPropagation(); window.openMaintenanceMap('${item.location}')" title="Ver Mapa">
                     <i class="ph ph-map-pin text-lg"></i>
                 </button>
+                ${currentSortMethod === 'ai' ? (() => {
+                const mod = customScoreModifiers[item.id] || 0;
+                let iconColorClass = 'text-accent-orange'; // Default/Normal
+                if (mod === 50) iconColorClass = 'text-accent-green'; // Adelantar
+                if (mod === -50) iconColorClass = 'text-accent-red';   // Aplazar
+
+                return `
+                    <button class="${iconColorClass} hover:text-white p-1.5 rounded-full transition-colors relative ml-2" 
+                            onclick="event.stopPropagation(); window.openScoreMenu(event, '${item.id}')" title="Ajustar Prioridad IA">
+                        <i class="ph ph-hourglass-medium text-lg"></i>
+                    </button>
+                    `;
+            })() : ''}
             </div>
         `;
 
@@ -426,6 +445,12 @@
             }
 
             showMessage('success', 'Mantenimiento completado.');
+
+            // Resetear modificador IA si existe
+            if (customScoreModifiers[id]) {
+                delete customScoreModifiers[id];
+            }
+
             hideMaintenanceModal();
             if (window.fetchMaintenanceData) window.fetchMaintenanceData();
 
@@ -513,6 +538,58 @@
             // Restaurar lista completa
             renderMaintenanceList(currentMaintenanceData, currentViewDate);
         }
+    }
+
+
+    // ====================================
+    // MENU DE PUNTUACIÓN IA
+    // ====================================
+
+    window.openScoreMenu = function (event, id) {
+        let menu = document.getElementById('ai-score-menu');
+        if (!menu) {
+            menu = document.createElement('div');
+            menu.id = 'ai-score-menu';
+            menu.className = 'absolute z-50 bg-gray-800 border border-gray-700 rounded-lg shadow-xl hidden flex-col w-32 overflow-hidden';
+            document.body.appendChild(menu);
+
+            // Cerrar menú al hacer click fuera
+            document.addEventListener('click', (e) => {
+                if (!menu.contains(e.target) && e.target.id !== 'ai-score-menu') {
+                    menu.classList.add('hidden');
+                }
+            });
+        }
+
+        // Configurar contenido del menú
+        menu.innerHTML = `
+            <button onclick="window.applyScoreModifier('${id}', 50)" class="w-full text-left px-4 py-2 hover:bg-gray-700 text-green-500 text-sm font-medium flex items-center gap-2">
+                <i class="ph ph-arrow-up"></i> Adelantar
+            </button>
+            <button onclick="window.applyScoreModifier('${id}', 0)" class="w-full text-left px-4 py-2 hover:bg-gray-700 text-orange-500 text-sm font-medium flex items-center gap-2">
+                <i class="ph ph-minus"></i> Normal
+            </button>
+            <button onclick="window.applyScoreModifier('${id}', -50)" class="w-full text-left px-4 py-2 hover:bg-gray-700 text-red-500 text-sm font-medium flex items-center gap-2">
+                <i class="ph ph-arrow-down"></i> Aplazar
+            </button>
+        `;
+
+        // Posicionar menú
+        const rect = event.currentTarget.getBoundingClientRect();
+        menu.style.top = `${rect.bottom + window.scrollY + 5}px`;
+        menu.style.left = `${rect.left + window.scrollX - 80}px`; // Ajuste ligero a la izquierda
+
+        menu.classList.remove('hidden');
+        menu.classList.add('flex');
+    }
+
+    window.applyScoreModifier = function (id, value) {
+        customScoreModifiers[id] = value;
+        const menu = document.getElementById('ai-score-menu');
+        if (menu) menu.classList.add('hidden');
+
+        // Re-ordenar
+        renderMaintenanceList(currentMaintenanceData, currentViewDate);
     }
 
     // ====================================

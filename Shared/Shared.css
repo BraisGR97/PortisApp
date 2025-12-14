@@ -167,10 +167,12 @@ html.light-mode body {
     background-color: var(--color-bg-secondary);
     border-radius: 1rem;
     box-shadow: 0 4px 6px var(--color-shadow);
-    border: 1px solid var(--color-border);
-    border-bottom: 1px solid var(--color-bg-secondary);
-    border-top: 1px solid #ffffff;
-    /* Borde estático */
+    /* Gradient Border Implementation */
+    border: 1px solid transparent;
+    background-image: linear-gradient(var(--color-bg-secondary), var(--color-bg-secondary)),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.8) 0%, #47475f 25%, #47475f 75%, #12121e 100%);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
 
     margin: 0;
     overflow: hidden;
@@ -202,8 +204,12 @@ html.light-mode body {
 
 .repair-card {
     background-color: var(--color-bg-tertiary);
-    border: 1px solid var(--color-border);
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    /* Gradient Border Implementation */
+    border: 1px solid transparent;
+    background-image: linear-gradient(var(--color-bg-secondary), var(--color-bg-secondary)),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.8) 0%, #47475f 25%, #47475f 45%, #12121e 100%);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
     padding: 1rem;
     border-radius: 0.75rem;
     display: flex;
