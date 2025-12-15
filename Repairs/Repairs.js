@@ -172,7 +172,9 @@ async function saveRepair(e) {
     const contactData = contactCheckbox.checked ? {
         contact_name: document.getElementById('contact_name').value.trim(),
         contact_phone: document.getElementById('contact_phone').value.trim(),
-        contact_notes: document.getElementById('contact_notes').value.trim()
+        contact_notes: document.getElementById('contact_notes').value.trim(),
+        opening_time: document.getElementById('opening_time').value || null,
+        closing_time: document.getElementById('closing_time').value || null
     } : {};
 
     const originalBtnContent = submitButton.innerHTML;
@@ -221,6 +223,8 @@ async function saveRepair(e) {
                 updateData.contact_name = firebase.firestore.FieldValue.delete();
                 updateData.contact_phone = firebase.firestore.FieldValue.delete();
                 updateData.contact_notes = firebase.firestore.FieldValue.delete();
+                updateData.opening_time = firebase.firestore.FieldValue.delete();
+                updateData.closing_time = firebase.firestore.FieldValue.delete();
             }
 
             await repairsRef.doc(editId).update(updateData);
@@ -354,12 +358,14 @@ window.editRepair = function (id) {
 
     // Rellenar datos de contacto si existen
     const contactCheckbox = document.getElementById('contact_checkbox');
-    if (repair.contact_name || repair.contact_phone || repair.contact_notes) {
+    if (repair.contact_name || repair.contact_phone || repair.contact_notes || repair.opening_time || repair.closing_time) {
         contactCheckbox.checked = true;
         toggleContactFields();
         document.getElementById('contact_name').value = repair.contact_name || '';
         document.getElementById('contact_phone').value = repair.contact_phone || '';
         document.getElementById('contact_notes').value = repair.contact_notes || '';
+        document.getElementById('opening_time').value = repair.opening_time || '';
+        document.getElementById('closing_time').value = repair.closing_time || '';
     } else {
         contactCheckbox.checked = false;
         toggleContactFields();

@@ -164,13 +164,76 @@ Calcula la distancia a la ubicación más cercana en la lista:
 
 ---
 
+### 8. **Horarios de Apertura** (-40 a +30 puntos) 🕐
+
+Sistema de puntuación basado en horarios de apertura/cierre:
+- **Abierto ahora**: +30 puntos 🟢
+- **Cerrado ahora**: -40 puntos 🔴
+- **Sin horario definido**: 0 puntos ⚪
+
+**Justificación**:
+- Evita visitas fallidas a ubicaciones cerradas
+- Prioriza ubicaciones que están abiertas en el momento actual
+- Optimiza el uso del tiempo de trabajo
+- Reduce frustración y pérdida de tiempo
+
+**Configuración**:
+- Se configura en "Datos de Contacto" al crear/editar mantenimiento
+- Campos: Hora de Apertura y Hora de Cierre (formato 24h)
+- El sistema compara automáticamente con la hora actual
+
+---
+
+### 9. **Programación en Calendar** (-30 a +80 puntos) 📅
+
+Sistema de puntuación basado en citas programadas con cálculo inteligente de tiempo de viaje:
+
+**Escala de Puntos**:
+- **¡ES HORA DE SALIR!**: +80 puntos 🚨
+- **Falta < 1h para salir**: +60 puntos ⏰
+- **Falta 1-3h para salir**: +40 puntos 📅
+- **Falta 3-24h**: +20 puntos 📅
+- **Programado otro día**: +10 puntos 📅
+- **Cita pasada**: -30 puntos ❌
+- **Sin programar**: 0 puntos ⚪
+
+**Cálculo de Tiempo de Viaje**:
+```
+Velocidad promedio: 40 km/h (ciudad)
+Tiempo de viaje = (distancia_km / 40) * 60 minutos
+Tiempo ideal salida = hora_programada - tiempo_viaje
+```
+
+**Justificación**:
+- Prioriza mantenimientos con citas programadas
+- Calcula automáticamente cuándo salir
+- Evita retrasos considerando tráfico urbano
+- Penaliza citas pasadas para recordar reprogramar
+- Máximo bonus cuando es momento crítico de salir
+
+**Configuración**:
+- Botón "📅 Programar" en cada tarjeta
+- Modal con fecha, hora y notas
+- Sincronización automática con Calendar
+- Badge visual "📅 Programado" en tarjetas
+
+**Ejemplo**:
+- Cita a las 14:00, distancia 20 km
+- Tiempo viaje: 30 min → Salir a las 13:30
+- A las 13:25: +60 pts (⏰ Salir en 5 min)
+- A las 13:35: +80 pts (🚨 ¡SALIR AHORA!)
+
+---
+
 ## Rangos de Puntuación Total
 
 ### Puntuación Mínima Posible
 - Ubicación lejana (3 pts)
 - Sin cluster (2.5 pts)
 - Recién visitada (-80 pts)
-- **Total**: ≈ -75 puntos
+- Cerrada (-40 pts)
+- Cita pasada (-30 pts)
+- **Total**: ≈ -145 puntos
 
 ### Puntuación Máxima Posible
 - Prioridad Alta (50 pts)
@@ -180,7 +243,9 @@ Calcula la distancia a la ubicación más cercana en la lista:
 - Retraso significativo (95 pts)
 - Muy cerca (60 pts)
 - Buen clustering (50 pts)
-- **Total**: ≈ 425 puntos
+- Abierta ahora (30 pts)
+- ¡Hora de salir! (80 pts)
+- **Total**: ≈ 535 puntos
 
 ### Puntuación Típica
 Una ubicación "normal" sin factores especiales:
@@ -191,6 +256,8 @@ Una ubicación "normal" sin factores especiales:
 - En tiempo (30 pts)
 - Distancia media 5km (30 pts)
 - Clustering moderado (25 pts)
+- Sin horario definido (0 pts)
+- Sin programar (0 pts)
 - **Total**: ≈ 125 puntos
 
 ---
@@ -351,16 +418,16 @@ Cada item incluye `_scoreBreakdown`:
 
 - [ ] Configurar duración personalizada para aplazar (6h, 12h, 24h)
 - [ ] Machine Learning para predecir averías
-- [ ] Consideración de tráfico en tiempo real
-- [ ] Horarios de apertura de ubicaciones
+- [ ] Consideración de tráfico en tiempo real (Google Maps API)
+- [x] **Horarios de apertura de ubicaciones** ✅ IMPLEMENTADO v2.2
 - [ ] Preferencias de clientes (días/horas)
 - [ ] Tiempo estimado por visita
 - [ ] Optimización multi-día
-- [ ] Integración con calendario
+- [x] **Integración con calendario** ✅ IMPLEMENTADO v2.3
 
 ---
 
-**Versión**: 2.1
+**Versión**: 2.3
 **Fecha**: Diciembre 2025
 **Autor**: Sistema de IA Antigravity
-**Última actualización**: Sistema de Adelantar/Aplazar mejorado
+**Última actualización**: Añadido Factor 9 - Programación en Calendar con cálculo de tiempo de viaje

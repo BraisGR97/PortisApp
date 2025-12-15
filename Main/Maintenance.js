@@ -451,6 +451,86 @@
             breakdown.nearestNeighborKm = neighborDistance !== Infinity ?
                 neighborDistance.toFixed(2) : 'N/A';
 
+            // ═══════════════════════════════════════════════════════════════
+            // 8. HORARIOS DE APERTURA (-40 a +30 puntos)
+            // ═══════════════════════════════════════════════════════════════
+            let openingHoursPoints = 0;
+            if (item.opening_time && item.closing_time) {
+                const now = new Date();
+                const currentTime = now.getHours() * 60 + now.getMinutes(); // minutos desde medianoche
+
+                // Convertir horarios a minutos
+                const [openHour, openMin] = item.opening_time.split(':').map(Number);
+                const [closeHour, closeMin] = item.closing_time.split(':').map(Number);
+                const openingMinutes = openHour * 60 + openMin;
+                const closingMinutes = closeHour * 60 + closeMin;
+
+                if (currentTime >= openingMinutes && currentTime <= closingMinutes) {
+                    // Está abierto ahora
+                    openingHoursPoints = 30;
+                    breakdown.openingHoursStatus = '🟢 Abierto';
+                } else {
+                    // Está cerrado
+                    openingHoursPoints = -40;
+                    breakdown.openingHoursStatus = '🔴 Cerrado';
+                }
+            } else {
+                breakdown.openingHoursStatus = '⚪ Sin horario';
+            }
+            points += openingHoursPoints;
+            breakdown.openingHours = openingHoursPoints;
+
+            // ═══════════════════════════════════════════════════════════════
+            // 9. PROGRAMACIÓN EN CALENDAR (0 a +80 puntos)
+            // ═══════════════════════════════════════════════════════════════
+            let scheduledPoints = 0;
+            if (item.isScheduled && item.scheduledDateTime) {
+                const now = new Date();
+                const scheduledTime = item.scheduledDateTime.toDate ? item.scheduledDateTime.toDate() : new Date(item.scheduledDateTime);
+
+                // Calcular tiempo hasta la cita (en minutos)
+                const minutesUntilScheduled = (scheduledTime - now) / (1000 * 60);
+
+                // Estimar tiempo de viaje (basado en distancia)
+                // Asumimos velocidad promedio de 40 km/h en ciudad
+                const travelTimeMinutes = item.distance ? (item.distance / 40) * 60 : 30; // Default 30 min
+
+                // Tiempo ideal para salir = hora programada - tiempo de viaje
+                const minutesUntilDeparture = minutesUntilScheduled - travelTimeMinutes;
+
+                if (minutesUntilDeparture <= 0 && minutesUntilScheduled > 0) {
+                    // ¡ES HORA DE SALIR! Máximo bonus
+                    scheduledPoints = 80;
+                    breakdown.scheduledStatus = '🚨 ¡SALIR AHORA!';
+                } else if (minutesUntilDeparture > 0 && minutesUntilDeparture <= 60) {
+                    // Falta menos de 1h para salir - Alto bonus
+                    scheduledPoints = 60;
+                    breakdown.scheduledStatus = `⏰ Salir en ${Math.round(minutesUntilDeparture)} min`;
+                } else if (minutesUntilDeparture > 60 && minutesUntilDeparture <= 180) {
+                    // Falta 1-3h para salir - Bonus moderado
+                    scheduledPoints = 40;
+                    const hours = Math.floor(minutesUntilDeparture / 60);
+                    breakdown.scheduledStatus = `📅 Salir en ${hours}h`;
+                } else if (minutesUntilDeparture > 180 && minutesUntilDeparture <= 1440) {
+                    // Falta 3h-24h - Bonus bajo
+                    scheduledPoints = 20;
+                    breakdown.scheduledStatus = '📅 Programado hoy';
+                } else if (minutesUntilScheduled < 0) {
+                    // ¡YA PASÓ LA HORA! Penalización
+                    scheduledPoints = -30;
+                    breakdown.scheduledStatus = '❌ Cita pasada';
+                } else {
+                    // Programado para otro día
+                    scheduledPoints = 10;
+                    const date = scheduledTime.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+                    breakdown.scheduledStatus = `📅 ${date}`;
+                }
+            } else {
+                breakdown.scheduledStatus = '⚪ Sin programar';
+            }
+            points += scheduledPoints;
+            breakdown.scheduled = scheduledPoints;
+
             // Guardar breakdown para debugging
             item._scoreBreakdown = breakdown;
 
@@ -548,6 +628,10 @@
                     `   ⏰ Tiempo: ${breakdown.time || 0} (${breakdown.monthsSince || 0} meses) | ` +
                     `🚗 Distancia: ${breakdown.distanceToStart || 0} (${breakdown.distanceKm || 'N/A'} km) | ` +
                     `🗺️ Cluster: ${breakdown.clustering || 0} (${breakdown.nearestNeighborKm || 'N/A'} km)`
+                );
+                console.log(
+                    `   🕐 Horario: ${breakdown.openingHours || 0} (${breakdown.openingHoursStatus || '⚪ Sin horario'}) | ` +
+                    `📅 Programado: ${breakdown.scheduled || 0} (${breakdown.scheduledStatus || '⚪ Sin programar'})`
                 );
 
                 if (modifier) {
@@ -680,7 +764,10 @@
 
         div.innerHTML = `
             <div class="flex justify-between items-start mb-2">
-                <h3 class="font-bold text-lg leading-tight pr-8">${item.location}</h3>
+                <h3 class="font-bold text-lg leading-tight pr-8">
+                    ${item.location}
+                    ${item.isScheduled ? `<span class="text-xs ml-2 px-2 py-0.5 rounded-full bg-blue-500 text-white">📅 Programado</span>` : ''}
+                </h3>
                 <span class="maintenance-priority-badge">${item.priority}</span>
             </div>
             
@@ -719,6 +806,10 @@
                 </span>
                 
                 <div class="flex items-center gap-2">
+                    <button class="text-blue-500 hover:text-white hover:bg-blue-500 p-1.5 rounded-full transition-colors" 
+                            onclick="event.stopPropagation(); window.openScheduleModal('${item.id}', '${item.location.replace(/'/g, "\\'")}', '${item.description || ''}', '${item.breakdown || ''}')" title="Programar en Calendar">
+                        <i class="ph ph-calendar-plus text-lg"></i>
+                    </button>
                     <button class="text-accent-magenta hover:text-white hover:bg-accent-magenta p-1.5 rounded-full transition-colors" 
                             onclick="event.stopPropagation(); window.openMaintenanceMap('${item.location}')" title="Ver Mapa">
                         <i class="ph ph-map-pin text-lg"></i>
@@ -1583,5 +1674,129 @@
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
     }
+
+    // ====================================
+    // PROGRAMACIÓN EN CALENDAR
+    // ====================================
+
+    let currentSchedulingMaintenanceId = null;
+
+    /**
+     * Abre el modal para programar un mantenimiento en el calendar
+     */
+    window.openScheduleModal = function (maintenanceId, location, description, breakdown) {
+        currentSchedulingMaintenanceId = maintenanceId;
+
+        // Mostrar ubicación en el modal
+        const locationElement = document.getElementById('schedule-location-name');
+        if (locationElement) {
+            locationElement.textContent = `📍 ${location}`;
+        }
+
+        // Pre-rellenar notas con descripción/avería si existen
+        const notesElement = document.getElementById('schedule-notes');
+        if (notesElement) {
+            let notes = '';
+            if (breakdown) notes += `⚠️ AVERÍA: ${breakdown}\n`;
+            if (description) notes += `📝 ${description}`;
+            notesElement.value = notes.trim();
+        }
+
+        // Establecer fecha mínima (hoy)
+        const dateInput = document.getElementById('schedule-date');
+        if (dateInput) {
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.min = today;
+            dateInput.value = today;
+        }
+
+        // Establecer hora por defecto (hora actual + 1h)
+        const timeInput = document.getElementById('schedule-time');
+        if (timeInput) {
+            const now = new Date();
+            now.setHours(now.getHours() + 1);
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            timeInput.value = `${hours}:${minutes}`;
+        }
+
+        // Mostrar modal
+        const modal = document.getElementById('schedule-maintenance-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    };
+
+    /**
+     * Guarda el mantenimiento programado en Calendar
+     */
+    window.saveScheduledMaintenance = async function () {
+        if (!currentSchedulingMaintenanceId) return;
+
+        const dateInput = document.getElementById('schedule-date');
+        const timeInput = document.getElementById('schedule-time');
+        const notesInput = document.getElementById('schedule-notes');
+
+        if (!dateInput.value || !timeInput.value) {
+            showMessage('error', 'Fecha y hora son obligatorios');
+            return;
+        }
+
+        try {
+            // Obtener datos del mantenimiento
+            const maintenance = currentMaintenanceData.find(m => m.id === currentSchedulingMaintenanceId);
+            if (!maintenance) {
+                showMessage('error', 'Mantenimiento no encontrado');
+                return;
+            }
+
+            // Crear timestamp del evento
+            const scheduledDateTime = new Date(`${dateInput.value}T${timeInput.value}`);
+
+            // Preparar datos del evento para Calendar
+            const eventData = {
+                userId: userId,
+                date: dateInput.value,
+                type: 'mantenimiento_programado',
+                hours: 0, // No es evento de horas extra
+                maintenanceId: currentSchedulingMaintenanceId,
+                maintenanceLocation: maintenance.location,
+                scheduledTime: timeInput.value,
+                scheduledDateTime: firebase.firestore.Timestamp.fromDate(scheduledDateTime),
+                notes: notesInput.value || '',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            // Guardar en Firestore (colección events del usuario)
+            const eventsRef = window.db.collection(`users/${userId}/events`);
+            await eventsRef.add(eventData);
+
+            // Actualizar el mantenimiento con la info de programación
+            const repairsRef = getRepairsCollectionRef();
+            if (repairsRef) {
+                await repairsRef.doc(currentSchedulingMaintenanceId).update({
+                    scheduledDate: dateInput.value,
+                    scheduledTime: timeInput.value,
+                    scheduledDateTime: firebase.firestore.Timestamp.fromDate(scheduledDateTime),
+                    isScheduled: true
+                });
+            }
+
+            showMessage('success', '✅ Mantenimiento programado en Calendar');
+
+            // Cerrar modal
+            window.closeModal('schedule-maintenance-modal');
+
+            // Recargar datos para actualizar scoring
+            if (typeof window.fetchMaintenanceData === 'function') {
+                window.fetchMaintenanceData();
+            }
+
+        } catch (error) {
+            console.error('Error al programar mantenimiento:', error);
+            showMessage('error', 'Error al programar mantenimiento');
+        }
+    };
 
 })();

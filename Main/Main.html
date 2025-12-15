@@ -627,6 +627,51 @@
         </div>
     </div>
 
+    <!-- Modal Programar Mantenimiento -->
+    <div id="schedule-maintenance-modal"
+        class="fixed inset-0 z-[200] hidden items-center justify-center p-4 modal-backdrop"
+        onclick="closeModal('schedule-maintenance-modal')">
+        <div class="modal-content w-full max-w-md rounded-xl p-6" onclick="event.stopPropagation()">
+            <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <i class="ph ph-calendar-plus text-blue-500"></i>
+                Programar Mantenimiento
+            </h3>
+
+            <div id="schedule-location-name" class="text-sm text-gray-500 mb-4 font-medium"></div>
+
+            <div class="space-y-4">
+                <!-- Fecha -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">Fecha</label>
+                    <input type="date" id="schedule-date" class="minimal-input w-full">
+                </div>
+
+                <!-- Hora -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">Hora</label>
+                    <input type="time" id="schedule-time" class="minimal-input w-full">
+                </div>
+
+                <!-- Notas adicionales -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">Notas (opcional)</label>
+                    <textarea id="schedule-notes" class="minimal-input w-full resize-none h-20"
+                        placeholder="Notas adicionales para el evento..."></textarea>
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeModal('schedule-maintenance-modal')"
+                    class="secondary-btn w-1/2 rounded-lg">Cancelar</button>
+                <button onclick="window.saveScheduledMaintenance()"
+                    class="primary-btn w-1/2 rounded-lg bg-blue-600 hover:bg-blue-700">
+                    <i class="ph ph-calendar-check mr-2"></i>
+                    Programar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="../Config/Config.js"></script>
 
