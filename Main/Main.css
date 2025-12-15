@@ -1550,13 +1550,6 @@ html.light-mode .calendar-day.empty {
    ESTILOS DE MANTENIMIENTO (PENDIENTES)
    ================================================================ */
 
-.maint-summary-card {
-    background-color: var(--color-bg-secondary);
-    border-top: 1px solid var(--color-border-light);
-    border-bottom: 1px solid var(--color-bg-primary);
-    box-shadow: 0 2px 4px var(--color-shadow);
-}
-
 .maintenance-item {
     background-color: var(--color-bg-primary);
 
