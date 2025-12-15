@@ -365,10 +365,10 @@ html.light-mode #geometric-wrapper {
     background-origin: border-box;
     background-clip: padding-box, border-box;
 
-    height: 100%;
+    height: calc(100vh - 10.5rem);
     width: 100%;
     margin: 0;
-    /* Altura total menos navbar superior (4rem), inferior (5rem) y padding de view-section (2rem) */
+    margin-top: 1rem;
     overflow: hidden;
     display: flex;
     flex-direction: column;
