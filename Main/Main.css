@@ -340,7 +340,9 @@ html.light-mode #geometric-wrapper {
     flex-shrink: 0;
     overflow: hidden;
     /* Sin scroll aquí, el scroll estará dentro de card-container */
-    padding: 1rem 1rem 8rem 1rem;
+    padding: 0 1rem;
+    padding-bottom: 4rem;
+    /* Spacer for footer scroll if needed, but card implies fixed height */
     box-sizing: border-box;
 }
 
