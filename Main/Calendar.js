@@ -186,10 +186,34 @@
 
         if (event.id) {
             try {
-                // Eliminamos el documento por su ID dentro de la subcolección
-                await getEventsCollectionRef().doc(event.id).delete();
+                const batch = window.db.batch();
+                const eventRef = getEventsCollectionRef().doc(event.id);
+
+                // 1. Eliminar el evento del calendario
+                batch.delete(eventRef);
+
+                // 2. Si es mantenimiento programado, actualizar la tarjeta de mantenimiento
+                if (event.type === 'mantenimiento_programado' && event.maintenanceId) {
+                    const repairRef = window.db.collection(`users/${userId}/repairs`).doc(event.maintenanceId);
+                    batch.update(repairRef, {
+                        scheduledDate: firebase.firestore.FieldValue.delete(),
+                        scheduledTime: firebase.firestore.FieldValue.delete(),
+                        scheduledDateTime: firebase.firestore.FieldValue.delete(),
+                        isScheduled: false
+                    });
+                }
+
+                await batch.commit();
+
                 showMessage('success', `Evento del ${dateStr} eliminado exitosamente.`);
+
+                // Si la función fetchMaintenanceData existe (estamos en Main context), actualizar lista
+                if (typeof window.fetchMaintenanceData === 'function') {
+                    window.fetchMaintenanceData();
+                }
+
             } catch (error) {
+                console.error("Error deleting event:", error);
                 showMessage('error', 'Error al eliminar el evento en la base de datos.');
             }
         }

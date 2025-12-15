@@ -924,6 +924,15 @@
                 // No need to add anything to updates, existing values persist
             }
 
+            // LIMPIEZA DE PROGRAMACIÓN
+            // Al completar, el mantenimiento pasa al siguiente ciclo, por lo que borramos la programación actual tarjeta
+            if (repair.isScheduled) {
+                updates.scheduledDate = firebase.firestore.FieldValue.delete();
+                updates.scheduledTime = firebase.firestore.FieldValue.delete();
+                updates.scheduledDateTime = firebase.firestore.FieldValue.delete();
+                updates.isScheduled = false;
+            }
+
             // Update en Firebase
             if (isFirebaseReady) {
                 const batch = db.batch();
@@ -932,6 +941,22 @@
 
                 batch.update(repairRef, updates);
                 batch.set(historyRef, historyRecord);
+
+                // ACTUALIZAR EVENTO CALENDAR (Para que quede constancia)
+                if (repair.isScheduled) {
+                    const calendarRef = db.collection(`users/${userId}/calendar`);
+                    const eventQuery = await calendarRef.where('maintenanceId', '==', id).get();
+
+                    eventQuery.forEach(doc => {
+                        // Cambiamos el tipo a 'mantenimiento_completado' para que quede en el historial visual
+                        // y actualizamos el estilo visual en Calendar.js si es necesario
+                        batch.update(doc.ref, {
+                            type: 'mantenimiento_completado',
+                            completedAt: new Date(),
+                            status: 'completed'
+                        });
+                    });
+                }
 
                 await batch.commit();
             }
