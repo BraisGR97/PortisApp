@@ -347,10 +347,10 @@
             const opacity = (0.2 + (0.6 * progress)).toFixed(2);
 
             // Grey start position goes from 1% (Top) to 60% (Bottom)
-            const greyStart = (1 + (59 * progress));
+            const greyStart = (100 - (60 * progress));
 
             // Grey end position (Third color) goes from 35% (Bottom) to 95% (Top)
-            const greyEnd = (35 + (59 * progress));
+            const greyEnd = (60 - (55 * progress));
 
             element.style.setProperty('--white-opacity', opacity);
             element.style.setProperty('--grey-start', `${greyStart}%`);
