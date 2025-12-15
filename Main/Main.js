@@ -323,41 +323,38 @@
      * Actualiza la opacidad del borde de las tarjetas segun el scroll.
      */
     function updateCardBorderOpacity() {
-        // 1. Manejar Card Containers (Border TOP basado en scroll interno)
-        const contentScrollables = document.querySelectorAll('.card-inner-content');
-
-        contentScrollables.forEach(inner => {
-            /*
-            // 1. Manejar Card Containers (Border TOP basado en scroll interno) - DESACTIVADO POR PETICION DE USUARIO
-            const container = inner.closest('.card-container');
-            if (container) {
-                const scrollTop = inner.scrollTop;
-                // Opacidad aumenta con el scroll (max 1 a los 50px de scroll)
-                const opacity = Math.min(scrollTop / 50, 1);
-                container.style.borderTopColor = `rgba(255, 255, 255, ${0.1 + (opacity * 0.9)})`;
-            }
-            */
-        });
-
-        // 2. Manejar Items Internos (Border BOTTOM)
-        // Mantener lógica original o ajustar si es necesario
-        // En este caso, si los items se mueven, su position cambia. 
-        // La lógica original usaba getBoundingClientRect que ES correcta para items que se mueven.
+        // Seleccionar todas las tarjetas que usan el efecto
         const items = document.querySelectorAll('.dashboard-card, .user-chat-card, .maintenance-item');
         const viewportHeight = window.innerHeight;
+        const headerOffset = 60; // Offset approx for header
 
         items.forEach(element => {
             const rect = element.getBoundingClientRect();
-            const elementTop = rect.top;
-            const elementHeight = rect.height;
+            // Usamos una referencia relativa al viewport
+            const elementTop = rect.top - headerOffset;
 
-            let opacity = 0;
-            if (elementTop < viewportHeight && elementTop > -elementHeight) {
-                const normalizedPosition = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.7)));
-                opacity = 1 - normalizedPosition;
-                opacity = 0.2 + (opacity * 0.8);
-            }
-            element.style.borderBottomColor = `rgba(255, 255, 255, ${opacity})`;
+            // Calculate percentage: Top of list (0) -> 100%, Bottom (~height) -> 0%
+            // We use a safe range for the viewport calculation (80% of viewport)
+            let percentage = 0;
+
+            // Map viewport range to 0-1 percentage
+            // If element is at top (approx 0), we want close to 1 (Black/Bottom of gradient)
+            // Si el elemento está saliendo por arriba, mantenemos el estado "negro" (1)
+            const relativePos = Math.max(0, Math.min(1, elementTop / (viewportHeight * 0.8)));
+            const progress = 1 - relativePos; // 1 at Top, 0 at Bottom
+
+            // Opacity goes from 0.8 (Top) to 0.2 (Bottom)
+            const opacity = (0.2 + (0.6 * progress)).toFixed(2);
+
+            // Grey start position goes from 1% (Top) to 60% (Bottom)
+            const greyStart = (1 + (59 * progress));
+
+            // Grey end position (Third color) goes from 35% (Bottom) to 95% (Top)
+            const greyEnd = (35 + (59 * progress));
+
+            element.style.setProperty('--white-opacity', opacity);
+            element.style.setProperty('--grey-start', `${greyStart}%`);
+            element.style.setProperty('--grey-end', `${greyEnd}%`);
         });
     }
 
