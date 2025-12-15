@@ -201,55 +201,248 @@
         const listContainer = document.getElementById('monthly-maintenance-list');
         if (!listContainer) return;
 
-        // Smart Score Calculator (Sistema de Puntuación)
-        function calculateSmartScore(item) {
+        // ============================================================================
+        // SISTEMA DE PUNTUACIÓN AVANZADO PARA OPTIMIZACIÓN DE RUTAS
+        // ============================================================================
+
+        /**
+         * Calcula el tiempo transcurrido desde el último mantenimiento en meses
+         * @param {Object} item - Item de mantenimiento
+         * @param {Date} currentDate - Fecha actual de referencia
+         * @returns {number} - Meses desde el último mantenimiento
+         */
+        function getMonthsSinceLastMaintenance(item, currentDate) {
+            const currentMonth = currentDate.getMonth() + 1; // 1-12
+            const currentYear = currentDate.getFullYear();
+
+            const itemMonth = item.maintenance_month;
+            const itemYear = item.maintenance_year;
+
+            // Calcular diferencia en meses
+            const monthsDiff = (currentYear - itemYear) * 12 + (currentMonth - itemMonth);
+
+            return monthsDiff;
+        }
+
+        /**
+         * Calcula la puntuación por tiempo transcurrido según el tipo de contrato
+         * Sistema progresivo que aumenta la prioridad cuanto más tiempo pasa
+         * @param {Object} item - Item de mantenimiento
+         * @param {number} monthsSince - Meses desde el último mantenimiento
+         * @returns {number} - Puntos por tiempo transcurrido
+         */
+        function calculateTimeScore(item, monthsSince) {
             let points = 0;
 
-            // 1. Prioridad: (Alta = +30 ; Media = +15 ; Baja = +0)
-            if (item.priority === 'Alta') points += 30;
-            else if (item.priority === 'Media') points += 15;
-
-            // 2. Contenido en campo Avería (Tiene = +50 ; No tiene = +0)
-            if (item.breakdown) points += 50;
-
-            // 3. Contenido en campo observaciones (tiene = +10 ; no tiene = +0)
-            if (item.description) points += 10;
-
-            // 4. Tipo de contrato (Menual = +10 ; Bimensual = +5 ; Trimestral... = +0)
-            if (item.contract === 'Mensual') points += 10;
-            else if (item.contract === 'Bimensual') points += 5;
-
-            // 5. Por fecha (<21 dias = +0 ; > 21 dias= + 40)
-            // item.isRecentPenalty es true si se encontró en el historial (< 21 dias)
-            // Por lo tanto: si NO es recent penalty -> > 21 dias -> +40
-            if (!item.isRecentPenalty) points += 40;
-
-            // 6. Por ubicacion (mas cercana al usuario) (< 1 km = +50 ; luego -2 por cada km extra)
-            const distUser = item.distance !== undefined ? item.distance : Infinity;
-            if (distUser < 1) {
-                points += 50;
-            } else if (distUser !== Infinity) {
-                const extraKm = distUser - 1;
-                const distPoints = 50 - (2 * extraKm);
-                points += Math.max(0, distPoints);
+            // Determinar el intervalo esperado según el contrato
+            let expectedInterval = 1; // Default mensual
+            switch (item.contract) {
+                case 'Mensual': expectedInterval = 1; break;
+                case 'Bimensual': expectedInterval = 2; break;
+                case 'Trimestral': expectedInterval = 3; break;
+                case 'Cuatrimestral': expectedInterval = 4; break;
+                case 'Semestral': expectedInterval = 6; break;
+                case 'Anual': expectedInterval = 12; break;
             }
 
-            // 7. Por Ubicacion entre Tarjetas (Cluster) (< 1 km = +40 ; luego -2 por cada km extra)
-            const distNeighbor = item.nearestNeighborDistance !== undefined ? item.nearestNeighborDistance : Infinity;
-            if (distNeighbor < 1) {
-                points += 40;
-            } else if (distNeighbor !== Infinity) {
-                const extraKmNeigh = distNeighbor - 1;
-                const neighPoints = 40 - (2 * extraKmNeigh);
-                points += Math.max(0, neighPoints);
+            // PENALIZACIÓN: Si el mantenimiento es muy reciente (< 21 días para mensuales, < 1 mes para otros)
+            if (item.isRecentPenalty) {
+                // Penalización fuerte para mantenimientos muy recientes
+                points -= 80;
             }
+            // PENALIZACIÓN MODERADA: Si no ha pasado suficiente tiempo según el contrato
+            else if (monthsSince < expectedInterval) {
+                // Penalización proporcional: cuanto más cerca del último, más penalización
+                const ratio = monthsSince / expectedInterval; // 0 a 1
+                points -= (1 - ratio) * 50; // Hasta -50 puntos
+            }
+            // BONIFICACIÓN: Si ha pasado el tiempo esperado o más
+            else {
+                // Bonificación base por estar en tiempo
+                points += 30;
 
-            // 8. Modificador Manual (Adelantar/Aplazar)
-            if (customScoreModifiers[item.id]) {
-                points += customScoreModifiers[item.id];
+                // Bonificación progresiva por cada mes adicional de retraso
+                const monthsOverdue = monthsSince - expectedInterval;
+                if (monthsOverdue > 0) {
+                    // +15 puntos por cada mes de retraso (escalado)
+                    points += monthsOverdue * 15;
+
+                    // Bonificación extra si el retraso es significativo (>2 meses)
+                    if (monthsOverdue > 2) {
+                        points += 20;
+                    }
+                }
             }
 
             return points;
+        }
+
+        /**
+         * Calcula la puntuación por tipo de contrato
+         * Los contratos más frecuentes tienen mayor prioridad
+         * @param {string} contract - Tipo de contrato
+         * @returns {number} - Puntos por tipo de contrato
+         */
+        function calculateContractScore(contract) {
+            const contractScores = {
+                'Mensual': 25,      // Mayor prioridad
+                'Bimensual': 20,
+                'Trimestral': 15,
+                'Cuatrimestral': 10,
+                'Semestral': 5,
+                'Anual': 0          // Menor prioridad
+            };
+            return contractScores[contract] || 0;
+        }
+
+        /**
+         * Calcula la puntuación por distancia con curva logarítmica
+         * Prioriza ubicaciones cercanas pero sin penalizar excesivamente las lejanas
+         * @param {number} distance - Distancia en km
+         * @param {number} maxPoints - Puntos máximos para distancia 0
+         * @returns {number} - Puntos por distancia
+         */
+        function calculateDistanceScore(distance, maxPoints = 60) {
+            if (distance === undefined || distance === Infinity) return 0;
+
+            // Curva logarítmica: distancias muy cercanas tienen gran ventaja
+            // pero la penalización se suaviza con la distancia
+            if (distance < 0.5) {
+                return maxPoints; // Muy cerca: puntuación máxima
+            } else if (distance < 1) {
+                return maxPoints * 0.9; // Cerca: 90%
+            } else if (distance < 3) {
+                return maxPoints * 0.7; // Moderadamente cerca: 70%
+            } else if (distance < 5) {
+                return maxPoints * 0.5; // Distancia media: 50%
+            } else if (distance < 10) {
+                return maxPoints * 0.3; // Lejos: 30%
+            } else if (distance < 20) {
+                return maxPoints * 0.15; // Muy lejos: 15%
+            } else {
+                return maxPoints * 0.05; // Extremadamente lejos: 5%
+            }
+        }
+
+        /**
+         * Sistema de puntuación completo y optimizado
+         * @param {Object} item - Item de mantenimiento
+         * @param {Date} currentDate - Fecha actual
+         * @param {number} routePosition - Posición en la ruta (0 = primera parada)
+         * @returns {number} - Puntuación total
+         */
+        function calculateSmartScore(item, currentDate, routePosition = 0) {
+            let points = 0;
+            let breakdown = {}; // Para debugging
+
+            // ═══════════════════════════════════════════════════════════════
+            // 1. PRIORIDAD BASE (0-50 puntos)
+            // ═══════════════════════════════════════════════════════════════
+            const priorityScores = {
+                'Alta': 50,
+                'Media': 25,
+                'Baja': 0
+            };
+            const priorityPoints = priorityScores[item.priority] || 0;
+            points += priorityPoints;
+            breakdown.priority = priorityPoints;
+
+            // ═══════════════════════════════════════════════════════════════
+            // 2. AVERÍA (0-100 puntos) - CRÍTICO
+            // ═══════════════════════════════════════════════════════════════
+            if (item.breakdown && item.breakdown.trim()) {
+                const breakdownPoints = 100;
+                points += breakdownPoints;
+                breakdown.breakdown = breakdownPoints;
+
+                // Bonus adicional si tiene avería Y alta prioridad
+                if (item.priority === 'Alta') {
+                    points += 30;
+                    breakdown.breakdownHighPriority = 30;
+                }
+            } else {
+                breakdown.breakdown = 0;
+            }
+
+            // ═══════════════════════════════════════════════════════════════
+            // 3. OBSERVACIONES (0-15 puntos)
+            // ═══════════════════════════════════════════════════════════════
+            if (item.description && item.description.trim()) {
+                const observationPoints = 15;
+                points += observationPoints;
+                breakdown.observations = observationPoints;
+            } else {
+                breakdown.observations = 0;
+            }
+
+            // ═══════════════════════════════════════════════════════════════
+            // 4. TIPO DE CONTRATO (0-25 puntos)
+            // ═══════════════════════════════════════════════════════════════
+            const contractPoints = calculateContractScore(item.contract);
+            points += contractPoints;
+            breakdown.contract = contractPoints;
+
+            // ═══════════════════════════════════════════════════════════════
+            // 5. TIEMPO DESDE ÚLTIMO MANTENIMIENTO (-80 a +100 puntos)
+            // ═══════════════════════════════════════════════════════════════
+            const monthsSince = getMonthsSinceLastMaintenance(item, currentDate);
+            const timePoints = calculateTimeScore(item, monthsSince);
+            points += timePoints;
+            breakdown.time = timePoints;
+            breakdown.monthsSince = monthsSince;
+
+            // ═══════════════════════════════════════════════════════════════
+            // 6. DISTANCIA AL PUNTO DE PARTIDA/ACTUAL (0-60 puntos)
+            // ═══════════════════════════════════════════════════════════════
+            // Para la primera ubicación: distancia al usuario
+            // Para ubicaciones siguientes: distancia a la ubicación anterior en la ruta
+            const distanceToStart = item.distance !== undefined ? item.distance : Infinity;
+            const distancePoints = calculateDistanceScore(distanceToStart, 60);
+            points += distancePoints;
+            breakdown.distanceToStart = distancePoints;
+            breakdown.distanceKm = distanceToStart !== Infinity ? distanceToStart.toFixed(2) : 'N/A';
+
+            // ═══════════════════════════════════════════════════════════════
+            // 7. PROXIMIDAD ENTRE UBICACIONES - CLUSTERING (0-50 puntos)
+            // ═══════════════════════════════════════════════════════════════
+            // Bonifica ubicaciones que están cerca de otras ubicaciones
+            // Esto ayuda a crear clusters eficientes
+            const neighborDistance = item.nearestNeighborDistance !== undefined ?
+                item.nearestNeighborDistance : Infinity;
+            const clusterPoints = calculateDistanceScore(neighborDistance, 50);
+            points += clusterPoints;
+            breakdown.clustering = clusterPoints;
+            breakdown.nearestNeighborKm = neighborDistance !== Infinity ?
+                neighborDistance.toFixed(2) : 'N/A';
+
+            // ═══════════════════════════════════════════════════════════════
+            // 8. MODIFICADOR MANUAL (±100 puntos)
+            // ═══════════════════════════════════════════════════════════════
+            const manualModifier = customScoreModifiers[item.id] || 0;
+            if (manualModifier !== 0) {
+                // Amplificar el modificador manual para que tenga más impacto
+                const amplifiedModifier = manualModifier * 2; // ±100 puntos
+                points += amplifiedModifier;
+                breakdown.manual = amplifiedModifier;
+            } else {
+                breakdown.manual = 0;
+            }
+
+            // ═══════════════════════════════════════════════════════════════
+            // 9. BONUS POR POSICIÓN EN RUTA (Optimización dinámica)
+            // ═══════════════════════════════════════════════════════════════
+            // A medida que avanzamos en la ruta, priorizamos más la distancia
+            // que otros factores para optimizar el recorrido
+            if (routePosition > 0) {
+                const routeBonus = distancePoints * 0.3 * routePosition;
+                points += routeBonus;
+                breakdown.routeOptimization = routeBonus;
+            }
+
+            // Guardar breakdown para debugging
+            item._scoreBreakdown = breakdown;
+
+            return Math.round(points);
         }
 
         listContainer.innerHTML = '';
@@ -260,17 +453,44 @@
         // Lógica de ordenación dinámica
         if (currentSortMethod === 'ai') {
             // Pre-calcular puntajes para visualización y ordenamiento
+            console.log('%c[Maintenance AI] Calculando puntuaciones...', 'color: #ff00ff; font-weight: bold');
+
             data.forEach(item => {
-                item._tempScore = calculateSmartScore(item);
-                console.log(`[Maintenance] Item "${item.location}" score:`, item._tempScore);
+                item._tempScore = calculateSmartScore(item, currentDate);
             });
 
+            // Ordenar por puntuación
             data.sort((a, b) => b._tempScore - a._tempScore);
+
+            // Log detallado después de ordenar
+            console.log('%c[Maintenance AI] Ruta optimizada:', 'color: #00ff00; font-weight: bold');
+            data.forEach((item, index) => {
+                const breakdown = item._scoreBreakdown || {};
+                console.log(
+                    `%c${index + 1}. ${item.location} %c(${item._tempScore} pts)`,
+                    'color: #00ffff; font-weight: bold',
+                    'color: #ff00ff; font-weight: bold'
+                );
+                console.log(
+                    `   📍 Prioridad: ${breakdown.priority || 0} | ` +
+                    `⚠️ Avería: ${breakdown.breakdown || 0} | ` +
+                    `📝 Obs: ${breakdown.observations || 0} | ` +
+                    `📄 Contrato: ${breakdown.contract || 0}`
+                );
+                console.log(
+                    `   ⏰ Tiempo: ${breakdown.time || 0} (${breakdown.monthsSince || 0} meses) | ` +
+                    `🚗 Distancia: ${breakdown.distanceToStart || 0} (${breakdown.distanceKm || 'N/A'} km) | ` +
+                    `🗺️ Cluster: ${breakdown.clustering || 0} (${breakdown.nearestNeighborKm || 'N/A'} km)`
+                );
+                if (breakdown.manual !== 0) {
+                    console.log(`   🎚️ Modificador Manual: ${breakdown.manual > 0 ? '+' : ''}${breakdown.manual}`);
+                }
+                console.log('   ─────────────────────────────────────────');
+            });
         } else if (currentSortMethod === 'location') {
             // En modo location, también calculamos el score para mostrarlo (opcional)
             data.forEach(item => {
-                item._tempScore = calculateSmartScore(item);
-                console.log(`[Maintenance] Item "${item.location}" score:`, item._tempScore);
+                item._tempScore = calculateSmartScore(item, currentDate);
             });
 
             data.sort((a, b) => {
@@ -278,6 +498,8 @@
                 const distB = b.distance !== undefined ? b.distance : Infinity;
                 return distA - distB;
             });
+
+            console.log('[Maintenance] Ordenado por distancia');
         } else {
             // Por Prioridad (Default) - No calculamos score
             console.log('[Maintenance] Priority mode - no scores calculated');
