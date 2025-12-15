@@ -405,7 +405,7 @@ html.light-mode #geometric-wrapper {
             rgba(255, 255, 255, var(--white-opacity, 0.8)) 0%,
             #47475f var(--grey-start, 25%),
             #47475f var(--grey-end, 45%),
-            #12121e 100%);
+            #0b0b13 100%);
     background-origin: border-box;
     background-clip: padding-box, border-box;
 
@@ -734,7 +734,7 @@ html.light-mode #bottom-navbar {
             rgba(255, 255, 255, var(--white-opacity, 0.8)) 0%,
             #47475f var(--grey-start, 25%),
             #47475f var(--grey-end, 45%),
-            #12121e 100%);
+            #0b0b13 100%);
     background-origin: border-box;
     background-clip: padding-box, border-box;
 
@@ -1567,7 +1567,7 @@ html.light-mode .calendar-day.empty {
             rgba(255, 255, 255, var(--white-opacity, 0.8)) 0%,
             #47475f var(--grey-start, 25%),
             #47475f var(--grey-end, 45%),
-            #12121e 100%);
+            #0b0b13 100%);
     background-origin: border-box;
     background-clip: padding-box, border-box;
 
