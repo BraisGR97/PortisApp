@@ -499,6 +499,13 @@
                     if (isToday) {
                         todayClass = 'today-holiday';
                     }
+                } else if (eventData.type === 'mantenimiento_programado') {
+                    // Mantenimiento programado - borde blanco
+                    eventDisplayClass = 'day-scheduled';
+                    eventTypeTag = `<span class="text-xs font-medium text-white block leading-tight">📍</span>`;
+                    if (isToday) {
+                        todayClass = 'today-scheduled';
+                    }
                 }
             } else if (isToday) {
                 // Si es el día actual pero no tiene evento, borde discontinuo magenta
@@ -672,8 +679,42 @@
         const deleteButtonClass = existingEvent ? 'btn-delete' : 'btn-delete-disabled';
         const deleteButtonDisabled = existingEvent ? '' : 'disabled';
 
+        // Verificar si es un mantenimiento programado
+        let maintenanceInfo = '';
+        if (existingEvent && existingEvent.type === 'mantenimiento_programado') {
+            const location = existingEvent.maintenanceLocation || 'Ubicación desconocida';
+            const time = existingEvent.scheduledTime || '--:--';
+            const notes = existingEvent.notes || '';
+
+            maintenanceInfo = `
+                <div class="mb-4 p-3 rounded-lg" style="background-color: var(--color-bg-tertiary); border: 2px solid #ffffff;">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i class="ph ph-wrench text-blue-500 text-xl"></i>
+                        <span class="font-bold text-white">Mantenimiento Programado</span>
+                    </div>
+                    <div class="text-sm space-y-1">
+                        <div class="flex items-center gap-2">
+                            <i class="ph ph-map-pin text-gray-400"></i>
+                            <span>${location}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="ph ph-clock text-gray-400"></i>
+                            <span>${time}</span>
+                        </div>
+                        ${notes ? `
+                        <div class="flex items-start gap-2 mt-2">
+                            <i class="ph ph-note text-gray-400 mt-0.5"></i>
+                            <span class="text-gray-300 text-xs">${notes}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
         if (optionsContainer) {
             optionsContainer.innerHTML = `
+                ${maintenanceInfo}
                 <button onclick="window.deleteEvent('${selectedDateForEvent}')" class="action-btn ${deleteButtonClass}" ${deleteButtonDisabled}>
                     ${deleteButtonText}
                 </button>

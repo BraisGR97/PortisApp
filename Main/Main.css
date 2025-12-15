@@ -896,6 +896,12 @@ html.light-mode .message-time {
     color: var(--color-text-on-event);
 }
 
+.calendar-day.day-scheduled {
+    background-color: transparent;
+    border: 2px solid #ffffff;
+    color: var(--color-text-primary);
+}
+
 /* Clases para textos de eventos */
 .event-overtime-hours {
     color: var(--color-event-overtime-text);
@@ -916,6 +922,10 @@ html.light-mode .message-time {
 
 .calendar-day.today-vacation {
     border: 2px dashed var(--color-event-vacation-border) !important;
+}
+
+.calendar-day.today-scheduled {
+    border: 2px dashed #ffffff !important;
 }
 
 .calendar-day.today-default {

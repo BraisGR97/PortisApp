@@ -1680,12 +1680,22 @@
     // ====================================
 
     let currentSchedulingMaintenanceId = null;
+    let originalScheduledDate = null;
+    let originalScheduledTime = null;
 
     /**
      * Abre el modal para programar un mantenimiento en el calendar
      */
     window.openScheduleModal = function (maintenanceId, location, description, breakdown) {
         currentSchedulingMaintenanceId = maintenanceId;
+
+        // Obtener datos del mantenimiento para ver si ya está programado
+        const maintenance = currentMaintenanceData.find(m => m.id === maintenanceId);
+        const isAlreadyScheduled = maintenance && maintenance.isScheduled;
+
+        // Guardar valores originales
+        originalScheduledDate = maintenance?.scheduledDate || null;
+        originalScheduledTime = maintenance?.scheduledTime || null;
 
         // Mostrar ubicación en el modal
         const locationElement = document.getElementById('schedule-location-name');
@@ -1707,18 +1717,35 @@
         if (dateInput) {
             const today = new Date().toISOString().split('T')[0];
             dateInput.min = today;
-            dateInput.value = today;
+
+            // Si ya está programado, usar esa fecha, sino usar hoy
+            dateInput.value = isAlreadyScheduled ? originalScheduledDate : today;
+
+            // Listener para detectar cambios
+            dateInput.onchange = updateScheduleButton;
         }
 
-        // Establecer hora por defecto (hora actual + 1h)
+        // Establecer hora
         const timeInput = document.getElementById('schedule-time');
         if (timeInput) {
-            const now = new Date();
-            now.setHours(now.getHours() + 1);
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            timeInput.value = `${hours}:${minutes}`;
+            if (isAlreadyScheduled) {
+                // Usar hora programada
+                timeInput.value = originalScheduledTime;
+            } else {
+                // Hora por defecto (hora actual + 1h)
+                const now = new Date();
+                now.setHours(now.getHours() + 1);
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                timeInput.value = `${hours}:${minutes}`;
+            }
+
+            // Listener para detectar cambios
+            timeInput.onchange = updateScheduleButton;
         }
+
+        // Actualizar botón según estado
+        updateScheduleButton();
 
         // Mostrar modal
         const modal = document.getElementById('schedule-maintenance-modal');
@@ -1727,6 +1754,51 @@
             modal.classList.add('flex');
         }
     };
+
+    /**
+     * Actualiza el botón de programar/desprogramar según el estado
+     */
+    function updateScheduleButton() {
+        const dateInput = document.getElementById('schedule-date');
+        const timeInput = document.getElementById('schedule-time');
+        const maintenance = currentMaintenanceData.find(m => m.id === currentSchedulingMaintenanceId);
+
+        const currentDate = dateInput?.value;
+        const currentTime = timeInput?.value;
+
+        // Verificar si los valores han cambiado
+        const hasChanged = currentDate !== originalScheduledDate || currentTime !== originalScheduledTime;
+        const isAlreadyScheduled = maintenance && maintenance.isScheduled && !hasChanged;
+
+        // Obtener contenedor del botón
+        const buttonContainer = document.querySelector('#schedule-maintenance-modal .flex.gap-3.mt-6');
+        if (!buttonContainer) return;
+
+        // Actualizar HTML del botón
+        if (isAlreadyScheduled) {
+            // Mostrar botón Desprogramar
+            buttonContainer.innerHTML = `
+                <button onclick="closeModal('schedule-maintenance-modal')"
+                    class="secondary-btn w-1/2 rounded-lg">Cancelar</button>
+                <button onclick="window.unscheduleMaintenance()"
+                    class="primary-btn w-1/2 rounded-lg bg-red-600 hover:bg-red-700">
+                    <i class="ph ph-calendar-x mr-2"></i>
+                    Desprogramar
+                </button>
+            `;
+        } else {
+            // Mostrar botón Programar
+            buttonContainer.innerHTML = `
+                <button onclick="closeModal('schedule-maintenance-modal')"
+                    class="secondary-btn w-1/2 rounded-lg">Cancelar</button>
+                <button onclick="window.saveScheduledMaintenance()"
+                    class="primary-btn w-1/2 rounded-lg bg-blue-600 hover:bg-blue-700">
+                    <i class="ph ph-calendar-check mr-2"></i>
+                    Programar
+                </button>
+            `;
+        }
+    }
 
     /**
      * Guarda el mantenimiento programado en Calendar
@@ -1796,6 +1868,61 @@
         } catch (error) {
             console.error('Error al programar mantenimiento:', error);
             showMessage('error', 'Error al programar mantenimiento');
+        }
+    };
+
+    /**
+     * Desprograma un mantenimiento eliminando el evento de Calendar
+     */
+    window.unscheduleMaintenance = async function () {
+        if (!currentSchedulingMaintenanceId) return;
+
+        try {
+            const maintenance = currentMaintenanceData.find(m => m.id === currentSchedulingMaintenanceId);
+            if (!maintenance) {
+                showMessage('error', 'Mantenimiento no encontrado');
+                return;
+            }
+
+            // Eliminar evento de Calendar si existe
+            if (maintenance.scheduledDate) {
+                const eventsRef = window.db.collection(`users/${userId}/events`);
+                const querySnapshot = await eventsRef
+                    .where('maintenanceId', '==', currentSchedulingMaintenanceId)
+                    .get();
+
+                // Eliminar todos los eventos relacionados
+                const deletePromises = [];
+                querySnapshot.forEach(doc => {
+                    deletePromises.push(doc.ref.delete());
+                });
+                await Promise.all(deletePromises);
+            }
+
+            // Actualizar el mantenimiento eliminando campos de programación
+            const repairsRef = getRepairsCollectionRef();
+            if (repairsRef) {
+                await repairsRef.doc(currentSchedulingMaintenanceId).update({
+                    scheduledDate: firebase.firestore.FieldValue.delete(),
+                    scheduledTime: firebase.firestore.FieldValue.delete(),
+                    scheduledDateTime: firebase.firestore.FieldValue.delete(),
+                    isScheduled: false
+                });
+            }
+
+            showMessage('success', '✅ Mantenimiento desprogramado');
+
+            // Cerrar modal
+            window.closeModal('schedule-maintenance-modal');
+
+            // Recargar datos
+            if (typeof window.fetchMaintenanceData === 'function') {
+                window.fetchMaintenanceData();
+            }
+
+        } catch (error) {
+            console.error('Error al desprogramar mantenimiento:', error);
+            showMessage('error', 'Error al desprogramar mantenimiento');
         }
     };
 
