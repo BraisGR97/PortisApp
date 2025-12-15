@@ -399,7 +399,6 @@ html.light-mode #geometric-wrapper {
     /* Gradient Border Implementation like Repairs */
     border: 1px solid transparent;
     border-radius: 0.75rem;
-    box-shadow: 0 3px 8px var(--color-shadow);
 
     background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
         linear-gradient(to top,
@@ -411,7 +410,7 @@ html.light-mode #geometric-wrapper {
     background-clip: padding-box, border-box;
 
     padding: 1rem;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: transform 0.2s;
     display: flex;
     flex-direction: column;
     position: relative;
@@ -420,7 +419,6 @@ html.light-mode #geometric-wrapper {
 
 .dashboard-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 15px var(--color-shadow);
     background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
         linear-gradient(to top, var(--color-accent-magenta), var(--color-accent-magenta));
 }
@@ -730,7 +728,6 @@ html.light-mode #bottom-navbar {
     /* Gradient Border Implementation like Repairs */
     border: 1px solid transparent;
     border-radius: 0.75rem;
-    box-shadow: 0 3px 8px var(--color-shadow);
 
     background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
         linear-gradient(to top,
@@ -742,7 +739,7 @@ html.light-mode #bottom-navbar {
     background-clip: padding-box, border-box;
 
     padding: 1rem;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: transform 0.2s;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -751,7 +748,6 @@ html.light-mode #bottom-navbar {
 
 .user-chat-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 15px var(--color-shadow);
     background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
         linear-gradient(to top, var(--color-accent-magenta), var(--color-accent-magenta));
 }
@@ -1565,7 +1561,6 @@ html.light-mode .calendar-day.empty {
     border-left: 0;
     /* Left side handled by priority strip */
     border-radius: 0.75rem;
-    box-shadow: 0 3px 8px var(--color-shadow);
 
     background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
         linear-gradient(to top,
@@ -1580,7 +1575,7 @@ html.light-mode .calendar-day.empty {
     margin-bottom: 0.75rem;
     position: relative;
     overflow: hidden;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: transform 0.2s;
     cursor: pointer;
     display: flex;
     flex-direction: column;
@@ -1599,7 +1594,6 @@ html.light-mode .calendar-day.empty {
 
 .maintenance-item:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 15px var(--color-shadow);
     background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
         linear-gradient(to top, var(--color-accent-magenta), var(--color-accent-magenta));
 }
