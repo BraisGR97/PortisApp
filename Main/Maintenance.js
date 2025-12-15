@@ -1840,8 +1840,9 @@
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
-            // Guardar en Firestore (colección events del usuario)
-            const eventsRef = window.db.collection(`users/${userId}/events`);
+            // Guardar en Firestore (colección calendar del usuario)
+            // IMPORTANTE: Calendar.js lee de la colección 'calendar', no 'events'
+            const eventsRef = window.db.collection(`users/${userId}/calendar`);
             await eventsRef.add(eventData);
 
             // Actualizar el mantenimiento con la info de programación
@@ -1886,7 +1887,8 @@
 
             // Eliminar evento de Calendar si existe
             if (maintenance.scheduledDate) {
-                const eventsRef = window.db.collection(`users/${userId}/events`);
+                // Usar colección 'calendar' para que coincida con lo que creamos
+                const eventsRef = window.db.collection(`users/${userId}/calendar`);
                 const querySnapshot = await eventsRef
                     .where('maintenanceId', '==', currentSchedulingMaintenanceId)
                     .get();
