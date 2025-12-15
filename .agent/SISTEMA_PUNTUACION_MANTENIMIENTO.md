@@ -1,5 +1,51 @@
 # Sistema de Puntuación Avanzado para Organización de Mantenimientos
 
+## 🆕 ACTUALIZACIÓN v2.1 - Sistema de Adelantar/Aplazar Mejorado
+
+### Cambios Importantes
+
+El sistema de **Adelantar/Aplazar** ha sido completamente rediseñado para ser más intuitivo y potente:
+
+#### ✅ **Adelantar** - Posición Fija al Inicio
+- Las tarjetas marcadas como "Adelantar" se colocan **SIEMPRE al principio** de la lista
+- No importa su puntuación - tienen prioridad absoluta
+- Útil para compromisos urgentes con clientes o situaciones especiales
+- Icono: 🚀 (flecha verde hacia arriba)
+
+#### ⏸️ **Aplazar** - Posición Fija al Final (12 horas)
+- Las tarjetas marcadas como "Aplazar" se colocan **SIEMPRE al final** de la lista
+- Duración: **12 horas automáticas**
+- Después de 12h, vuelven automáticamente a "Normal"
+- Útil para posponer temporalmente ubicaciones no urgentes
+- Icono: ⏸️ (flecha roja hacia abajo)
+
+#### 🔄 **Normal** - Orden por Puntuación
+- Las tarjetas normales se ordenan según el sistema de puntuación inteligente
+- Este es el comportamiento por defecto
+
+---
+
+## Estructura de Ordenación
+
+La lista se divide en **3 grupos fijos**:
+
+```
+┌─────────────────────────────────┐
+│  📌 ADELANTADAS                 │  ← Siempre arriba
+│  (ordenadas por puntuación)     │
+├─────────────────────────────────┤
+│  📊 NORMALES                    │  ← Ordenadas por IA
+│  (ordenadas por puntuación)     │
+├─────────────────────────────────┤
+│  ⏸️ APLAZADAS (12h)             │  ← Siempre abajo
+│  (ordenadas por puntuación)     │
+└─────────────────────────────────┘
+```
+
+Dentro de cada grupo, las tarjetas se ordenan por su puntuación calculada.
+
+---
+
 ## Descripción General
 
 Este sistema calcula una puntuación inteligente para cada ubicación de mantenimiento, optimizando la ruta de trabajo considerando múltiples factores críticos. El objetivo es minimizar el tiempo de desplazamiento mientras se priorizan las tareas más urgentes.
@@ -118,41 +164,13 @@ Calcula la distancia a la ubicación más cercana en la lista:
 
 ---
 
-### 8. **Modificador Manual** (±100 puntos) 🎚️
-
-El usuario puede ajustar manualmente la prioridad:
-- **Adelantar**: +100 puntos (modificador base 50 × 2)
-- **Normal**: +0 puntos
-- **Aplazar**: -100 puntos (modificador base -50 × 2)
-
-**Justificación**: 
-- Permite al usuario tener control final sobre la ruta
-- El modificador se amplifica (×2) para tener impacto significativo
-- Útil para casos especiales o compromisos con clientes
-
----
-
-### 9. **Bonus por Posición en Ruta** (Variable) 🚗
-
-A medida que avanzas en la ruta, se prioriza más la cercanía:
-- Fórmula: `distancePoints × 0.3 × routePosition`
-- Solo aplica después de la primera ubicación
-
-**Justificación**: 
-- Optimización dinámica de ruta
-- Después de visitar la primera ubicación, la siguiente debe ser la más cercana a ESA ubicación, no al punto de partida
-- Mejora progresivamente la eficiencia del recorrido
-
----
-
 ## Rangos de Puntuación Total
 
 ### Puntuación Mínima Posible
 - Ubicación lejana (3 pts)
 - Sin cluster (2.5 pts)
 - Recién visitada (-80 pts)
-- Aplazada manualmente (-100 pts)
-- **Total**: ≈ -175 puntos
+- **Total**: ≈ -75 puntos
 
 ### Puntuación Máxima Posible
 - Prioridad Alta (50 pts)
@@ -162,8 +180,7 @@ A medida que avanzas en la ruta, se prioriza más la cercanía:
 - Retraso significativo (95 pts)
 - Muy cerca (60 pts)
 - Buen clustering (50 pts)
-- Adelantada manualmente (100 pts)
-- **Total**: ≈ 525 puntos
+- **Total**: ≈ 425 puntos
 
 ### Puntuación Típica
 Una ubicación "normal" sin factores especiales:
@@ -178,50 +195,98 @@ Una ubicación "normal" sin factores especiales:
 
 ---
 
-## Estrategia de Optimización
+## Sistema de Modificadores Manuales
 
-### Fase 1: Identificación de Urgencias
-El sistema primero identifica las ubicaciones más urgentes:
-1. Averías con prioridad alta (hasta 180 pts solo por estos factores)
-2. Ubicaciones con retraso significativo
-3. Contratos frecuentes (mensuales/bimensuales)
+### 🚀 Adelantar
+- **Efecto**: Coloca la tarjeta al **inicio absoluto** de la lista
+- **Duración**: Permanente hasta que se cambie manualmente
+- **Uso**: Compromisos urgentes, citas programadas, clientes VIP
+- **Visual**: Icono verde de flecha hacia arriba relleno
 
-### Fase 2: Optimización de Ruta
-Una vez identificadas las urgencias, optimiza la ruta:
-1. Comienza con la ubicación más urgente Y cercana
-2. Agrupa ubicaciones cercanas entre sí (clustering)
-3. Minimiza desplazamientos innecesarios
+### ⏸️ Aplazar (12 horas)
+- **Efecto**: Coloca la tarjeta al **final absoluto** de la lista
+- **Duración**: **12 horas automáticas**
+- **Auto-reset**: Vuelve a "Normal" automáticamente después de 12h
+- **Uso**: Ubicaciones temporalmente inaccesibles, posponer tareas no urgentes
+- **Visual**: Icono rojo de flecha hacia abajo relleno
+- **Contador**: Muestra horas restantes en la consola
 
-### Fase 3: Ajustes Manuales
-El usuario puede:
-1. Adelantar ubicaciones específicas (compromisos con clientes)
-2. Aplazar ubicaciones no urgentes
-3. Estos ajustes tienen gran impacto (±100 pts)
+### 🔄 Normal
+- **Efecto**: Orden según puntuación calculada por IA
+- **Duración**: Por defecto
+- **Uso**: Comportamiento estándar del sistema
 
 ---
 
-## Ventajas del Sistema
+## Estrategia de Optimización
 
-✅ **Multifactorial**: Considera 9 factores diferentes
-✅ **Dinámico**: Se adapta al tiempo transcurrido y ubicación actual
-✅ **Balanceado**: Ningún factor domina completamente (excepto averías críticas)
-✅ **Flexible**: Permite ajustes manuales significativos
-✅ **Eficiente**: Optimiza tiempo de desplazamiento
-✅ **Inteligente**: Aprende del historial (penaliza recién visitados)
+### Fase 1: Separación en Grupos
+1. **Adelantadas**: Se extraen y colocan al inicio
+2. **Normales**: Se ordenan por puntuación IA
+3. **Aplazadas**: Se extraen y colocan al final
+
+### Fase 2: Ordenación Interna
+Dentro de cada grupo:
+- Se calcula la puntuación de cada tarjeta
+- Se ordenan de mayor a menor puntuación
+- Se identifican urgencias (averías, retrasos)
+
+### Fase 3: Optimización de Ruta
+- Comienza con las adelantadas (si existen)
+- Continúa con las normales optimizadas
+- Termina con las aplazadas (si existen)
+
+---
+
+## Ventajas del Sistema v2.1
+
+✅ **Control Total**: Adelantar/Aplazar con posicionamiento absoluto
+✅ **Auto-gestión**: Las aplazadas vuelven a normal automáticamente
+✅ **Inteligente**: Considera 7 factores simultáneamente
+✅ **Dinámico**: Se adapta al tiempo y ubicación actual
+✅ **Balanceado**: Ningún factor domina (excepto averías críticas)
+✅ **Flexible**: Permite ajustes manuales potentes
+✅ **Eficiente**: Minimiza tiempo de desplazamiento
+✅ **Transparente**: Muestra puntuación y desglose
+✅ **Aprende**: Penaliza ubicaciones recién visitadas
 ✅ **Escalable**: Funciona con pocas o muchas ubicaciones
-✅ **Transparente**: Cada ubicación muestra su puntuación
 
 ---
 
 ## Debugging y Monitoreo
 
-El sistema incluye un objeto `_scoreBreakdown` en cada item que muestra:
-- Puntos por cada factor
-- Distancias calculadas
-- Meses desde último mantenimiento
-- Modificadores aplicados
+### Consola del Navegador
 
-Ejemplo de breakdown:
+Cuando activas el modo IA, verás:
+
+```
+[Maintenance AI] Calculando puntuaciones...
+[Maintenance AI] Ruta optimizada:
+
+📌 ADELANTADAS (2):
+📌 1. Ubicación A (245 pts)
+   📍 Prioridad: 50 | ⚠️ Avería: 100 | 📝 Obs: 15 | 📄 Contrato: 25
+   ⏰ Tiempo: 45 (3 meses) | 🚗 Distancia: 54 (0.8 km) | 🗺️ Cluster: 45 (1.5 km)
+   🚀 ADELANTADA - Posición fija al inicio
+   ─────────────────────────────────────────
+
+━━━ NORMALES (5) ━━━
+  2. Ubicación B (189 pts)
+   📍 Prioridad: 25 | ⚠️ Avería: 0 | 📝 Obs: 15 | 📄 Contrato: 25
+   ⏰ Tiempo: 60 (4 meses) | 🚗 Distancia: 42 (2.1 km) | 🗺️ Cluster: 35 (2.8 km)
+   ─────────────────────────────────────────
+
+━━━ APLAZADAS (1) ━━━
+⏸️ 8. Ubicación Z (95 pts)
+   📍 Prioridad: 25 | ⚠️ Avería: 0 | 📝 Obs: 0 | 📄 Contrato: 15
+   ⏰ Tiempo: 30 (2 meses) | 🚗 Distancia: 30 (4.5 km) | 🗺️ Cluster: 25 (5.2 km)
+   ⏸️ APLAZADA - 8.5h restantes
+   ─────────────────────────────────────────
+```
+
+### Breakdown de Puntuación
+
+Cada item incluye `_scoreBreakdown`:
 ```javascript
 {
   priority: 50,
@@ -234,9 +299,7 @@ Ejemplo de breakdown:
   distanceToStart: 42,
   distanceKm: "2.5",
   clustering: 35,
-  nearestNeighborKm: "1.2",
-  manual: 0,
-  routeOptimization: 0
+  nearestNeighborKm: "1.2"
 }
 ```
 
@@ -244,41 +307,49 @@ Ejemplo de breakdown:
 
 ## Casos de Uso Especiales
 
-### Caso 1: Avería Urgente Lejana
+### Caso 1: Cliente VIP con Cita Programada
+**Acción**: Marcar como "Adelantar"
+**Resultado**: Va al inicio independientemente de puntuación
+**Ventaja**: Garantiza que no se olvide la cita
+
+### Caso 2: Ubicación Temporalmente Cerrada
+**Acción**: Marcar como "Aplazar"
+**Resultado**: Va al final durante 12h, luego vuelve a normal
+**Ventaja**: No hay que recordar reactivarla manualmente
+
+### Caso 3: Avería Urgente Lejana
 - Avería + Alta Prioridad: 130 pts
 - Lejos (20 km): 3 pts
 - **Total base**: 133 pts
 - **Decisión**: Se prioriza sobre ubicaciones cercanas sin avería
+- **Opción**: Si es CRÍTICA, marcar como "Adelantar"
 
-### Caso 2: Cluster de Ubicaciones
+### Caso 4: Cluster de Ubicaciones
 - 5 ubicaciones en radio de 2 km
 - Todas reciben bonus de clustering (35-50 pts)
 - **Resultado**: Se visitan todas en secuencia
 
-### Caso 3: Contrato Anual con Retraso
+### Caso 5: Contrato Anual con Retraso
 - Contrato Anual: 0 pts
 - 14 meses de retraso: +30 (base) + 60 (4 meses × 15) + 20 (>2 meses) = 110 pts
 - **Resultado**: Alta prioridad a pesar de ser contrato anual
-
-### Caso 4: Recién Visitado
-- Cualquier puntuación base
-- Penalización: -80 pts
-- **Resultado**: Va al final de la lista automáticamente
 
 ---
 
 ## Recomendaciones de Uso
 
-1. **Confía en el sistema**: Está diseñado para optimizar tu tiempo
-2. **Usa modificadores con moderación**: Solo para casos especiales
-3. **Revisa el breakdown**: Si una ubicación parece mal posicionada, revisa su desglose
-4. **Actualiza prioridades**: Mantén las prioridades actualizadas para mejores resultados
-5. **Registra observaciones**: Ayudan a identificar ubicaciones problemáticas
+1. **Usa Adelantar con moderación**: Solo para casos realmente urgentes o compromisos
+2. **Aplazar es temporal**: Perfecto para posponer sin preocuparte de reactivar
+3. **Confía en el sistema**: La puntuación IA está optimizada
+4. **Revisa la consola**: Te muestra exactamente por qué cada ubicación está donde está
+5. **Mantén prioridades actualizadas**: El sistema se basa en ellas
+6. **Registra observaciones**: Ayudan a identificar ubicaciones problemáticas
 
 ---
 
 ## Actualizaciones Futuras Posibles
 
+- [ ] Configurar duración personalizada para aplazar (6h, 12h, 24h)
 - [ ] Machine Learning para predecir averías
 - [ ] Consideración de tráfico en tiempo real
 - [ ] Horarios de apertura de ubicaciones
@@ -289,6 +360,7 @@ Ejemplo de breakdown:
 
 ---
 
-**Versión**: 2.0
+**Versión**: 2.1
 **Fecha**: Diciembre 2025
 **Autor**: Sistema de IA Antigravity
+**Última actualización**: Sistema de Adelantar/Aplazar mejorado

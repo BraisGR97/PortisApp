@@ -8,27 +8,63 @@
 (function () { // ⬅️ INICIO: IIFE para aislar el ámbito
 
     // ====================================
-    // 1. CONFIGURACIÓN Y VARIABLES
+    // 1. CONFIGURACIÓN Y ESTADO GLOBAL
     // ====================================
 
-    let db = null; // Instancia de Firestore
-    let userId = null; // ID del usuario autenticado
     let isFirebaseReady = false;
-
+    let db = null;
+    let userId = null;
+    let currentMaintenanceData = [];
     let currentViewDate = new Date();
-    let currentMaintenanceData = []; // Almacenar datos actuales para filtrado
-    let currentSortMethod = localStorage.getItem('portis-maintenance-sort') || 'priority'; // 'priority' | 'location'
-    let distanceCache = {}; // Cache de distancias: { id: distance }
-    let customScoreModifiers = {}; // Almacenar modificadores de puntaje manuales: { id: scoreDelta }
+    let currentSortMethod = localStorage.getItem('portis-maintenance-sort') || 'priority';
 
-    // Init customScoreModifiers from LocalStorage
-    try {
-        const storedModifiers = localStorage.getItem('portis-maintenance-modifiers');
-        if (storedModifiers) {
-            customScoreModifiers = JSON.parse(storedModifiers);
+    // Cache de distancias para evitar recalcular
+    let distanceCache = {};
+
+    // Modificadores de puntuación personalizados (Adelantar/Aplazar)
+    // Estructura: { itemId: { type: 'adelantar'|'aplazar'|'normal', timestamp: Date } }
+    let customScoreModifiers = {};
+
+    function loadModifiersFromStorage() {
+        const stored = localStorage.getItem('portis-maintenance-modifiers');
+        if (stored) {
+            try {
+                const parsed = JSON.parse(stored);
+                customScoreModifiers = parsed;
+
+                // Limpiar modificadores expirados (aplazadas > 12h)
+                cleanExpiredModifiers();
+            } catch (e) {
+                customScoreModifiers = {};
+            }
         }
-    } catch (e) {
-        console.error("Error loading modifiers from storage", e);
+    }
+
+    function cleanExpiredModifiers() {
+        const now = new Date();
+        const TWELVE_HOURS = 12 * 60 * 60 * 1000; // 12 horas en milisegundos
+        let hasChanges = false;
+
+        Object.keys(customScoreModifiers).forEach(id => {
+            const modifier = customScoreModifiers[id];
+
+            // Solo las aplazadas tienen expiración
+            if (modifier.type === 'aplazar' && modifier.timestamp) {
+                const modifierTime = new Date(modifier.timestamp);
+                const elapsed = now - modifierTime;
+
+                if (elapsed >= TWELVE_HOURS) {
+                    // Expirado: volver a normal
+                    delete customScoreModifiers[id];
+                    hasChanges = true;
+                    console.log(`[Maintenance] Modificador aplazado expirado para: ${id}`);
+                }
+            }
+        });
+
+        if (hasChanges) {
+            saveModifiersToStorage();
+        }
     }
 
     // Helper to persist modifiers
@@ -415,30 +451,6 @@
             breakdown.nearestNeighborKm = neighborDistance !== Infinity ?
                 neighborDistance.toFixed(2) : 'N/A';
 
-            // ═══════════════════════════════════════════════════════════════
-            // 8. MODIFICADOR MANUAL (±100 puntos)
-            // ═══════════════════════════════════════════════════════════════
-            const manualModifier = customScoreModifiers[item.id] || 0;
-            if (manualModifier !== 0) {
-                // Amplificar el modificador manual para que tenga más impacto
-                const amplifiedModifier = manualModifier * 2; // ±100 puntos
-                points += amplifiedModifier;
-                breakdown.manual = amplifiedModifier;
-            } else {
-                breakdown.manual = 0;
-            }
-
-            // ═══════════════════════════════════════════════════════════════
-            // 9. BONUS POR POSICIÓN EN RUTA (Optimización dinámica)
-            // ═══════════════════════════════════════════════════════════════
-            // A medida que avanzamos en la ruta, priorizamos más la distancia
-            // que otros factores para optimizar el recorrido
-            if (routePosition > 0) {
-                const routeBonus = distancePoints * 0.3 * routePosition;
-                points += routeBonus;
-                breakdown.routeOptimization = routeBonus;
-            }
-
             // Guardar breakdown para debugging
             item._scoreBreakdown = breakdown;
 
@@ -450,6 +462,13 @@
         // DEBUG: Verificar método de ordenación
         console.log('[Maintenance] Current sort method:', currentSortMethod);
 
+        // Limpiar modificadores expirados antes de ordenar
+        cleanExpiredModifiers();
+
+        // ============================================================================
+        // SISTEMA DE ORDENACIÓN CON TRES GRUPOS: ADELANTAR / NORMAL / APLAZAR
+        // ============================================================================
+
         // Lógica de ordenación dinámica
         if (currentSortMethod === 'ai') {
             // Pre-calcular puntajes para visualización y ordenamiento
@@ -459,15 +478,63 @@
                 item._tempScore = calculateSmartScore(item, currentDate);
             });
 
-            // Ordenar por puntuación
-            data.sort((a, b) => b._tempScore - a._tempScore);
+            // SEPARAR EN TRES GRUPOS
+            const adelantadas = [];
+            const normales = [];
+            const aplazadas = [];
+
+            data.forEach(item => {
+                const modifier = customScoreModifiers[item.id];
+
+                if (modifier && modifier.type === 'adelantar') {
+                    adelantadas.push(item);
+                } else if (modifier && modifier.type === 'aplazar') {
+                    aplazadas.push(item);
+                } else {
+                    normales.push(item);
+                }
+            });
+
+            // Ordenar cada grupo por puntuación
+            adelantadas.sort((a, b) => b._tempScore - a._tempScore);
+            normales.sort((a, b) => b._tempScore - a._tempScore);
+            aplazadas.sort((a, b) => b._tempScore - a._tempScore);
+
+            // Combinar: adelantadas primero, normales en medio, aplazadas al final
+            const sortedData = [...adelantadas, ...normales, ...aplazadas];
+
+            // Reemplazar el array original con el ordenado
+            data.length = 0;
+            data.push(...sortedData);
 
             // Log detallado después de ordenar
             console.log('%c[Maintenance AI] Ruta optimizada:', 'color: #00ff00; font-weight: bold');
+
+            if (adelantadas.length > 0) {
+                console.log(`%c📌 ADELANTADAS (${adelantadas.length}):`, 'color: #00ff00; font-weight: bold; font-size: 14px');
+            }
+
             data.forEach((item, index) => {
                 const breakdown = item._scoreBreakdown || {};
+                const modifier = customScoreModifiers[item.id];
+
+                let prefix = '  ';
+                if (modifier && modifier.type === 'adelantar') {
+                    prefix = '📌 ';
+                } else if (modifier && modifier.type === 'aplazar') {
+                    prefix = '⏸️ ';
+                }
+
+                // Separador visual entre grupos
+                if (index === adelantadas.length && adelantadas.length > 0) {
+                    console.log(`%c━━━ NORMALES (${normales.length}) ━━━`, 'color: #ffff00; font-weight: bold; font-size: 14px');
+                }
+                if (index === adelantadas.length + normales.length && aplazadas.length > 0) {
+                    console.log(`%c━━━ APLAZADAS (${aplazadas.length}) ━━━`, 'color: #ff0000; font-weight: bold; font-size: 14px');
+                }
+
                 console.log(
-                    `%c${index + 1}. ${item.location} %c(${item._tempScore} pts)`,
+                    `%c${prefix}${index + 1}. ${item.location} %c(${item._tempScore} pts)`,
                     'color: #00ffff; font-weight: bold',
                     'color: #ff00ff; font-weight: bold'
                 );
@@ -482,34 +549,99 @@
                     `🚗 Distancia: ${breakdown.distanceToStart || 0} (${breakdown.distanceKm || 'N/A'} km) | ` +
                     `🗺️ Cluster: ${breakdown.clustering || 0} (${breakdown.nearestNeighborKm || 'N/A'} km)`
                 );
-                if (breakdown.manual !== 0) {
-                    console.log(`   🎚️ Modificador Manual: ${breakdown.manual > 0 ? '+' : ''}${breakdown.manual}`);
+
+                if (modifier) {
+                    if (modifier.type === 'adelantar') {
+                        console.log(`   %c🚀 ADELANTADA - Posición fija al inicio`, 'color: #00ff00; font-weight: bold');
+                    } else if (modifier.type === 'aplazar') {
+                        const timestamp = new Date(modifier.timestamp);
+                        const now = new Date();
+                        const hoursLeft = 12 - ((now - timestamp) / (60 * 60 * 1000));
+                        console.log(`   %c⏸️ APLAZADA - ${hoursLeft.toFixed(1)}h restantes`, 'color: #ff0000; font-weight: bold');
+                    }
                 }
+
                 console.log('   ─────────────────────────────────────────');
             });
+
         } else if (currentSortMethod === 'location') {
             // En modo location, también calculamos el score para mostrarlo (opcional)
             data.forEach(item => {
                 item._tempScore = calculateSmartScore(item, currentDate);
             });
 
-            data.sort((a, b) => {
+            // SEPARAR EN TRES GRUPOS también en modo location
+            const adelantadas = [];
+            const normales = [];
+            const aplazadas = [];
+
+            data.forEach(item => {
+                const modifier = customScoreModifiers[item.id];
+
+                if (modifier && modifier.type === 'adelantar') {
+                    adelantadas.push(item);
+                } else if (modifier && modifier.type === 'aplazar') {
+                    aplazadas.push(item);
+                } else {
+                    normales.push(item);
+                }
+            });
+
+            // Ordenar cada grupo por distancia
+            const sortByDistance = (a, b) => {
                 const distA = a.distance !== undefined ? a.distance : Infinity;
                 const distB = b.distance !== undefined ? b.distance : Infinity;
                 return distA - distB;
+            };
+
+            adelantadas.sort(sortByDistance);
+            normales.sort(sortByDistance);
+            aplazadas.sort(sortByDistance);
+
+            // Combinar grupos
+            const sortedData = [...adelantadas, ...normales, ...aplazadas];
+            data.length = 0;
+            data.push(...sortedData);
+
+            console.log('[Maintenance] Ordenado por distancia (con grupos adelantar/aplazar)');
+
+        } else {
+            // Por Prioridad (Default) - No calculamos score pero SÍ respetamos grupos
+            console.log('[Maintenance] Priority mode');
+
+            const adelantadas = [];
+            const normales = [];
+            const aplazadas = [];
+
+            data.forEach(item => {
+                const modifier = customScoreModifiers[item.id];
+
+                if (modifier && modifier.type === 'adelantar') {
+                    adelantadas.push(item);
+                } else if (modifier && modifier.type === 'aplazar') {
+                    aplazadas.push(item);
+                } else {
+                    normales.push(item);
+                }
             });
 
-            console.log('[Maintenance] Ordenado por distancia');
-        } else {
-            // Por Prioridad (Default) - No calculamos score
-            console.log('[Maintenance] Priority mode - no scores calculated');
-            data.sort((a, b) => {
+            // Ordenar cada grupo por prioridad
+            const sortByPriority = (a, b) => {
                 const priorityOrder = { 'Alta': 1, 'Media': 2, 'Baja': 3 };
                 const pA = priorityOrder[a.priority] || 99;
                 const pB = priorityOrder[b.priority] || 99;
                 if (pA !== pB) return pA - pB;
                 return a.location.localeCompare(b.location);
-            });
+            };
+
+            adelantadas.sort(sortByPriority);
+            normales.sort(sortByPriority);
+            aplazadas.sort(sortByPriority);
+
+            // Combinar grupos
+            const sortedData = [...adelantadas, ...normales, ...aplazadas];
+            data.length = 0;
+            data.push(...sortedData);
         }
 
         data.forEach(item => {
@@ -592,16 +724,24 @@
                         <i class="ph ph-map-pin text-lg"></i>
                     </button>
                     ${currentSortMethod === 'ai' ? (() => {
-                const mod = customScoreModifiers[item.id] || 0;
+                const mod = customScoreModifiers[item.id];
+                const modType = mod ? mod.type : 'normal';
                 let iconColorClass = 'text-orange-500'; // Default/Normal
-                // Use standard Tailwind colors to ensure visibility
-                if (mod === 50) iconColorClass = 'text-green-500'; // Adelantar
-                if (mod === -50) iconColorClass = 'text-red-500';   // Aplazar
+                let icon = 'ph-hourglass-medium'; // Default icon
+
+                // Determinar color e icono según el tipo
+                if (modType === 'adelantar') {
+                    iconColorClass = 'text-green-500';
+                    icon = 'ph-arrow-circle-up-fill';
+                } else if (modType === 'aplazar') {
+                    iconColorClass = 'text-red-500';
+                    icon = 'ph-arrow-circle-down-fill';
+                }
 
                 return `
                         <button class="${iconColorClass} hover:text-white p-1.5 rounded-full transition-colors relative" 
                                 onclick="event.stopPropagation(); window.openScoreMenu(event, '${item.id}')" title="Ajustar Prioridad IA">
-                            <i class="ph ph-hourglass-medium text-lg"></i>
+                            <i class="ph ${icon} text-lg"></i>
                         </button>
                         `;
             })() : ''}
@@ -804,7 +944,7 @@
 
 
     // ====================================
-    // MENU DE PUNTUACIÓN IA
+    // MENU DE PUNTUACIÓN IA (ADELANTAR/APLAZAR)
     // ====================================
 
     window.openScoreMenu = function (event, id) {
@@ -812,7 +952,7 @@
         if (!menu) {
             menu = document.createElement('div');
             menu.id = 'ai-score-menu';
-            menu.className = 'absolute z-50 bg-gray-800 border border-gray-700 rounded-lg shadow-xl hidden flex-col w-32 overflow-hidden';
+            menu.className = 'absolute z-50 bg-gray-800 border border-gray-700 rounded-lg shadow-xl hidden flex-col w-40 overflow-hidden';
             document.body.appendChild(menu);
 
             // Cerrar menú al hacer click fuera
@@ -823,38 +963,58 @@
             });
         }
 
-        const currentMod = customScoreModifiers[id] || 0;
+        const currentMod = customScoreModifiers[id];
+        const currentType = currentMod ? currentMod.type : 'normal';
 
         // Configurar contenido del menú
         menu.innerHTML = `
-            <button onclick="window.applyScoreModifier('${id}', 50)" class="w-full text-left px-4 py-2 hover:bg-gray-700 text-green-500 text-sm font-medium flex items-center gap-2">
+            <button onclick="window.applyScoreModifier('${id}', 'adelantar')" class="w-full text-left px-4 py-2 hover:bg-gray-700 text-green-500 text-sm font-medium flex items-center gap-2">
                 <i class="ph ph-arrow-up"></i> Adelantar
-                ${currentMod === 50 ? '<i class="ph ph-check text-accent-magenta ml-auto"></i>' : ''}
+                ${currentType === 'adelantar' ? '<i class="ph ph-check text-accent-magenta ml-auto"></i>' : ''}
             </button>
-            <button onclick="window.applyScoreModifier('${id}', 0)" class="w-full text-left px-4 py-2 hover:bg-gray-700 text-orange-500 text-sm font-medium flex items-center gap-2">
+            <button onclick="window.applyScoreModifier('${id}', 'normal')" class="w-full text-left px-4 py-2 hover:bg-gray-700 text-orange-500 text-sm font-medium flex items-center gap-2">
                 <i class="ph ph-minus"></i> Normal
-                 ${currentMod === 0 ? '<i class="ph ph-check text-accent-magenta ml-auto"></i>' : ''}
+                 ${currentType === 'normal' ? '<i class="ph ph-check text-accent-magenta ml-auto"></i>' : ''}
             </button>
-            <button onclick="window.applyScoreModifier('${id}', -50)" class="w-full text-left px-4 py-2 hover:bg-gray-700 text-red-500 text-sm font-medium flex items-center gap-2">
-                <i class="ph ph-arrow-down"></i> Aplazar
-                 ${currentMod === -50 ? '<i class="ph ph-check text-accent-magenta ml-auto"></i>' : ''}
+            <button onclick="window.applyScoreModifier('${id}', 'aplazar')" class="w-full text-left px-4 py-2 hover:bg-gray-700 text-red-500 text-sm font-medium flex items-center gap-2">
+                <i class="ph ph-arrow-down"></i> Aplazar (12h)
+                 ${currentType === 'aplazar' ? '<i class="ph ph-check text-accent-magenta ml-auto"></i>' : ''}
             </button>
         `;
 
         // Posicionar menú
         const rect = event.currentTarget.getBoundingClientRect();
         menu.style.top = `${rect.bottom + window.scrollY + 5}px`;
-        menu.style.left = `${rect.left + window.scrollX - 80}px`; // Ajuste ligero a la izquierda
+        menu.style.left = `${rect.left + window.scrollX - 100}px`; // Ajuste para el nuevo ancho
 
         menu.classList.remove('hidden');
         menu.classList.add('flex');
     }
 
-    window.applyScoreModifier = function (id, value) {
-        customScoreModifiers[id] = value;
+    window.applyScoreModifier = function (id, type) {
+        if (type === 'normal') {
+            // Eliminar el modificador
+            delete customScoreModifiers[id];
+        } else {
+            // Aplicar modificador con timestamp
+            customScoreModifiers[id] = {
+                type: type, // 'adelantar' o 'aplazar'
+                timestamp: new Date().toISOString() // Guardar como ISO string para localStorage
+            };
+        }
+
         saveModifiersToStorage();
         const menu = document.getElementById('ai-score-menu');
         if (menu) menu.classList.add('hidden');
+
+        // Mensaje informativo
+        if (type === 'adelantar') {
+            showMessage('success', 'Tarjeta adelantada - Se mostrará al inicio de la lista');
+        } else if (type === 'aplazar') {
+            showMessage('info', 'Tarjeta aplazada durante 12 horas - Se mostrará al final de la lista');
+        } else {
+            showMessage('info', 'Tarjeta restaurada a orden normal');
+        }
 
         // Re-ordenar
         renderMaintenanceList(currentMaintenanceData, currentViewDate);
@@ -1087,6 +1247,9 @@
     // ====================================
 
     function initMaintenance() {
+        // Cargar modificadores guardados (adelantar/aplazar)
+        loadModifiersFromStorage();
+
         // Aplicar tema
         if (typeof window.applyColorMode === 'function') {
             window.applyColorMode();
