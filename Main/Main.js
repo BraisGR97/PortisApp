@@ -478,25 +478,13 @@
         initializeSwipe();
 
         // Listeners para efectos de scroll
-        window.addEventListener('scroll', updateCardBorderOpacity);
+        // Usamos { capture: true } para detectar scroll en cualquier contenedor interno (como listas)
+        window.addEventListener('scroll', updateCardBorderOpacity, { capture: true, passive: true });
         window.addEventListener('resize', updateCardBorderOpacity);
-
-        // FunciÃ³n para agregar listeners a los contenedores de scroll
-        function attachScrollListeners() {
-            document.querySelectorAll('.card-inner-content').forEach(section => {
-                // Remover listener anterior si existe para evitar duplicados
-                section.removeEventListener('scroll', updateCardBorderOpacity);
-                section.addEventListener('scroll', updateCardBorderOpacity);
-            });
-        }
-
-        // Agregar listeners inicialmente
-        attachScrollListeners();
 
         // Re-agregar listeners cuando cambie de vista
         const observer = new MutationObserver(() => {
-            attachScrollListeners();
-            updateCardBorderOpacity(); // Actualizar inmediatamente
+            updateCardBorderOpacity(); // Actualizar inmediatamente si cambia el DOM
         });
 
         // Observar cambios en el slider de vistas
