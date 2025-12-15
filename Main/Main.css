@@ -357,7 +357,7 @@ html.light-mode #geometric-wrapper {
     /* Gradient Border Implementation (Inverse: White at Bottom, Black at Top) */
     border: 1px solid transparent;
     background-image: linear-gradient(var(--color-bg-secondary), var(--color-bg-secondary)),
-        linear-gradient(to top,
+        linear-gradient(to bottom,
             rgba(255, 255, 255, 0.8) 0%,
             #47475f 25%,
             #47475f 75%,
@@ -396,50 +396,43 @@ html.light-mode #geometric-wrapper {
 .dashboard-card {
     background-color: var(--color-bg-primary);
 
-    /* Gradient Border Implementation (Inverse: White at Bottom, Black at Top) */
+    /* Gradient Border Implementation like Repairs */
     border: 1px solid transparent;
     border-radius: 0.75rem;
+    box-shadow: 0 3px 8px var(--color-shadow);
+
     background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
         linear-gradient(to top,
-            rgba(255, 255, 255, 0.8) 0%,
-            #47475f 25%,
-            #47475f 75%,
+            rgba(255, 255, 255, var(--white-opacity, 0.8)) 0%,
+            #47475f var(--grey-start, 25%),
+            #47475f var(--grey-end, 45%),
             #12121e 100%);
     background-origin: border-box;
     background-clip: padding-box, border-box;
 
     padding: 1rem;
-    transition: all 0.2s ease;
+    transition: transform 0.2s, box-shadow 0.2s;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    position: relative;
+    overflow: hidden;
 }
 
 .dashboard-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px var(--color-shadow);
-    /* Change border to magenta on hover */
+    box-shadow: 0 6px 15px var(--color-shadow);
     background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
         linear-gradient(to top, var(--color-accent-magenta), var(--color-accent-magenta));
 }
 
-/* Light Mode Overrides for Gradient Borders */
-html.light-mode .card-container {
-    background-image: linear-gradient(var(--color-bg-secondary), var(--color-bg-secondary)),
-        linear-gradient(to top,
-            rgba(0, 0, 0, 0.8) 0%,
-            #dee2e6 25%,
-            #dee2e6 75%,
-            #ffffff 100%);
-}
-
+/* Light Mode Overrides for Dashboard */
 html.light-mode .dashboard-card {
     background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
         linear-gradient(to top,
-            rgba(0, 0, 0, 0.8) 0%,
+            rgba(0, 0, 0, 0.05) 0%,
             #dee2e6 25%,
             #dee2e6 75%,
-            #ffffff 100%);
+            #e5e7eb 100%);
 }
 
 html.light-mode .dashboard-card:hover {
@@ -734,27 +727,31 @@ html.light-mode #bottom-navbar {
 .user-chat-card {
     background-color: var(--color-bg-primary);
 
-    /* Gradient Border Implementation (Inverse: White at Bottom, Black at Top) */
+    /* Gradient Border Implementation like Repairs */
     border: 1px solid transparent;
     border-radius: 0.75rem;
+    box-shadow: 0 3px 8px var(--color-shadow);
+
     background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
         linear-gradient(to top,
-            rgba(255, 255, 255, 0.8) 0%,
-            #47475f 25%,
-            #47475f 75%,
+            rgba(255, 255, 255, var(--white-opacity, 0.8)) 0%,
+            #47475f var(--grey-start, 25%),
+            #47475f var(--grey-end, 45%),
             #12121e 100%);
     background-origin: border-box;
     background-clip: padding-box, border-box;
 
     padding: 1rem;
-    transition: all 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
 
 .user-chat-card:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px var(--color-shadow);
-    /* Change border to magenta on hover */
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px var(--color-shadow);
     background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
         linear-gradient(to top, var(--color-accent-magenta), var(--color-accent-magenta));
 }
@@ -763,10 +760,10 @@ html.light-mode #bottom-navbar {
 html.light-mode .user-chat-card {
     background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
         linear-gradient(to top,
-            rgba(0, 0, 0, 0.8) 0%,
+            rgba(0, 0, 0, 0.05) 0%,
             #dee2e6 25%,
             #dee2e6 75%,
-            #ffffff 100%);
+            #e5e7eb 100%);
 }
 
 html.light-mode .user-chat-card:hover {
@@ -1561,15 +1558,21 @@ html.light-mode .calendar-day.empty {
 }
 
 .maintenance-item {
-    /* Gradient Border Implementation (Inverse: White at Bottom) */
     background-color: var(--color-bg-primary);
+
+    /* Gradient Border Implementation like Repairs */
     border: 1px solid transparent;
+    border-left: 0;
+    /* Left side handled by priority strip */
     border-radius: 0.75rem;
+    box-shadow: 0 3px 8px var(--color-shadow);
+
     background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
         linear-gradient(to top,
-            rgba(255, 255, 255, var(--white-opacity, 0.2)) 0%,
-            hsl(240, 20%, var(--grey-start, 1%)) 25%,
-            hsl(240, 20%, var(--grey-end, 35%)) 100%);
+            rgba(255, 255, 255, var(--white-opacity, 0.8)) 0%,
+            #47475f var(--grey-start, 25%),
+            #47475f var(--grey-end, 45%),
+            #12121e 100%);
     background-origin: border-box;
     background-clip: padding-box, border-box;
 
@@ -1579,24 +1582,36 @@ html.light-mode .calendar-day.empty {
     overflow: hidden;
     transition: transform 0.2s, box-shadow 0.2s;
     cursor: pointer;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Priority Strip using Pseudo-element for Maintenance */
+.maintenance-item::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 4px;
+    z-index: 10;
 }
 
 .maintenance-item:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px var(--color-shadow);
-    border-top-color: var(--color-accent-magenta) !important;
-    border-right-color: var(--color-accent-magenta) !important;
-    border-bottom-color: var(--color-accent-magenta) !important;
+    box-shadow: 0 6px 15px var(--color-shadow);
+    background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
+        linear-gradient(to top, var(--color-accent-magenta), var(--color-accent-magenta));
 }
 
 /* Light Mode Override for Maintenance Items */
 html.light-mode .maintenance-item {
     background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
         linear-gradient(to top,
-            rgba(0, 0, 0, 0.8) 0%,
+            rgba(0, 0, 0, 0.05) 0%,
             #dee2e6 25%,
             #dee2e6 75%,
-            #ffffff 100%);
+            #e5e7eb 100%);
 }
 
 html.light-mode .maintenance-item:hover {
@@ -1604,18 +1619,18 @@ html.light-mode .maintenance-item:hover {
         linear-gradient(to top, var(--color-accent-magenta), var(--color-accent-magenta));
 }
 
-/* Bordes de Prioridad */
-.maintenance-item.priority-alta {
-    border-left: 4px solid var(--color-accent-red);
+/* Bordes de Prioridad (Aplicados al pseudo-elemento) */
+.maintenance-item.priority-alta::before {
+    background-color: var(--color-accent-red);
 }
 
-.maintenance-item.priority-media {
-    border-left: 4px solid var(--color-summary-overtime-text);
+.maintenance-item.priority-media::before {
+    background-color: var(--color-summary-overtime-text);
     /* Orange */
 }
 
-.maintenance-item.priority-baja {
-    border-left: 4px solid var(--color-dash-bills-text);
+.maintenance-item.priority-baja::before {
+    background-color: var(--color-dash-bills-text);
 }
 
 /* Badges de Prioridad */

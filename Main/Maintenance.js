@@ -731,11 +731,11 @@
 
                 // Determinar color e icono según el tipo
                 if (modType === 'adelantar') {
-                    iconColorClass = 'text-green-500';
-                    icon = 'ph-arrow-circle-up-fill';
+                    iconColorClass = 'text-green-500 font-bold';
+                    icon = 'ph-arrow-up';
                 } else if (modType === 'aplazar') {
-                    iconColorClass = 'text-red-500';
-                    icon = 'ph-arrow-circle-down-fill';
+                    iconColorClass = 'text-red-500 font-bold';
+                    icon = 'ph-arrow-down';
                 }
 
                 return `
