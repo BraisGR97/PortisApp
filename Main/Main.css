@@ -1552,13 +1552,17 @@ html.light-mode .calendar-day.empty {
 
 .maintenance-item {
     background-color: var(--color-bg-primary);
-
-    /* Gradient Border Implementation like Repairs */
+    /* Border gradient implementation preserving radius */
     border: 1px solid transparent;
     border-left: 0;
     /* Left side handled by priority strip */
     border-radius: 0.75rem;
     box-shadow: 0 3px 8px var(--color-shadow);
+    margin-bottom: 1rem;
+
+    padding: 1rem;
+    /* padding-left adjusted to account for the missing border-left width compared to other sides? 
+       Actually standard padding is fine, priority strip overlays. */
 
     background-image: linear-gradient(var(--color-bg-primary), var(--color-bg-primary)),
         linear-gradient(to top,
@@ -1569,14 +1573,12 @@ html.light-mode .calendar-day.empty {
     background-origin: border-box;
     background-clip: padding-box, border-box;
 
-    padding: 1rem;
-    margin-bottom: 0.75rem;
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.2s, box-shadow 0.2s;
-    cursor: pointer;
     display: flex;
     flex-direction: column;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
 }
 
 /* Priority Strip using Pseudo-element for Maintenance */
