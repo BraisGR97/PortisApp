@@ -18,6 +18,7 @@
     let currentViewDate = new Date();
     let currentSortMethod = localStorage.getItem('portis-maintenance-sort') || 'priority';
     let selectedMaterialsByTask = {}; // Objeto para guardar materiales por ID de tarea
+    let currentEditMaintenanceLocation = null; // Guardar ubicación actual para consumos
 
     // Cache de distancias para evitar recalcular
     let distanceCache = {};
@@ -625,25 +626,9 @@
                 batch.update(repairRef, updates);
                 batch.set(historyRef, historyRecord);
 
-                // --- DESCONTAR MATERIAL DEL INVENTARIO ---
-                const taskMaterials = selectedMaterialsByTask[id] || [];
-                if (taskMaterials.length > 0) {
-                    for (const mat of taskMaterials) {
-                        try {
-                            const materialRef = db.collection(`users/${userId}/inventory`).doc(mat.id);
-                            const matDoc = await materialRef.get();
-                            if (matDoc.exists) {
-                                const currentStock = matDoc.data().stock || 0;
-                                batch.update(materialRef, {
-                                    stock: Math.max(0, currentStock - 1)
-                                });
-
-                                if (window.addMaterialToUsage) {
-                                    window.addMaterialToUsage(mat.name, 1, repair.location);
-                                }
-                            }
-                        } catch (e) { console.error("Error deducting material:", e); }
-                    }
+                // --- FINALIZAR CONSUMO (Dato desaparece de lista 'En Curso' en Materials) ---
+                if (window.finalizeUsageForLocation) {
+                    await window.finalizeUsageForLocation(repair.location);
                 }
 
                 // ACTUALIZAR EVENTO CALENDAR (Para que quede constancia)
@@ -678,6 +663,7 @@
             // Limpiar materiales SOLO de esta tarea específica al completar
             delete selectedMaterialsByTask[id];
             currentEditMaintenanceId = null;
+            currentEditMaintenanceLocation = null;
             saveMaterialsToLocal(); // Guardar cambios en local
 
             if (window.fetchMaintenanceData) window.fetchMaintenanceData();
@@ -769,7 +755,9 @@
     }
 
 
-    // ====================================\n    // LÓGICA DE ORDENACIÓN (NUEVO)\n    // ====================================\n
+    // ====================================
+    // LÓGICA DE ORDENACIÓN (NUEVO)
+    // ====================================
     window.toggleMaintenanceSortMenu = function () {
         const menu = document.getElementById('maintenance-sort-menu');
         if (menu) {
@@ -784,7 +772,7 @@
 
     async function getCoordinatesForAddress(address) {
         // Simple cache
-        const cacheKey = `geo_${address}`;
+        const cacheKey = `geo_${address} `;
         const cached = localStorage.getItem(cacheKey);
         if (cached) return JSON.parse(cached);
 
@@ -1257,6 +1245,7 @@
 
     function showMaintenanceDetailsModal(item, isEditMode = false) {
         currentEditMaintenanceId = item.id;
+        currentEditMaintenanceLocation = item.location;
         // Inicializar array para esta tarea si no existe
         if (!selectedMaterialsByTask[item.id]) {
             selectedMaterialsByTask[item.id] = [];
@@ -1329,11 +1318,19 @@
         `).join('') || '<p class="text-[10px] text-gray-500 text-center py-4">No hay materiales en el inventario.</p>';
     }
 
-    window.selectMaterialForMaint = function (id, name) {
+    window.selectMaterialForMaint = async function (id, name) {
         if (!currentEditMaintenanceId) return;
         if (!selectedMaterialsByTask[currentEditMaintenanceId]) {
             selectedMaterialsByTask[currentEditMaintenanceId] = [];
         }
+
+        // --- NUEVA LÓGICA: Descontar de stock y añadir a consumo en tiempo real ---
+        if (window.addPendingUsage) {
+            await window.addPendingUsage(id, name, 1, currentEditMaintenanceLocation);
+            // Refrescar el inventario en el modal para mostrar el nuevo stock
+            renderMaintInventoryList();
+        }
+
         selectedMaterialsByTask[currentEditMaintenanceId].push({ id, name });
         saveMaterialsToLocal(); // Guardar persistencia
         updateMaintMaterialsSummary();
@@ -1357,8 +1354,18 @@
         if (countBadge) countBadge.textContent = `${currentMaterials.length} RECAMBIOS`;
     }
 
-    window.removeMaterialFromMaint = function (index) {
+    window.removeMaterialFromMaint = async function (index) {
         if (!currentEditMaintenanceId || !selectedMaterialsByTask[currentEditMaintenanceId]) return;
+
+        const mat = selectedMaterialsByTask[currentEditMaintenanceId][index];
+
+        // --- NUEVA LÓGICA: Devolver a stock y quitar de consumo ---
+        if (window.removePendingUsage && mat) {
+            await window.removePendingUsage(mat.id, mat.name, currentEditMaintenanceLocation);
+            // Refrescar el inventario en el modal
+            renderMaintInventoryList();
+        }
+
         selectedMaterialsByTask[currentEditMaintenanceId].splice(index, 1);
         saveMaterialsToLocal(); // Guardar persistencia
         renderSelectedMaterialsList();

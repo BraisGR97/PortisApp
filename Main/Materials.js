@@ -97,13 +97,23 @@
             materialsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             saveToLocal();
             if (currentTab === 'stock') renderMaterialsList();
-        } catch (error) { console.error("Error fetching materials:", error); }
+            return materialsData;
+        } catch (error) { console.error("Error fetching materials:", error); return []; }
     }
 
     async function fetchUsage() {
-        // El consumo solo se guarda en local según requerimiento (aunque lo inicializamos)
-        // En este caso, lo mantenemos en local solamente.
+        try {
+            const snapshot = await db.collection(`users/${userId}/usage`).orderBy('date', 'desc').get();
+            usageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            saveToLocal();
+            if (currentTab === 'usage') renderMaterialsList();
+            return usageData;
+        } catch (error) { console.error("Error fetching usage:", error); return []; }
     }
+
+    // Exponer para refresco externo
+    window.refreshMaterialsData = fetchMaterials;
+    window.refreshUsageData = fetchUsage;
 
     async function fetchOrders() {
         try {
@@ -222,7 +232,7 @@
                     <div class="flex justify-between items-end text-[11px] text-gray-400">
                         <div class="flex items-center gap-1">
                             <i class="ph ph-wrench"></i>
-                            <span class="truncate max-w-[150px]">${log.maintenanceLocation || 'General'}</span>
+                            <span class="truncate max-w-[150px]">${log.location || log.maintenanceLocation || 'General'}</span>
                         </div>
                         <div class="flex items-center gap-1">
                             <i class="ph ph-calendar"></i>
@@ -580,39 +590,90 @@
     // --- INTEGRACIÓN CON MANTENIMIENTO ---
     // Estas funciones serán usadas por Maintenance.js
 
-    window.getMaterialsForSelection = function () {
-        return materialsData;
+    // --- NUEVO SISTEMA DE FLUJO DE MATERIALES (STOCK <-> CONSUMO) ---
+
+    window.addPendingUsage = async function (materialId, materialName, amount, location) {
+        if (!db || !userId) return;
+        try {
+            const materialRef = db.collection(`users/${userId}/inventory`).doc(materialId);
+            const matDoc = await materialRef.get();
+            if (!matDoc.exists) return;
+
+            const currentStock = matDoc.data().stock || 0;
+            const newStock = Math.max(0, currentStock - amount);
+
+            // 1. Descontar de Inventario
+            await materialRef.update({ stock: newStock });
+
+            // 2. Añadir a Consumo (En curso)
+            await db.collection(`users/${userId}/usage`).add({
+                materialId,
+                materialName,
+                amount,
+                location,
+                date: new Date().toISOString(),
+                status: 'pending' // Material asignado pero no finalizado
+            });
+
+            // Esperar a que los datos se refresquen localmente antes de continuar
+            await fetchMaterials();
+            await fetchUsage();
+        } catch (e) { console.error("Error adding pending usage:", e); }
     };
 
-    window.addMaterialToUsage = function (materialName, amount, maintenanceLocation) {
-        const log = {
-            materialName,
-            amount,
-            maintenanceLocation,
-            date: new Date().toISOString()
-        };
-        usageData.unshift(log);
-        saveToLocal();
+    window.removePendingUsage = async function (materialId, materialName, location) {
+        if (!db || !userId) return;
+        try {
+            // 1. Buscar en consumos pendientes para esa ubicación y material
+            const usageRef = db.collection(`users/${userId}/usage`);
+            const q = await usageRef
+                .where('location', '==', location)
+                .where('materialId', '==', materialId)
+                .where('status', '==', 'pending')
+                .limit(1)
+                .get();
 
-        // SUGERENCIA DE PEDIDO AUTOMÁTICO
-        const item = materialsData.find(m => m.name.toLowerCase() === materialName.toLowerCase());
-        if (item) {
-            const newStock = (item.stock || 0) - amount;
-            if (newStock <= (item.minStock || 2)) {
-                setTimeout(() => {
-                    if (confirm(`⚠️ STOCK BAJO: "${item.name}" se está agotando (${newStock} unidades).\n\n¿Quieres añadirlo a la lista de pedidos pendientes?`)) {
-                        window.setMaterialsTab('orders');
-                        window.openAddMaterialModal();
+            if (q.empty) return;
 
-                        // Pre-rellenar el modal
-                        const nameInp = document.getElementById('order-material-name');
-                        if (nameInp) nameInp.value = item.name;
-                        const amountInp = document.getElementById('order-material-amount');
-                        if (amountInp) amountInp.value = '5'; // Sugerencia de reposición
-                    }
-                }, 500);
+            const usageDoc = q.docs[0];
+            const amount = usageDoc.data().amount;
+
+            // 2. Devolver a Inventario
+            const materialRef = db.collection(`users/${userId}/inventory`).doc(materialId);
+            const matDoc = await materialRef.get();
+            if (matDoc.exists) {
+                const currentStock = matDoc.data().stock || 0;
+                await materialRef.update({ stock: currentStock + amount });
             }
-        }
+
+            // 3. Eliminar de Consumo
+            await usageDoc.ref.delete();
+
+            await fetchMaterials();
+            await fetchUsage();
+        } catch (e) { console.error("Error removing pending usage:", e); }
+    };
+
+    window.finalizeUsageForLocation = async function (location) {
+        if (!db || !userId) return;
+        try {
+            // Al completar la tarea, el material desaparece de consumos "en curso"
+            const usageRef = db.collection(`users/${userId}/usage`);
+            const q = await usageRef.where('location', '==', location).get();
+
+            const batch = db.batch();
+            q.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+
+            fetchUsage();
+        } catch (e) { console.error("Error finalizing usage:", e); }
+    };
+
+    // Mantener retrocompatibilidad o simplificar
+    window.getMaterialsForSelection = function () {
+        return materialsData;
     };
 
     // Inicializar
