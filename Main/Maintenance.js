@@ -17,10 +17,30 @@
     let currentMaintenanceData = [];
     let currentViewDate = new Date();
     let currentSortMethod = localStorage.getItem('portis-maintenance-sort') || 'priority';
-    let selectedMaterialsForCurrentTask = [];
+    let selectedMaterialsByTask = {}; // Objeto para guardar materiales por ID de tarea
 
     // Cache de distancias para evitar recalcular
     let distanceCache = {};
+
+    // --- PERSISTENCIA LOCAL DE MATERIALES ---
+    function saveMaterialsToLocal() {
+        if (!userId) return;
+        localStorage.setItem(`portis-maint-materials-${userId}`, JSON.stringify(selectedMaterialsByTask));
+    }
+
+    function loadMaterialsFromLocal() {
+        if (!userId) return;
+        const saved = localStorage.getItem(`portis-maint-materials-${userId}`);
+        if (saved) {
+            try {
+                selectedMaterialsByTask = JSON.parse(saved);
+                console.log("[Maintenance] Materiales cargados de localStorage:", selectedMaterialsByTask);
+            } catch (e) {
+                console.error("Error parsing materials from local:", e);
+                selectedMaterialsByTask = {};
+            }
+        }
+    }
 
     function showMessage(type, message) {
         if (typeof window.showAppMessage === 'function') {
@@ -46,6 +66,7 @@
             db = window.db;
             userId = sessionStorage.getItem('portis-user-identifier');
             isFirebaseReady = true;
+            loadMaterialsFromLocal(); // Cargar materiales guardados
         } else {
             showMessage('error', 'Error de sesión. Intente iniciar sesión nuevamente.');
         }
@@ -462,9 +483,9 @@
             <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
                 <span class="text-xs text-gray-400">
                     ID: ${item.key_id || '---'} 
-                    ${item._tempScore !== undefined && item._tempScore !== null ?
+                    ${(item._tempScore !== undefined && item._tempScore !== null && sessionStorage.getItem('portis-user-display-name') === 'Administrador') ?
                 `<span class="text-accent-magenta font-bold ml-2" title="Puntuación IA: ${item._tempScore}">(${Math.round(item._tempScore)} pts)</span>` :
-                (currentSortMethod === 'ai' || currentSortMethod === 'location' ?
+                ((currentSortMethod === 'ai' || currentSortMethod === 'location') && sessionStorage.getItem('portis-user-display-name') === 'Administrador' ?
                     `<span class="text-yellow-500 font-bold ml-2" title="Score no calculado">(?)</span>` : '')}
                 </span>
                 
@@ -605,19 +626,18 @@
                 batch.set(historyRef, historyRecord);
 
                 // --- DESCONTAR MATERIAL DEL INVENTARIO ---
-                if (selectedMaterialsForCurrentTask.length > 0) {
-                    for (const mat of selectedMaterialsForCurrentTask) {
+                const taskMaterials = selectedMaterialsByTask[id] || [];
+                if (taskMaterials.length > 0) {
+                    for (const mat of taskMaterials) {
                         try {
                             const materialRef = db.collection(`users/${userId}/inventory`).doc(mat.id);
-                            // Obtenemos el item actual para asegurar que restamos del valor más fresco
                             const matDoc = await materialRef.get();
                             if (matDoc.exists) {
                                 const currentStock = matDoc.data().stock || 0;
                                 batch.update(materialRef, {
-                                    stock: Math.max(0, currentStock - 1) // Descontamos 1 por cada entrada en la lista para simplificar o según la UI
+                                    stock: Math.max(0, currentStock - 1)
                                 });
 
-                                // Registrar en Consumo Local (Materials.js)
                                 if (window.addMaterialToUsage) {
                                     window.addMaterialToUsage(mat.name, 1, repair.location);
                                 }
@@ -654,6 +674,12 @@
             }
 
             hideMaintenanceModal();
+
+            // Limpiar materiales SOLO de esta tarea específica al completar
+            delete selectedMaterialsByTask[id];
+            currentEditMaintenanceId = null;
+            saveMaterialsToLocal(); // Guardar cambios en local
+
             if (window.fetchMaintenanceData) window.fetchMaintenanceData();
 
         } catch (error) {
@@ -1123,14 +1149,14 @@
                 
                 <div class="grid grid-cols-2 gap-4 text-sm mt-4">
                     ${baseInput('view-date', 'Fecha Prevista', maintenanceDate)}
-                    ${baseInput('view-model', 'Modelo', item.model)}
+                    ${item.model ? baseInput('view-model', 'Modelo', item.model) : ''}
                     ${contractSelect(item.contract)}
-                    ${baseInput('view-key', 'ID Clave/TAG', item.key_id)}
+                    ${item.key_id ? baseInput('view-key', 'ID Clave/TAG', item.key_id) : ''}
                     ${prioritySelect(priority)}
                     ${baseInput('view-status', 'Estado', status)}
-                    ${baseInput('view-preferred', 'Horario Pref.', item.preferred_schedule || 'Cualquiera')}
-                    ${baseInput('view-open', 'Apertura', item.opening_time)}
-                    ${baseInput('view-close', 'Cierre', item.closing_time)}
+                    ${(item.preferred_schedule && item.preferred_schedule !== 'Cualquiera') ? baseInput('view-preferred', 'Horario Pref.', item.preferred_schedule) : ''}
+                    ${item.opening_time ? baseInput('view-open', 'Apertura', item.opening_time) : ''}
+                    ${item.closing_time ? baseInput('view-close', 'Cierre', item.closing_time) : ''}
                 </div>
     
                 ${item.description ? baseTextarea('view-desc', 'Observaciones', item.description) : ''}
@@ -1231,6 +1257,10 @@
 
     function showMaintenanceDetailsModal(item, isEditMode = false) {
         currentEditMaintenanceId = item.id;
+        // Inicializar array para esta tarea si no existe
+        if (!selectedMaterialsByTask[item.id]) {
+            selectedMaterialsByTask[item.id] = [];
+        }
         const modal = document.getElementById('maintenance-detail-modal');
 
         if (!modal) {
@@ -1263,8 +1293,7 @@
         modal.classList.remove('hidden');
         modal.classList.add('flex');
 
-        // Resetear materiales seleccionados al abrir
-        selectedMaterialsForCurrentTask = [];
+        // Actualizar el resumen visual de materiales
         updateMaintMaterialsSummary();
     }
 
@@ -1301,16 +1330,23 @@
     }
 
     window.selectMaterialForMaint = function (id, name) {
-        selectedMaterialsForCurrentTask.push({ id, name });
+        if (!currentEditMaintenanceId) return;
+        if (!selectedMaterialsByTask[currentEditMaintenanceId]) {
+            selectedMaterialsByTask[currentEditMaintenanceId] = [];
+        }
+        selectedMaterialsByTask[currentEditMaintenanceId].push({ id, name });
+        saveMaterialsToLocal(); // Guardar persistencia
         updateMaintMaterialsSummary();
         renderSelectedMaterialsList();
     };
 
     function renderSelectedMaterialsList() {
         const container = document.getElementById('maint-selected-materials');
-        if (!container) return;
+        if (!container || !currentEditMaintenanceId) return;
 
-        container.innerHTML = selectedMaterialsForCurrentTask.map((m, idx) => `
+        const currentMaterials = selectedMaterialsByTask[currentEditMaintenanceId] || [];
+
+        container.innerHTML = currentMaterials.map((m, idx) => `
             <div class="flex justify-between items-center bg-blue-500/10 p-2 rounded-lg border border-blue-500/30">
                 <span class="text-[11px] text-white">${m.name}</span>
                 <button onclick="window.removeMaterialFromMaint(${idx})" class="text-red-400 p-1"><i class="ph ph-trash"></i></button>
@@ -1318,25 +1354,29 @@
         `).join('') || '<p class="text-[10px] text-gray-500 text-center py-2 italic">Ninguno seleccionado.</p>';
 
         const countBadge = document.getElementById('maint-material-count');
-        if (countBadge) countBadge.textContent = `${selectedMaterialsForCurrentTask.length} RECAMBIOS`;
+        if (countBadge) countBadge.textContent = `${currentMaterials.length} RECAMBIOS`;
     }
 
     window.removeMaterialFromMaint = function (index) {
-        selectedMaterialsForCurrentTask.splice(index, 1);
+        if (!currentEditMaintenanceId || !selectedMaterialsByTask[currentEditMaintenanceId]) return;
+        selectedMaterialsByTask[currentEditMaintenanceId].splice(index, 1);
+        saveMaterialsToLocal(); // Guardar persistencia
         renderSelectedMaterialsList();
         updateMaintMaterialsSummary();
     };
 
     function updateMaintMaterialsSummary() {
         const container = document.getElementById('maint-summary-materials');
-        if (!container) return;
+        if (!container || !currentEditMaintenanceId) return;
 
-        if (selectedMaterialsForCurrentTask.length === 0) {
+        const currentMaterials = selectedMaterialsByTask[currentEditMaintenanceId] || [];
+
+        if (currentMaterials.length === 0) {
             container.innerHTML = '<p class="text-[10px] text-gray-500 italic">No se ha añadido material a esta tarea.</p>';
             return;
         }
 
-        container.innerHTML = selectedMaterialsForCurrentTask.map(m => `
+        container.innerHTML = currentMaterials.map(m => `
             <span class="text-[10px] font-bold bg-blue-500/20 text-blue-300 px-2 py-1 rounded inline-flex items-center gap-1 border border-blue-500/30">
                 <i class="ph ph-cube"></i> ${m.name}
             </span>
