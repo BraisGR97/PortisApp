@@ -21,57 +21,6 @@
     // Cache de distancias para evitar recalcular
     let distanceCache = {};
 
-    // Modificadores de puntuación personalizados (Adelantar/Aplazar)
-    // Estructura: { itemId: { type: 'adelantar'|'aplazar'|'normal', timestamp: Date } }
-    let customScoreModifiers = {};
-
-    function loadModifiersFromStorage() {
-        const stored = localStorage.getItem('portis-maintenance-modifiers');
-        if (stored) {
-            try {
-                const parsed = JSON.parse(stored);
-                customScoreModifiers = parsed;
-
-                // Limpiar modificadores expirados (aplazadas > 12h)
-                cleanExpiredModifiers();
-            } catch (e) {
-                customScoreModifiers = {};
-            }
-        }
-    }
-
-    function cleanExpiredModifiers() {
-        const now = new Date();
-        const TWELVE_HOURS = 12 * 60 * 60 * 1000; // 12 horas en milisegundos
-        let hasChanges = false;
-
-        Object.keys(customScoreModifiers).forEach(id => {
-            const modifier = customScoreModifiers[id];
-
-            // Solo las aplazadas tienen expiración
-            if (modifier.type === 'aplazar' && modifier.timestamp) {
-                const modifierTime = new Date(modifier.timestamp);
-                const elapsed = now - modifierTime;
-
-                if (elapsed >= TWELVE_HOURS) {
-                    // Expirado: volver a normal
-                    delete customScoreModifiers[id];
-                    hasChanges = true;
-                    console.log(`[Maintenance] Modificador aplazado expirado para: ${id}`);
-                }
-            }
-        });
-
-        if (hasChanges) {
-            saveModifiersToStorage();
-        }
-    }
-
-    // Helper to persist modifiers
-    function saveModifiersToStorage() {
-        localStorage.setItem('portis-maintenance-modifiers', JSON.stringify(customScoreModifiers));
-    }
-
     function showMessage(type, message) {
         if (typeof window.showAppMessage === 'function') {
             window.showAppMessage(type, message);
@@ -237,325 +186,25 @@
         const listContainer = document.getElementById('monthly-maintenance-list');
         if (!listContainer) return;
 
-        // ============================================================================
-        // SISTEMA DE PUNTUACIÓN AVANZADO PARA OPTIMIZACIÓN DE RUTAS
-        // ============================================================================
-
-        /**
-         * Calcula el tiempo transcurrido desde el último mantenimiento en meses
-         * @param {Object} item - Item de mantenimiento
-         * @param {Date} currentDate - Fecha actual de referencia
-         * @returns {number} - Meses desde el último mantenimiento
-         */
-        function getMonthsSinceLastMaintenance(item, currentDate) {
-            const currentMonth = currentDate.getMonth() + 1; // 1-12
-            const currentYear = currentDate.getFullYear();
-
-            const itemMonth = item.maintenance_month;
-            const itemYear = item.maintenance_year;
-
-            // Calcular diferencia en meses
-            const monthsDiff = (currentYear - itemYear) * 12 + (currentMonth - itemMonth);
-
-            return monthsDiff;
-        }
-
-        /**
-         * Calcula la puntuación por tiempo transcurrido según el tipo de contrato
-         * Sistema progresivo que aumenta la prioridad cuanto más tiempo pasa
-         * @param {Object} item - Item de mantenimiento
-         * @param {number} monthsSince - Meses desde el último mantenimiento
-         * @returns {number} - Puntos por tiempo transcurrido
-         */
-        function calculateTimeScore(item, monthsSince) {
-            let points = 0;
-
-            // Determinar el intervalo esperado según el contrato
-            let expectedInterval = 1; // Default mensual
-            switch (item.contract) {
-                case 'Mensual': expectedInterval = 1; break;
-                case 'Bimensual': expectedInterval = 2; break;
-                case 'Trimestral': expectedInterval = 3; break;
-                case 'Cuatrimestral': expectedInterval = 4; break;
-                case 'Semestral': expectedInterval = 6; break;
-                case 'Anual': expectedInterval = 12; break;
-            }
-
-            // PENALIZACIÓN: Si el mantenimiento es muy reciente (< 21 días para mensuales, < 1 mes para otros)
-            if (item.isRecentPenalty) {
-                // Penalización fuerte para mantenimientos muy recientes
-                points -= 80;
-            }
-            // PENALIZACIÓN MODERADA: Si no ha pasado suficiente tiempo según el contrato
-            else if (monthsSince < expectedInterval) {
-                // Penalización proporcional: cuanto más cerca del último, más penalización
-                const ratio = monthsSince / expectedInterval; // 0 a 1
-                points -= (1 - ratio) * 50; // Hasta -50 puntos
-            }
-            // BONIFICACIÓN: Si ha pasado el tiempo esperado o más
-            else {
-                // Bonificación base por estar en tiempo
-                points += 30;
-
-                // Bonificación progresiva por cada mes adicional de retraso
-                const monthsOverdue = monthsSince - expectedInterval;
-                if (monthsOverdue > 0) {
-                    // +15 puntos por cada mes de retraso (escalado)
-                    points += monthsOverdue * 15;
-
-                    // Bonificación extra si el retraso es significativo (>2 meses)
-                    if (monthsOverdue > 2) {
-                        points += 20;
-                    }
-                }
-            }
-
-            return points;
-        }
-
-        /**
-         * Calcula la puntuación por tipo de contrato
-         * Los contratos más frecuentes tienen mayor prioridad
-         * @param {string} contract - Tipo de contrato
-         * @returns {number} - Puntos por tipo de contrato
-         */
-        function calculateContractScore(contract) {
-            const contractScores = {
-                'Mensual': 25,      // Mayor prioridad
-                'Bimensual': 20,
-                'Trimestral': 15,
-                'Cuatrimestral': 10,
-                'Semestral': 5,
-                'Anual': 0          // Menor prioridad
-            };
-            return contractScores[contract] || 0;
-        }
-
-        /**
-         * Calcula la puntuación por distancia con curva logarítmica
-         * Prioriza ubicaciones cercanas pero sin penalizar excesivamente las lejanas
-         * @param {number} distance - Distancia en km
-         * @param {number} maxPoints - Puntos máximos para distancia 0
-         * @returns {number} - Puntos por distancia
-         */
-        function calculateDistanceScore(distance, maxPoints = 60) {
-            if (distance === undefined || distance === Infinity) return 0;
-
-            // Curva logarítmica: distancias muy cercanas tienen gran ventaja
-            // pero la penalización se suaviza con la distancia
-            if (distance < 0.5) {
-                return maxPoints; // Muy cerca: puntuación máxima
-            } else if (distance < 1) {
-                return maxPoints * 0.9; // Cerca: 90%
-            } else if (distance < 3) {
-                return maxPoints * 0.7; // Moderadamente cerca: 70%
-            } else if (distance < 5) {
-                return maxPoints * 0.5; // Distancia media: 50%
-            } else if (distance < 10) {
-                return maxPoints * 0.3; // Lejos: 30%
-            } else if (distance < 20) {
-                return maxPoints * 0.15; // Muy lejos: 15%
-            } else {
-                return maxPoints * 0.05; // Extremadamente lejos: 5%
-            }
-        }
-
-        /**
-         * Sistema de puntuación completo y optimizado
-         * @param {Object} item - Item de mantenimiento
-         * @param {Date} currentDate - Fecha actual
-         * @param {number} routePosition - Posición en la ruta (0 = primera parada)
-         * @returns {number} - Puntuación total
-         */
-        function calculateSmartScore(item, currentDate, routePosition = 0) {
-            let points = 0;
-            let breakdown = {}; // Para debugging
-
-            // ═══════════════════════════════════════════════════════════════
-            // 1. PRIORIDAD BASE (0-50 puntos)
-            // ═══════════════════════════════════════════════════════════════
-            const priorityScores = {
-                'Alta': 50,
-                'Media': 25,
-                'Baja': 0
-            };
-            const priorityPoints = priorityScores[item.priority] || 0;
-            points += priorityPoints;
-            breakdown.priority = priorityPoints;
-
-            // ═══════════════════════════════════════════════════════════════
-            // 2. AVERÍA (0-100 puntos) - CRÍTICO
-            // ═══════════════════════════════════════════════════════════════
-            if (item.breakdown && item.breakdown.trim()) {
-                const breakdownPoints = 100;
-                points += breakdownPoints;
-                breakdown.breakdown = breakdownPoints;
-
-                // Bonus adicional si tiene avería Y alta prioridad
-                if (item.priority === 'Alta') {
-                    points += 30;
-                    breakdown.breakdownHighPriority = 30;
-                }
-            } else {
-                breakdown.breakdown = 0;
-            }
-
-            // ═══════════════════════════════════════════════════════════════
-            // 3. OBSERVACIONES (0-15 puntos)
-            // ═══════════════════════════════════════════════════════════════
-            if (item.description && item.description.trim()) {
-                const observationPoints = 15;
-                points += observationPoints;
-                breakdown.observations = observationPoints;
-            } else {
-                breakdown.observations = 0;
-            }
-
-            // ═══════════════════════════════════════════════════════════════
-            // 4. TIPO DE CONTRATO (0-25 puntos)
-            // ═══════════════════════════════════════════════════════════════
-            const contractPoints = calculateContractScore(item.contract);
-            points += contractPoints;
-            breakdown.contract = contractPoints;
-
-            // ═══════════════════════════════════════════════════════════════
-            // 5. TIEMPO DESDE ÚLTIMO MANTENIMIENTO (-80 a +100 puntos)
-            // ═══════════════════════════════════════════════════════════════
-            const monthsSince = getMonthsSinceLastMaintenance(item, currentDate);
-            const timePoints = calculateTimeScore(item, monthsSince);
-            points += timePoints;
-            breakdown.time = timePoints;
-            breakdown.monthsSince = monthsSince;
-
-            // ═══════════════════════════════════════════════════════════════
-            // 6. DISTANCIA AL PUNTO DE PARTIDA/ACTUAL (0-60 puntos)
-            // ═══════════════════════════════════════════════════════════════
-            // Para la primera ubicación: distancia al usuario
-            // Para ubicaciones siguientes: distancia a la ubicación anterior en la ruta
-            const distanceToStart = item.distance !== undefined ? item.distance : Infinity;
-            const distancePoints = calculateDistanceScore(distanceToStart, 60);
-            points += distancePoints;
-            breakdown.distanceToStart = distancePoints;
-            breakdown.distanceKm = distanceToStart !== Infinity ? distanceToStart.toFixed(2) : 'N/A';
-
-            // ═══════════════════════════════════════════════════════════════
-            // 7. PROXIMIDAD ENTRE UBICACIONES - CLUSTERING (0-50 puntos)
-            // ═══════════════════════════════════════════════════════════════
-            // Bonifica ubicaciones que están cerca de otras ubicaciones
-            // Esto ayuda a crear clusters eficientes
-            const neighborDistance = item.nearestNeighborDistance !== undefined ?
-                item.nearestNeighborDistance : Infinity;
-            const clusterPoints = calculateDistanceScore(neighborDistance, 50);
-            points += clusterPoints;
-            breakdown.clustering = clusterPoints;
-            breakdown.nearestNeighborKm = neighborDistance !== Infinity ?
-                neighborDistance.toFixed(2) : 'N/A';
-
-            // ═══════════════════════════════════════════════════════════════
-            // 8. HORARIOS DE APERTURA (-40 a +30 puntos)
-            // ═══════════════════════════════════════════════════════════════
-            let openingHoursPoints = 0;
-            if (item.opening_time && item.closing_time) {
-                const now = new Date();
-                const currentTime = now.getHours() * 60 + now.getMinutes(); // minutos desde medianoche
-
-                // Convertir horarios a minutos
-                const [openHour, openMin] = item.opening_time.split(':').map(Number);
-                const [closeHour, closeMin] = item.closing_time.split(':').map(Number);
-                const openingMinutes = openHour * 60 + openMin;
-                const closingMinutes = closeHour * 60 + closeMin;
-
-                if (currentTime >= openingMinutes && currentTime <= closingMinutes) {
-                    // Está abierto ahora
-                    openingHoursPoints = 30;
-                    breakdown.openingHoursStatus = '🟢 Abierto';
-                } else {
-                    // Está cerrado
-                    openingHoursPoints = -40;
-                    breakdown.openingHoursStatus = '🔴 Cerrado';
-                }
-            } else {
-                breakdown.openingHoursStatus = '⚪ Sin horario';
-            }
-            points += openingHoursPoints;
-            breakdown.openingHours = openingHoursPoints;
-
-            // ═══════════════════════════════════════════════════════════════
-            // 9. PROGRAMACIÓN EN CALENDAR (0 a +80 puntos)
-            // ═══════════════════════════════════════════════════════════════
-            let scheduledPoints = 0;
-            if (item.isScheduled && item.scheduledDateTime) {
-                const now = new Date();
-                const scheduledTime = item.scheduledDateTime.toDate ? item.scheduledDateTime.toDate() : new Date(item.scheduledDateTime);
-
-                // Calcular tiempo hasta la cita (en minutos)
-                const minutesUntilScheduled = (scheduledTime - now) / (1000 * 60);
-
-                // Estimar tiempo de viaje (basado en distancia)
-                // Asumimos velocidad promedio de 40 km/h en ciudad
-                const travelTimeMinutes = item.distance ? (item.distance / 40) * 60 : 30; // Default 30 min
-
-                // Tiempo ideal para salir = hora programada - tiempo de viaje
-                const minutesUntilDeparture = minutesUntilScheduled - travelTimeMinutes;
-
-                if (minutesUntilDeparture <= 0 && minutesUntilScheduled > 0) {
-                    // ¡ES HORA DE SALIR! Máximo bonus
-                    scheduledPoints = 80;
-                    breakdown.scheduledStatus = '🚨 ¡SALIR AHORA!';
-                } else if (minutesUntilDeparture > 0 && minutesUntilDeparture <= 60) {
-                    // Falta menos de 1h para salir - Alto bonus
-                    scheduledPoints = 60;
-                    breakdown.scheduledStatus = `⏰ Salir en ${Math.round(minutesUntilDeparture)} min`;
-                } else if (minutesUntilDeparture > 60 && minutesUntilDeparture <= 180) {
-                    // Falta 1-3h para salir - Bonus moderado
-                    scheduledPoints = 40;
-                    const hours = Math.floor(minutesUntilDeparture / 60);
-                    breakdown.scheduledStatus = `📅 Salir en ${hours}h`;
-                } else if (minutesUntilDeparture > 180 && minutesUntilDeparture <= 1440) {
-                    // Falta 3h-24h - Bonus bajo
-                    scheduledPoints = 20;
-                    breakdown.scheduledStatus = '📅 Programado hoy';
-                } else if (minutesUntilScheduled < 0) {
-                    // ¡YA PASÓ LA HORA! Penalización
-                    scheduledPoints = -30;
-                    breakdown.scheduledStatus = '❌ Cita pasada';
-                } else {
-                    // Programado para otro día
-                    scheduledPoints = 10;
-                    const date = scheduledTime.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
-                    breakdown.scheduledStatus = `📅 ${date}`;
-                }
-            } else {
-                breakdown.scheduledStatus = '⚪ Sin programar';
-            }
-            points += scheduledPoints;
-            breakdown.scheduled = scheduledPoints;
-
-            // Guardar breakdown para debugging
-            item._scoreBreakdown = breakdown;
-
-            return Math.round(points);
-        }
-
         listContainer.innerHTML = '';
 
         // DEBUG: Verificar método de ordenación
         console.log('[Maintenance] Current sort method:', currentSortMethod);
 
         // Limpiar modificadores expirados antes de ordenar
-        cleanExpiredModifiers();
+        if (window.IA) window.IA.cleanExpiredModifiers();
 
         // ============================================================================
         // SISTEMA DE ORDENACIÓN CON TRES GRUPOS: ADELANTAR / NORMAL / APLAZAR
         // ============================================================================
 
         // Lógica de ordenación dinámica
-        if (currentSortMethod === 'ai') {
+        if (currentSortMethod === 'ai' && window.IA) {
             // Pre-calcular puntajes para visualización y ordenamiento
-            console.log('%c[Maintenance AI] Calculando puntuaciones...', 'color: #ff00ff; font-weight: bold');
+            console.log('%c[Maintenance IA] Calculando puntuaciones...', 'color: #ff00ff; font-weight: bold');
 
             data.forEach(item => {
-                item._tempScore = calculateSmartScore(item, currentDate);
+                item._tempScore = window.IA.calculateSmartScore(item, currentDate);
             });
 
             // SEPARAR EN TRES GRUPOS
@@ -564,7 +213,7 @@
             const aplazadas = [];
 
             data.forEach(item => {
-                const modifier = customScoreModifiers[item.id];
+                const modifier = window.IA.modifiers[item.id];
 
                 if (modifier && modifier.type === 'adelantar') {
                     adelantadas.push(item);
@@ -596,7 +245,7 @@
 
             data.forEach((item, index) => {
                 const breakdown = item._scoreBreakdown || {};
-                const modifier = customScoreModifiers[item.id];
+                const modifier = window.IA ? window.IA.modifiers[item.id] : null;
 
                 let prefix = '  ';
                 if (modifier && modifier.type === 'adelantar') {
@@ -651,7 +300,9 @@
         } else if (currentSortMethod === 'location') {
             // En modo location, también calculamos el score para mostrarlo (opcional)
             data.forEach(item => {
-                item._tempScore = calculateSmartScore(item, currentDate);
+                if (window.IA) {
+                    item._tempScore = window.IA.calculateSmartScore(item, currentDate);
+                }
             });
 
             // SEPARAR EN TRES GRUPOS también en modo location
@@ -660,7 +311,7 @@
             const aplazadas = [];
 
             data.forEach(item => {
-                const modifier = customScoreModifiers[item.id];
+                const modifier = window.IA ? window.IA.modifiers[item.id] : null;
 
                 if (modifier && modifier.type === 'adelantar') {
                     adelantadas.push(item);
@@ -698,7 +349,7 @@
             const aplazadas = [];
 
             data.forEach(item => {
-                const modifier = customScoreModifiers[item.id];
+                const modifier = window.IA ? window.IA.modifiers[item.id] : null;
 
                 if (modifier && modifier.type === 'adelantar') {
                     adelantadas.push(item);
@@ -764,11 +415,17 @@
 
         div.innerHTML = `
             <div class="flex justify-between items-start mb-2">
-                <h3 class="font-bold text-lg leading-tight pr-8">
+                <h3 class="font-bold text-lg leading-tight pr-12">
                     ${item.location}
-                    ${item.isScheduled ? `<span class="text-xs ml-2 px-2 py-0.5 rounded-full bg-blue-500 text-white">📅 Programado</span>` : ''}
                 </h3>
-                <span class="maintenance-priority-badge">${item.priority}</span>
+                <div class="flex gap-1.5 items-center">
+                    ${item.isScheduled ? `
+                        <i class="ph ph-calendar-check text-blue-500 text-xl" title="Programado"></i>
+                    ` : ''}
+                    ${window.IA && window.IA.modifiers && window.IA.modifiers[item.id] ? `
+                        <i class="ph ph-hourglass-high text-orange-500 text-xl animate-pulse-subtle" title="Ajustado por IA"></i>
+                    ` : ''}
+                </div>
             </div>
             
             <div class="grid grid-cols-2 gap-2 text-sm text-gray-500 dark:text-gray-400 mb-3">
@@ -780,6 +437,11 @@
                     <i class="ph ph-wrench"></i>
                     <span>${item.model || 'N/A'}</span>
                 </div>
+                ${item.preferred_schedule && item.preferred_schedule !== 'Cualquiera' ? `
+                <div class="flex items-center gap-1 text-accent-blue">
+                    <i class="ph ph-calendar-check"></i>
+                    <span>${item.preferred_schedule}</span>
+                </div>` : ''}
             </div>
 
             ${item.description ? `
@@ -810,17 +472,12 @@
                             onclick="event.stopPropagation(); window.openScheduleModal('${item.id}', '${item.location.replace(/'/g, "\\'")}', '${item.description || ''}', '${item.breakdown || ''}')" title="Programar en Calendar">
                         <i class="ph ph-calendar-plus text-lg"></i>
                     </button>
-                    <button class="text-accent-magenta hover:text-white hover:bg-accent-magenta p-1.5 rounded-full transition-colors" 
-                            onclick="event.stopPropagation(); window.openMaintenanceMap('${item.location}')" title="Ver Mapa">
-                        <i class="ph ph-map-pin text-lg"></i>
-                    </button>
-                    ${currentSortMethod === 'ai' ? (() => {
-                const mod = customScoreModifiers[item.id];
+                    ${currentSortMethod === 'ai' && window.IA ? (() => {
+                const mod = window.IA.modifiers[item.id];
                 const modType = mod ? mod.type : 'normal';
                 let iconColorClass = 'text-orange-500'; // Default/Normal
                 let icon = 'ph-hourglass-medium'; // Default icon
 
-                // Determinar color e icono según el tipo
                 if (modType === 'adelantar') {
                     iconColorClass = 'text-green-500 font-bold';
                     icon = 'ph-arrow-up';
@@ -831,11 +488,15 @@
 
                 return `
                         <button class="${iconColorClass} hover:text-white p-1.5 rounded-full transition-colors relative" 
-                                onclick="event.stopPropagation(); window.openScoreMenu(event, '${item.id}')" title="Ajustar Prioridad IA">
+                                onclick="event.stopPropagation(); IA.openScoreMenu(event, '${item.id}')" title="Ajustar Prioridad IA">
                             <i class="ph ${icon} text-lg"></i>
                         </button>
                         `;
             })() : ''}
+                    <button class="text-accent-magenta hover:text-white hover:bg-accent-magenta p-1.5 rounded-full transition-colors" 
+                            onclick="event.stopPropagation(); window.openMaintenanceMap('${item.location}')" title="Ver Mapa">
+                        <i class="ph ph-map-pin text-lg"></i>
+                    </button>
                 </div>
             </div>
         `;
@@ -964,9 +625,9 @@
             showMessage('success', 'Mantenimiento completado.');
 
             // Resetear modificador IA si existe
-            if (customScoreModifiers[id]) {
-                delete customScoreModifiers[id];
-                saveModifiersToStorage();
+            if (window.IA && window.IA.modifiers[id]) {
+                delete window.IA.modifiers[id];
+                window.IA.saveModifiers();
             }
 
             hideMaintenanceModal();
@@ -1059,87 +720,7 @@
     }
 
 
-    // ====================================
-    // MENU DE PUNTUACIÓN IA (ADELANTAR/APLAZAR)
-    // ====================================
-
-    window.openScoreMenu = function (event, id) {
-        let menu = document.getElementById('ai-score-menu');
-        if (!menu) {
-            menu = document.createElement('div');
-            menu.id = 'ai-score-menu';
-            menu.className = 'absolute z-50 bg-gray-800 border border-gray-700 rounded-lg shadow-xl hidden flex-col w-40 overflow-hidden';
-            document.body.appendChild(menu);
-
-            // Cerrar menú al hacer click fuera
-            document.addEventListener('click', (e) => {
-                if (!menu.contains(e.target) && e.target.id !== 'ai-score-menu') {
-                    menu.classList.add('hidden');
-                }
-            });
-        }
-
-        const currentMod = customScoreModifiers[id];
-        const currentType = currentMod ? currentMod.type : 'normal';
-
-        // Configurar contenido del menú
-        menu.innerHTML = `
-            <button onclick="window.applyScoreModifier('${id}', 'adelantar')" class="w-full text-left px-4 py-2 hover:bg-gray-700 text-green-500 text-sm font-medium flex items-center gap-2">
-                <i class="ph ph-arrow-up"></i> Adelantar
-                ${currentType === 'adelantar' ? '<i class="ph ph-check text-accent-magenta ml-auto"></i>' : ''}
-            </button>
-            <button onclick="window.applyScoreModifier('${id}', 'normal')" class="w-full text-left px-4 py-2 hover:bg-gray-700 text-orange-500 text-sm font-medium flex items-center gap-2">
-                <i class="ph ph-minus"></i> Normal
-                 ${currentType === 'normal' ? '<i class="ph ph-check text-accent-magenta ml-auto"></i>' : ''}
-            </button>
-            <button onclick="window.applyScoreModifier('${id}', 'aplazar')" class="w-full text-left px-4 py-2 hover:bg-gray-700 text-red-500 text-sm font-medium flex items-center gap-2">
-                <i class="ph ph-arrow-down"></i> Aplazar (12h)
-                 ${currentType === 'aplazar' ? '<i class="ph ph-check text-accent-magenta ml-auto"></i>' : ''}
-            </button>
-        `;
-
-        // Posicionar menú
-        const rect = event.currentTarget.getBoundingClientRect();
-        menu.style.top = `${rect.bottom + window.scrollY + 5}px`;
-        menu.style.left = `${rect.left + window.scrollX - 100}px`; // Ajuste para el nuevo ancho
-
-        menu.classList.remove('hidden');
-        menu.classList.add('flex');
-    }
-
-    window.applyScoreModifier = function (id, type) {
-        if (type === 'normal') {
-            // Eliminar el modificador
-            delete customScoreModifiers[id];
-        } else {
-            // Aplicar modificador con timestamp
-            customScoreModifiers[id] = {
-                type: type, // 'adelantar' o 'aplazar'
-                timestamp: new Date().toISOString() // Guardar como ISO string para localStorage
-            };
-        }
-
-        saveModifiersToStorage();
-        const menu = document.getElementById('ai-score-menu');
-        if (menu) menu.classList.add('hidden');
-
-        // Mensaje informativo
-        if (type === 'adelantar') {
-            showMessage('success', 'Tarjeta adelantada - Se mostrará al inicio de la lista');
-        } else if (type === 'aplazar') {
-            showMessage('info', 'Tarjeta aplazada durante 12 horas - Se mostrará al final de la lista');
-        } else {
-            showMessage('info', 'Tarjeta restaurada a orden normal');
-        }
-
-        // Re-ordenar
-        renderMaintenanceList(currentMaintenanceData, currentViewDate);
-    }
-
-    // ====================================
-    // LÓGICA DE ORDENACIÓN (NUEVO)
-    // ====================================
-
+    // ====================================\n    // LÓGICA DE ORDENACIÓN (NUEVO)\n    // ====================================\n
     window.toggleMaintenanceSortMenu = function () {
         const menu = document.getElementById('maintenance-sort-menu');
         if (menu) {
@@ -1363,9 +944,6 @@
     // ====================================
 
     function initMaintenance() {
-        // Cargar modificadores guardados (adelantar/aplazar)
-        loadModifiersFromStorage();
-
         // Aplicar tema
         if (typeof window.applyColorMode === 'function') {
             window.applyColorMode();
@@ -1527,6 +1105,9 @@
                     ${baseInput('view-key', 'ID Clave/TAG', item.key_id)}
                     ${prioritySelect(priority)}
                     ${baseInput('view-status', 'Estado', status)}
+                    ${baseInput('view-preferred', 'Horario Pref.', item.preferred_schedule || 'Cualquiera')}
+                    ${baseInput('view-open', 'Apertura', item.opening_time)}
+                    ${baseInput('view-close', 'Cierre', item.closing_time)}
                 </div>
     
                 ${item.description ? baseTextarea('view-desc', 'Observaciones', item.description) : ''}
@@ -1566,6 +1147,20 @@
     
                 ${baseTextarea('edit-desc', 'Observaciones', item.description, false, 3)}
                 ${baseTextarea('edit-breakdown', 'Avería', item.breakdown, false, 3)}
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label for="edit-preferred" class="modal-detail-label">Horario Pref.</label>
+                        <select id="edit-preferred" class="minimal-input w-full border-accent-magenta">
+                            <option value="Cualquiera" ${item.preferred_schedule === 'Cualquiera' ? 'selected' : ''}>Cualquiera</option>
+                            <option value="Mañana" ${item.preferred_schedule === 'Mañana' ? 'selected' : ''}>Mañana</option>
+                            <option value="Tarde" ${item.preferred_schedule === 'Tarde' ? 'selected' : ''}>Tarde</option>
+                            <option value="Noche" ${item.preferred_schedule === 'Noche' ? 'selected' : ''}>Noche</option>
+                        </select>
+                    </div>
+                    ${baseInput('edit-open', 'Apertura', item.opening_time, false, 'time')}
+                    ${baseInput('edit-close', 'Cierre', item.closing_time, false, 'time')}
+                </div>
     
                 <div class="pt-4 border-t" style="border-color: var(--color-border);">
                     <h4 class="text-sm font-bold mb-2 uppercase" style="color: var(--color-text-secondary);">Contacto</h4>
@@ -1651,6 +1246,9 @@
             priority: document.getElementById('edit-priority').value,
             description: document.getElementById('edit-desc').value.trim(),
             breakdown: document.getElementById('edit-breakdown').value.trim(),
+            preferred_schedule: document.getElementById('edit-preferred').value,
+            opening_time: document.getElementById('edit-open').value || null,
+            closing_time: document.getElementById('edit-close').value || null,
             contact: (contactName || contactPhone) ? {
                 name: contactName,
                 phone: contactPhone

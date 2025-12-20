@@ -174,7 +174,8 @@ async function saveRepair(e) {
         contact_phone: document.getElementById('contact_phone').value.trim(),
         contact_notes: document.getElementById('contact_notes').value.trim(),
         opening_time: document.getElementById('opening_time').value || null,
-        closing_time: document.getElementById('closing_time').value || null
+        closing_time: document.getElementById('closing_time').value || null,
+        preferred_schedule: document.getElementById('preferred_schedule').value || 'Cualquiera'
     } : {};
 
     const originalBtnContent = submitButton.innerHTML;
@@ -225,6 +226,7 @@ async function saveRepair(e) {
                 updateData.contact_notes = firebase.firestore.FieldValue.delete();
                 updateData.opening_time = firebase.firestore.FieldValue.delete();
                 updateData.closing_time = firebase.firestore.FieldValue.delete();
+                updateData.preferred_schedule = firebase.firestore.FieldValue.delete();
             }
 
             await repairsRef.doc(editId).update(updateData);
@@ -366,6 +368,7 @@ window.editRepair = function (id) {
         document.getElementById('contact_notes').value = repair.contact_notes || '';
         document.getElementById('opening_time').value = repair.opening_time || '';
         document.getElementById('closing_time').value = repair.closing_time || '';
+        document.getElementById('preferred_schedule').value = repair.preferred_schedule || 'Cualquiera';
     } else {
         contactCheckbox.checked = false;
         toggleContactFields();
@@ -459,6 +462,62 @@ function toggleContactFields() {
             document.getElementById('contact_notes').value = '';
         }
     }
+}
+
+/**
+ * Intenta obtener automáticamente los horarios de apertura basados en la ubicación.
+ */
+window.autoFetchOpeningHours = async function () {
+    const locationInput = document.getElementById('location');
+    const location = locationInput ? locationInput.value.trim() : '';
+
+    if (!location) {
+        if (window.showAppMessage) window.showAppMessage('info', 'Introduce una ubicación primero');
+        return;
+    }
+
+    const btn = event.currentTarget;
+    const originalContent = btn.innerHTML;
+    btn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Buscando...';
+    btn.disabled = true;
+
+    // Simulación de búsqueda o base de datos local de horarios comunes
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    const commonHours = {
+        'mercadona': { open: '09:00', close: '21:30' },
+        'carrefour': { open: '09:00', close: '22:00' },
+        'lidl': { open: '09:00', close: '21:30' },
+        'aldi': { open: '09:00', close: '21:30' },
+        'corte inglés': { open: '10:00', close: '22:00' },
+        'dia': { open: '09:00', close: '21:30' },
+        'eroski': { open: '09:00', close: '21:00' },
+        'consum': { open: '09:00', close: '21:30' },
+        'leroy merlin': { open: '07:30', close: '22:00' }
+    };
+
+    let found = false;
+    const locLower = location.toLowerCase();
+
+    for (const [key, hours] of Object.entries(commonHours)) {
+        if (locLower.includes(key)) {
+            document.getElementById('opening_time').value = hours.open;
+            document.getElementById('closing_time').value = hours.close;
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        document.getElementById('opening_time').value = '09:00';
+        document.getElementById('closing_time').value = '20:00';
+        if (window.showAppMessage) window.showAppMessage('info', 'Horario comercial estándar aplicado');
+    } else {
+        if (window.showAppMessage) window.showAppMessage('success', 'Horario encontrado');
+    }
+
+    btn.innerHTML = originalContent;
+    btn.disabled = false;
 }
 
 // ====================================================================

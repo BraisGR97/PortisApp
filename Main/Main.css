@@ -897,9 +897,7 @@ html.light-mode .message-time {
 }
 
 .calendar-day.day-scheduled {
-    background-color: transparent;
-    border: 2px solid #ffffff;
-    color: var(--color-text-primary);
+    border: 2px solid #ffffff !important;
 }
 
 /* Clases para textos de eventos */
@@ -1399,6 +1397,53 @@ html.light-mode .calendar-day.empty {
 
 .week-day-item.weekend {
     color: var(--color-accent-magenta);
+}
+
+/* Scrollbar personalizado */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--color-accent-magenta);
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Animaciones Extra */
+@keyframes pulse-subtle {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.7;
+        transform: scale(0.92);
+    }
+}
+
+.animate-pulse-subtle {
+    animation: pulse-subtle 3s infinite ease-in-out;
 }
 
 /* Celda vacía del calendario */

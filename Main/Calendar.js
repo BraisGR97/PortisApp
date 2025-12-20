@@ -106,7 +106,20 @@
             const newEvents = {};
             snapshot.forEach((doc) => {
                 const data = doc.data();
-                newEvents[data.date] = { ...data, id: doc.id };
+                const d = data.date;
+                if (!newEvents[d]) {
+                    newEvents[d] = {
+                        dayEvent: null,
+                        maintenance: []
+                    };
+                }
+
+                if (data.type === 'mantenimiento_programado') {
+                    newEvents[d].maintenance.push({ ...data, id: doc.id });
+                } else {
+                    // Solo puede haber un evento principal por día (Extra, Guardia, etc.)
+                    newEvents[d].dayEvent = { ...data, id: doc.id };
+                }
             });
 
             calendarEvents = newEvents;
@@ -136,8 +149,9 @@
             return;
         }
 
-        // Si ya existe un evento en esta fecha, eliminarlo primero
-        const existingEvent = calendarEvents[dateStr];
+        // Si ya existe un evento principal en esta fecha, eliminarlo primero
+        const dayData = calendarEvents[dateStr];
+        const existingEvent = dayData ? dayData.dayEvent : null;
         if (existingEvent && existingEvent.id) {
             console.log('Eliminando evento existente:', existingEvent);
             try {
@@ -169,7 +183,8 @@
 
     // --- FUNCIÓN: Eliminar Evento ---
     async function deleteEventFromFirestore(dateStr) {
-        const event = calendarEvents[dateStr];
+        const dayData = calendarEvents[dateStr];
+        const event = dayData ? dayData.dayEvent : null;
 
         if (!event) {
             showMessage('error', 'No hay evento registrado para esta fecha.');
@@ -179,39 +194,16 @@
         // 🔑 Uso de closeModal global
         if (typeof window.closeModal === 'function') window.closeModal('event-modal');
 
-        if (!isFirebaseReady || !window.db || !userId) {
+        const currentUserId = sessionStorage.getItem('portis-user-identifier');
+        if (!isFirebaseReady || !window.db || !currentUserId) {
             showMessage('error', 'El sistema de base de datos no está listo. Inténtelo de nuevo.');
             return;
         }
 
         if (event.id) {
             try {
-                const batch = window.db.batch();
-                const eventRef = getEventsCollectionRef().doc(event.id);
-
-                // 1. Eliminar el evento del calendario
-                batch.delete(eventRef);
-
-                // 2. Si es mantenimiento programado, actualizar la tarjeta de mantenimiento
-                if (event.type === 'mantenimiento_programado' && event.maintenanceId) {
-                    const repairRef = window.db.collection(`users/${userId}/repairs`).doc(event.maintenanceId);
-                    batch.update(repairRef, {
-                        scheduledDate: firebase.firestore.FieldValue.delete(),
-                        scheduledTime: firebase.firestore.FieldValue.delete(),
-                        scheduledDateTime: firebase.firestore.FieldValue.delete(),
-                        isScheduled: false
-                    });
-                }
-
-                await batch.commit();
-
+                await getEventsCollectionRef().doc(event.id).delete();
                 showMessage('success', `Evento del ${dateStr} eliminado exitosamente.`);
-
-                // Si la función fetchMaintenanceData existe (estamos en Main context), actualizar lista
-                if (typeof window.fetchMaintenanceData === 'function') {
-                    window.fetchMaintenanceData();
-                }
-
             } catch (error) {
                 console.error("Error deleting event:", error);
                 showMessage('error', 'Error al eliminar el evento en la base de datos.');
@@ -220,6 +212,52 @@
     }
     // Hacemos la función global para que sea llamada desde el HTML
     window.deleteEvent = deleteEventFromFirestore;
+
+    /**
+     * Desprograma un mantenimiento específico desde el modal del calendario
+     */
+    window.unscheduleFromCalendar = async function (maintenanceId, calendarDocId) {
+        const currentUserId = sessionStorage.getItem('portis-user-identifier');
+        if (!window.db || !currentUserId) {
+            showMessage('error', 'Sesión no válida.');
+            return;
+        }
+
+        try {
+            const batch = window.db.batch();
+
+            // 1. Eliminar de calendar
+            const calendarRef = window.db.collection(`users/${currentUserId}/calendar`).doc(calendarDocId);
+            batch.delete(calendarRef);
+
+            // 2. Actualizar repair
+            const repairRef = window.db.collection(`users/${currentUserId}/repairs`).doc(maintenanceId);
+            batch.update(repairRef, {
+                scheduledDate: firebase.firestore.FieldValue.delete(),
+                scheduledTime: firebase.firestore.FieldValue.delete(),
+                scheduledDateTime: firebase.firestore.FieldValue.delete(),
+                isScheduled: false
+            });
+
+            await batch.commit();
+            showMessage('success', 'Mantenimiento desprogramado correctamente.');
+
+            // Recargar datos de mantenimiento para actualizar el Dashboard
+            if (typeof window.fetchMaintenanceData === 'function') {
+                window.fetchMaintenanceData();
+            }
+
+            // El snapshot de Calendar.js actualizará calendarEvents automáticamente
+            // Refrescamos el modal tras un breve delay para que los datos nuevos estén listos
+            if (selectedDateForEvent) {
+                setTimeout(() => window.openEventModal(selectedDateForEvent), 300);
+            }
+
+        } catch (error) {
+            console.error("Error desprogramando:", error);
+            showMessage('error', 'Error al desprogramar el mantenimiento.');
+        }
+    };
 
     // =======================================================
     // 3. FESTIVOS NACIONALES DE ESPAÑA
@@ -481,59 +519,56 @@
             let weekendClass = isWeekend ? 'calendar-weekend-text' : '';
 
             // === LÓGICA DE EVENTOS ===
-            let eventData = calendarEvents[fullDate];
+            const dayData = calendarEvents[fullDate] || { dayEvent: null, maintenance: [] };
+            let mainEvent = dayData.dayEvent;
+
             // 🆕 Verificar si es festivo nacional (si no hay evento ya registrado)
-            if (!eventData && isHoliday(currentDate)) {
-                eventData = { type: 'Festivo', date: fullDate, isNational: true };
+            if (!mainEvent && isHoliday(currentDate)) {
+                mainEvent = { type: 'Festivo', date: fullDate, isNational: true };
             }
+
             let eventDisplayClass = '';
             let eventTypeTag = ''; // Será el contenido de la etiqueta del día
             let todayClass = ''; // Clase para el borde del día actual
 
-            if (eventData) {
+            if (mainEvent) {
                 // Si la fecha está en el calendario, el texto debe usar la clase de evento
                 weekendClass = 'calendar-event-text';
 
-                if (eventData.type === 'Extra') {
+                if (mainEvent.type === 'Extra') {
                     eventDisplayClass = 'day-overtime';
-                    // 🔑 Mostrar horas con clase CSS para opacidad
-                    eventTypeTag = `<span class="text-xs font-medium block leading-tight event-overtime-hours">${eventData.hours}h</span>`;
-                    // Clase para borde discontinuo naranja si es el día actual
-                    if (isToday) {
-                        todayClass = 'today-overtime';
-                    }
-                } else if (eventData.type === 'Guardia') {
+                    eventTypeTag = `<span class="text-xs font-medium block leading-tight event-overtime-hours">${mainEvent.hours}h</span>`;
+                    if (isToday) todayClass = 'today-overtime';
+                } else if (mainEvent.type === 'Guardia') {
                     eventDisplayClass = 'day-shift';
                     eventTypeTag = `<span class="text-xs font-medium calendar-event-text block leading-tight"></span>`;
-                    // Clase para borde discontinuo azul si es el día actual
-                    if (isToday) {
-                        todayClass = 'today-shift';
-                    }
-                } else if (eventData.type === 'Vacaciones') {
+                    if (isToday) todayClass = 'today-shift';
+                } else if (mainEvent.type === 'Vacaciones') {
                     eventDisplayClass = 'day-vacation';
                     eventTypeTag = `<span class="text-xs font-medium calendar-event-text block leading-tight"></span>`;
-                    // Clase para borde discontinuo morado si es el día actual
-                    if (isToday) {
-                        todayClass = 'today-vacation';
-                    }
-                } else if (eventData.type === 'Festivo') {
+                    if (isToday) todayClass = 'today-vacation';
+                } else if (mainEvent.type === 'Festivo') {
                     eventDisplayClass = 'day-holiday';
                     eventTypeTag = `<span class="text-xs font-medium calendar-event-text block leading-tight"></span>`;
-                    // Clase para borde discontinuo verde si es el día actual
-                    if (isToday) {
-                        todayClass = 'today-holiday';
-                    }
-                } else if (eventData.type === 'mantenimiento_programado') {
-                    // Mantenimiento programado - borde blanco
-                    eventDisplayClass = 'day-scheduled';
-                    eventTypeTag = `<span class="text-xs font-medium text-white block leading-tight">📍</span>`;
-                    if (isToday) {
-                        todayClass = 'today-scheduled';
-                    }
+                    if (isToday) todayClass = 'today-holiday';
                 }
             } else if (isToday) {
-                // Si es el día actual pero no tiene evento, borde discontinuo magenta
                 todayClass = 'today-default';
+            }
+
+            // Mantenimiento programado - añade clase de borde blanco sin machacar lo anterior
+            if (dayData.maintenance.length > 0) {
+                eventDisplayClass += ' day-scheduled';
+
+                // Si es hoy, usamos el indicador de hoy-programado (borde blanco)
+                if (isToday) {
+                    todayClass = 'today-scheduled';
+                }
+
+                // Si no hay tag de evento principal, podemos poner un micro-indicador
+                if (!eventTypeTag) {
+                    eventTypeTag = `<span class="text-[10px] text-white block leading-tight opacity-80">📍</span>`;
+                }
             }
             // =========================
 
@@ -564,9 +599,9 @@
         // 1. Obtener y filtrar solo las fechas de 'Guardia' del año objetivo
         const shiftDates = Object.keys(allEvents)
             .filter(dateStr => {
-                const data = allEvents[dateStr];
-                // Filtra por tipo 'Guardia' y por el año actual
-                return data.type === 'Guardia' && dateStr.startsWith(year.toString());
+                const dayData = allEvents[dateStr];
+                const main = dayData ? dayData.dayEvent : null;
+                return main && main.type === 'Guardia' && dateStr.startsWith(year.toString());
             })
             .sort(); // 2. Ordenar las fechas cronológicamente (YYYY-MM-DD lo permite)
 
@@ -622,23 +657,25 @@
         const totalShiftsAnnual = countConsecutiveShifts(calendarEvents, currentYear);
 
         for (const dateStr in calendarEvents) {
-            const data = calendarEvents[dateStr];
+            const dayData = calendarEvents[dateStr];
+            const main = dayData ? dayData.dayEvent : null;
+            if (!main) continue;
+
             const eventDate = new Date(dateStr + 'T00:00:00');
             if (isNaN(eventDate.getTime())) continue;
 
             const eventYear = eventDate.getFullYear();
-            const eventMonthKey = `${eventYear}-${eventDate.getMonth()}`;
 
             // Acumular horas extra del AÑO actual
             if (eventYear === currentYear) {
-                if (data.type === 'Extra' && data.hours) {
-                    totalOvertimeAnnual += parseFloat(data.hours);
+                if (main.type === 'Extra' && main.hours) {
+                    totalOvertimeAnnual += parseFloat(main.hours);
                 }
             }
 
             // Acumular festivos del año actual
             if (eventYear === currentYear) {
-                if (data.type === 'Festivo') {
+                if (main.type === 'Festivo') {
                     totalFestivosAnnual++;
                 }
             }
@@ -652,7 +689,9 @@
             const checkDate = new Date(currentYear, 0, 1 + dayNum);
             if (isHoliday(checkDate)) {
                 const dateStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
-                if (!calendarEvents[dateStr] || calendarEvents[dateStr].type !== 'Festivo') {
+                const dayData = calendarEvents[dateStr];
+                const main = dayData ? dayData.dayEvent : null;
+                if (!main || main.type !== 'Festivo') {
                     totalFestivosAnnual++;
                 }
             }
@@ -668,13 +707,16 @@
         let vacationDaysUsed = 0;
 
         for (const dateStr in calendarEvents) {
-            const data = calendarEvents[dateStr];
+            const dayData = calendarEvents[dateStr];
+            const main = dayData ? dayData.dayEvent : null;
+            if (!main) continue;
+
             const eventDate = new Date(dateStr);
             if (isNaN(eventDate.getTime())) continue;
 
             const eventYear = eventDate.getFullYear();
 
-            if (data.type === 'Vacaciones' && eventYear === currentYear) {
+            if (main.type === 'Vacaciones' && eventYear === currentYear) {
                 vacationDaysUsed++;
             }
         }
@@ -692,68 +734,67 @@
             weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
         });
 
-
         const optionsContainer = document.getElementById('event-options-container');
 
-        // Determinar si hay un evento existente para cambiar el botón "Borrar" a "Eliminar" y otros textos
-        const existingEvent = calendarEvents[dateStr];
-        const deleteButtonText = existingEvent ? 'Eliminar Evento' : 'Borrar (Vacío)';
+        // Determinar si hay un evento principal (Extra, Vacaciones, etc.)
+        const dayData = calendarEvents[dateStr] || { dayEvent: null, maintenance: [] };
+        const mainEvent = dayData.dayEvent;
+        const deleteButtonText = mainEvent ? 'Eliminar Evento' : 'Borrar (Vacío)';
+        const deleteButtonClass = mainEvent ? 'btn-delete' : 'btn-delete-disabled';
+        const deleteButtonDisabled = mainEvent ? '' : 'disabled';
 
-        // Usar clases CSS semánticas en lugar de Tailwind hardcodeado
-        const deleteButtonClass = existingEvent ? 'btn-delete' : 'btn-delete-disabled';
-        const deleteButtonDisabled = existingEvent ? '' : 'disabled';
-
-        // Verificar si es un mantenimiento programado
-        let maintenanceInfo = '';
-        if (existingEvent && existingEvent.type === 'mantenimiento_programado') {
-            const location = existingEvent.maintenanceLocation || 'Ubicación desconocida';
-            const time = existingEvent.scheduledTime || '--:--';
-            const notes = existingEvent.notes || '';
-
-            maintenanceInfo = `
-                <div class="mb-4 p-3 rounded-lg" style="background-color: var(--color-bg-tertiary); border: 2px solid #ffffff;">
-                    <div class="flex items-center gap-2 mb-2">
-                        <i class="ph ph-wrench text-blue-500 text-xl"></i>
-                        <span class="font-bold text-white">Mantenimiento Programado</span>
-                    </div>
-                    <div class="text-sm space-y-1">
-                        <div class="flex items-center gap-2">
-                            <i class="ph ph-map-pin text-gray-400"></i>
-                            <span>${location}</span>
+        // Generar lista de mantenimientos programados con scroll si hay varios
+        let maintenanceListHtml = '';
+        if (dayData.maintenance.length > 0) {
+            maintenanceListHtml = `
+                <div class="mb-4 space-y-3 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                    <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Intervenciones Programadas</div>
+                    ${dayData.maintenance.map(m => `
+                        <div class="p-3 rounded-lg border border-white/20 bg-white/5 relative group">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i class="ph ph-wrench text-blue-400 text-lg"></i>
+                                <span class="font-bold text-white text-sm">${m.maintenanceLocation || 'Ubicación'}</span>
+                            </div>
+                            <div class="text-xs space-y-1 text-gray-300">
+                                <div class="flex items-center gap-2">
+                                    <i class="ph ph-clock text-blue-300"></i>
+                                    <span>${m.scheduledTime || '--:--'}</span>
+                                </div>
+                                ${m.notes ? `
+                                <div class="flex items-start gap-2 mt-1 italic opacity-80">
+                                    <i class="ph ph-note"></i>
+                                    <span>${m.notes}</span>
+                                </div>` : ''}
+                            </div>
+                            <button onclick="window.unscheduleFromCalendar('${m.maintenanceId}', '${m.id}')" 
+                                    class="absolute top-2 right-2 p-1.5 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                                    title="Desprogramar">
+                                <i class="ph ph-trash"></i>
+                            </button>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <i class="ph ph-clock text-gray-400"></i>
-                            <span>${time}</span>
-                        </div>
-                        ${notes ? `
-                        <div class="flex items-start gap-2 mt-2">
-                            <i class="ph ph-note text-gray-400 mt-0.5"></i>
-                            <span class="text-gray-300 text-xs">${notes}</span>
-                        </div>
-                        ` : ''}
-                    </div>
+                    `).join('')}
                 </div>
             `;
         }
 
         if (optionsContainer) {
             optionsContainer.innerHTML = `
-                ${maintenanceInfo}
-                <button onclick="window.deleteEvent('${selectedDateForEvent}')" class="action-btn ${deleteButtonClass}" ${deleteButtonDisabled}>
-                    ${deleteButtonText}
-                </button>
-                <button onclick="window.registerEvent('Extra')" class="action-btn btn-extra">
-                    Horas Extra
-                </button>
-                <button onclick="window.registerEvent('Guardia')" class="action-btn btn-guardia">
-                    Guardia
-                </button>
-                <button onclick="window.registerEvent('Festivo')" class="action-btn btn-festivo">
-                    Festivos
-                </button>
-                <button onclick="window.registerEvent('Vacaciones')" class="action-btn btn-vacaciones">
-                    Vacaciones
-                </button>
+                ${maintenanceListHtml}
+                
+                <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 mt-4">Gestión del Día</div>
+                <div class="grid grid-cols-1 gap-2">
+                    <button onclick="window.deleteEvent('${selectedDateForEvent}')" class="action-btn ${deleteButtonClass}" ${deleteButtonDisabled}>
+                        ${deleteButtonText}
+                    </button>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="window.registerEvent('Extra')" class="action-btn btn-extra">Horas Extra</button>
+                        <button onclick="window.registerEvent('Guardia')" class="action-btn btn-guardia">Guardia</button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="window.registerEvent('Festivo')" class="action-btn btn-festivo">Festivos</button>
+                        <button onclick="window.registerEvent('Vacaciones')" class="action-btn btn-vacaciones">Vacaciones</button>
+                    </div>
+                </div>
             `;
         }
 
