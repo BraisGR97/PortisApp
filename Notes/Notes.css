@@ -161,8 +161,8 @@ html.light-mode body {
     background-origin: border-box;
     background-clip: padding-box, border-box;
 
-    height: calc(100vh - 11rem);
-    height: calc(100dvh - 11rem);
+    height: calc(100vh - 7rem);
+    height: calc(100dvh - 7rem);
     overflow: hidden;
     display: flex;
     flex-direction: column;

@@ -151,6 +151,7 @@ function setupSharedListener() {
 
                 sharedReceived = received;
                 renderReceivedList(received);
+                updateCardBorderOpacity();
             }, (error) => {
                 console.error("[SHARED] Error listener shared:", error);
             });
@@ -188,6 +189,7 @@ async function loadRepairs() {
         });
 
         renderSendView();
+        updateCardBorderOpacity(); // Initial call after rendering send view
     } catch (error) {
         console.error("Error al cargar mantenimientos:", error);
     }
@@ -907,7 +909,20 @@ window.addEventListener('load', () => {
     // Inicializar swipe
     initializeSwipe();
 
+    // Listeners para el borde animado
+    const appContent = document.getElementById('app-content');
+    const innerContents = document.querySelectorAll('.card-inner-content');
 
+    window.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
+    if (appContent) appContent.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
+    innerContents.forEach(inner => {
+        inner.addEventListener('scroll', updateCardBorderOpacity, { passive: true });
+    });
+
+    window.addEventListener('resize', updateCardBorderOpacity);
+
+    // Disparo inicial asegurando que las listas existan
+    setTimeout(updateCardBorderOpacity, 500);
 });
 
 

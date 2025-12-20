@@ -1107,7 +1107,7 @@
             .filter(user => !user.isGroup) // 🚨 FILTRO: No mostrar grupos en la selección
             .map(user => `
             <label class="flex items-center gap-3 p-2 rounded-lg cursor-pointer transition" style="color: var(--color-text-primary);">
-                <input type="checkbox" class="group-user-checkbox w-4 h-4 rounded" value="${user.id}" data-name="${user.name}">
+                <input type="checkbox" class="group-user-checkbox custom-checkbox" value="${user.id}" data-name="${user.name}">
                 <div class="flex items-center gap-2 flex-grow">
                     <div class="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden" style="background-color: var(--color-bg-tertiary);">
                         <img src="${user.photoURL || (typeof window.getCompanyLogo === 'function' ? window.getCompanyLogo(user.company || 'otis') : '../assets/Otis.png')}" 
