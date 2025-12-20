@@ -230,6 +230,7 @@ body {
     color: var(--color-text-primary);
     transition: background-color 0.3s, color 0.3s;
     height: 100vh;
+    height: 100dvh;
     margin: 0;
     padding: 0;
     width: 100%;
@@ -275,6 +276,7 @@ html.light-mode body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    min-height: 100dvh;
 }
 
 /* Fondo Geometrico */
@@ -321,21 +323,24 @@ html.light-mode #geometric-wrapper {
     flex-direction: column;
     padding: 0;
     height: 100vh;
+    height: 100dvh;
     box-sizing: border-box;
 }
 
 #views-slider {
     display: flex;
-    width: 400%;
-    /* 4 vistas */
+    width: 500%;
+    /* 5 vistas */
     height: 100%;
     /* Altura total manejada por padding de view-section */
+    transform: translateX(-40%);
+    /* Dashboard centrado por defecto */
     transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .view-section {
-    width: 25%;
-    /* 100% / 4 vistas */
+    width: 20%;
+    /* 100% / 5 vistas */
     height: 100%;
     flex-shrink: 0;
     overflow: hidden;
@@ -368,6 +373,7 @@ html.light-mode #geometric-wrapper {
     background-clip: padding-box, border-box;
 
     height: calc(100vh - 10.5rem);
+    height: calc(100dvh - 10.5rem);
     width: 100%;
     margin: 0;
     margin-top: 1rem;

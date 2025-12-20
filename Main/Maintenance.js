@@ -17,6 +17,7 @@
     let currentMaintenanceData = [];
     let currentViewDate = new Date();
     let currentSortMethod = localStorage.getItem('portis-maintenance-sort') || 'priority';
+    let selectedMaterialsForCurrentTask = [];
 
     // Cache de distancias para evitar recalcular
     let distanceCache = {};
@@ -603,6 +604,28 @@
                 batch.update(repairRef, updates);
                 batch.set(historyRef, historyRecord);
 
+                // --- DESCONTAR MATERIAL DEL INVENTARIO ---
+                if (selectedMaterialsForCurrentTask.length > 0) {
+                    for (const mat of selectedMaterialsForCurrentTask) {
+                        try {
+                            const materialRef = db.collection(`users/${userId}/inventory`).doc(mat.id);
+                            // Obtenemos el item actual para asegurar que restamos del valor más fresco
+                            const matDoc = await materialRef.get();
+                            if (matDoc.exists) {
+                                const currentStock = matDoc.data().stock || 0;
+                                batch.update(materialRef, {
+                                    stock: Math.max(0, currentStock - 1) // Descontamos 1 por cada entrada en la lista para simplificar o según la UI
+                                });
+
+                                // Registrar en Consumo Local (Materials.js)
+                                if (window.addMaterialToUsage) {
+                                    window.addMaterialToUsage(mat.name, 1, repair.location);
+                                }
+                            }
+                        } catch (e) { console.error("Error deducting material:", e); }
+                    }
+                }
+
                 // ACTUALIZAR EVENTO CALENDAR (Para que quede constancia)
                 if (repair.isScheduled) {
                     const calendarRef = db.collection(`users/${userId}/calendar`);
@@ -1128,6 +1151,20 @@
                         </div>
                     </div>
                 ` : ''}
+
+                <!-- Botón Material Usado -->
+                <div class="pt-4 border-t flex flex-col gap-3" style="border-color: var(--color-border);">
+                    <div class="flex justify-between items-center">
+                        <h4 class="text-sm font-bold uppercase" style="color: var(--color-text-secondary);">Recambios y Materiales</h4>
+                        <button onclick="window.openMaterialSelector()" class="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                            <i class="ph ph-plus-circle"></i> AÑADIR MATERIAL
+                        </button>
+                    </div>
+                    <div id="maint-summary-materials" class="flex flex-wrap gap-2">
+                         <!-- Aquí se listarán los materiales seleccionados -->
+                         <p class="text-[10px] text-gray-500 italic">No se ha añadido material a esta tarea.</p>
+                    </div>
+                </div>
             </div>
             `;
         } else {
@@ -1225,6 +1262,85 @@
 
         modal.classList.remove('hidden');
         modal.classList.add('flex');
+
+        // Resetear materiales seleccionados al abrir
+        selectedMaterialsForCurrentTask = [];
+        updateMaintMaterialsSummary();
+    }
+
+    // --- LÓGICA DE SELECCIÓN DE MATERIALES ---
+
+    window.openMaterialSelector = function () {
+        if (typeof window.showModal === 'function') {
+            window.showModal('maint-material-selector-modal');
+        } else {
+            document.getElementById('maint-material-selector-modal').classList.remove('hidden');
+            document.getElementById('maint-material-selector-modal').classList.add('flex');
+        }
+        renderMaintInventoryList();
+    };
+
+    window.filterMaintMaterials = function () {
+        const query = document.getElementById('maint-material-search').value.toLowerCase();
+        renderMaintInventoryList(query);
+    };
+
+    function renderMaintInventoryList(filter = '') {
+        const container = document.getElementById('maint-inventory-list');
+        if (!container) return;
+
+        const materials = window.getMaterialsForSelection ? window.getMaterialsForSelection() : [];
+        const filtered = materials.filter(m => m.name.toLowerCase().includes(filter));
+
+        container.innerHTML = filtered.map(m => `
+            <div onclick="window.selectMaterialForMaint('${m.id}', '${m.name.replace(/'/g, "\\'")}')" class="p-2 px-3 flex justify-between items-center bg-white/5 hover:bg-blue-500/20 rounded-lg cursor-pointer transition-all border border-transparent hover:border-blue-500/30">
+                <span class="text-xs text-white">${m.name}</span>
+                <span class="text-[10px] font-bold text-gray-500">STOCK: ${m.stock || 0}</span>
+            </div>
+        `).join('') || '<p class="text-[10px] text-gray-500 text-center py-4">No hay materiales en el inventario.</p>';
+    }
+
+    window.selectMaterialForMaint = function (id, name) {
+        selectedMaterialsForCurrentTask.push({ id, name });
+        updateMaintMaterialsSummary();
+        renderSelectedMaterialsList();
+    };
+
+    function renderSelectedMaterialsList() {
+        const container = document.getElementById('maint-selected-materials');
+        if (!container) return;
+
+        container.innerHTML = selectedMaterialsForCurrentTask.map((m, idx) => `
+            <div class="flex justify-between items-center bg-blue-500/10 p-2 rounded-lg border border-blue-500/30">
+                <span class="text-[11px] text-white">${m.name}</span>
+                <button onclick="window.removeMaterialFromMaint(${idx})" class="text-red-400 p-1"><i class="ph ph-trash"></i></button>
+            </div>
+        `).join('') || '<p class="text-[10px] text-gray-500 text-center py-2 italic">Ninguno seleccionado.</p>';
+
+        const countBadge = document.getElementById('maint-material-count');
+        if (countBadge) countBadge.textContent = `${selectedMaterialsForCurrentTask.length} RECAMBIOS`;
+    }
+
+    window.removeMaterialFromMaint = function (index) {
+        selectedMaterialsForCurrentTask.splice(index, 1);
+        renderSelectedMaterialsList();
+        updateMaintMaterialsSummary();
+    };
+
+    function updateMaintMaterialsSummary() {
+        const container = document.getElementById('maint-summary-materials');
+        if (!container) return;
+
+        if (selectedMaterialsForCurrentTask.length === 0) {
+            container.innerHTML = '<p class="text-[10px] text-gray-500 italic">No se ha añadido material a esta tarea.</p>';
+            return;
+        }
+
+        container.innerHTML = selectedMaterialsForCurrentTask.map(m => `
+            <span class="text-[10px] font-bold bg-blue-500/20 text-blue-300 px-2 py-1 rounded inline-flex items-center gap-1 border border-blue-500/30">
+                <i class="ph ph-cube"></i> ${m.name}
+            </span>
+        `).join('');
     }
 
     function configureMaintenanceEditInputs(item) {

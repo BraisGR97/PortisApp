@@ -766,11 +766,18 @@
                                     <span>${m.notes}</span>
                                 </div>` : ''}
                             </div>
-                            <button onclick="window.unscheduleFromCalendar('${m.maintenanceId}', '${m.id}')" 
-                                    class="absolute top-2 right-2 p-1.5 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
-                                    title="Desprogramar">
-                                <i class="ph ph-trash"></i>
-                            </button>
+                            <div class="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
+                                <button onclick="window.openMaintenanceMap('${(m.maintenanceLocation || '').replace(/'/g, "\\'")}')" 
+                                        class="p-1.5 rounded-full bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all"
+                                        title="Ver Mapa">
+                                    <i class="ph ph-map-pin"></i>
+                                </button>
+                                <button onclick="window.unscheduleFromCalendar('${m.maintenanceId}', '${m.id}')" 
+                                        class="p-1.5 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all"
+                                        title="Desprogramar">
+                                    <i class="ph ph-trash"></i>
+                                </button>
+                            </div>
                         </div>
                     `).join('')}
                 </div>

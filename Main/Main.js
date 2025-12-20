@@ -18,7 +18,7 @@
     // Estado de la navegacion - Chat en el centro (posicion 1 del array)
     // Estado de la navegacion
     let currentView = 'dashboard-view';
-    const views = ['calendar-view', 'chat-view', 'dashboard-view', 'maintenance-view'];
+    const views = ['calendar-view', 'chat-view', 'dashboard-view', 'maintenance-view', 'materials-view'];
 
     // Variables para gestos tactiles y slider animado
     let currentIndex = 2;
@@ -26,8 +26,8 @@
     let startPos = 0;
     let startPosY = 0;
     let isScrolling = undefined; // undefined: detecting, true: vertical, false: horizontal
-    let currentTranslate = -50;
-    let prevTranslate = -50;
+    let currentTranslate = currentIndex * -20;
+    let prevTranslate = currentIndex * -20;
     let animationID;
     const slider = document.getElementById('views-slider');
 
@@ -184,7 +184,7 @@
     }
 
     function setPositionByIndex() {
-        currentTranslate = currentIndex * -25;
+        currentTranslate = currentIndex * -20;
         prevTranslate = currentTranslate;
 
         // Actualizar vista logica
@@ -406,7 +406,7 @@
             const idx = views.indexOf(lastView);
             if (idx !== -1) {
                 currentIndex = idx;
-                currentTranslate = idx * -25;
+                currentTranslate = idx * -20;
                 prevTranslate = currentTranslate;
 
                 if (slider) {
@@ -495,6 +495,37 @@
 
         // Iniciar autenticacion
         setupAuthListener();
+    });
+
+    // Exponer funciones globales para el Dashboard
+    window.showLogoutModal = function () {
+        const modal = document.getElementById('logout-confirmation-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    };
+
+    // Configurar el modal de logout al iniciar
+    document.addEventListener('DOMContentLoaded', () => {
+        const confirmBtn = document.getElementById('confirm-logout-btn');
+        const cancelBtn = document.getElementById('cancel-logout-btn');
+
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', () => {
+                firebase.auth().signOut().then(() => {
+                    sessionStorage.removeItem('portis-user-identifier');
+                    window.location.href = '../index.html';
+                });
+            });
+        }
+
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                const modal = document.getElementById('logout-confirmation-modal');
+                if (modal) modal.classList.add('hidden');
+            });
+        }
     });
 
 })();
