@@ -81,10 +81,11 @@ body {
     color: var(--color-text-primary);
     transition: background-color 0.3s, color 0.3s;
     min-height: 100vh;
+    min-height: 100dvh;
     margin: 0;
     padding: 0;
     width: 100%;
-    overflow: hidden;
+    overflow-x: hidden;
 }
 
 html.light-mode body {
@@ -95,8 +96,8 @@ html.light-mode body {
 .app-layout {
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
+    min-height: 100dvh;
 }
 
 /* Scrollbar oculta */
@@ -132,8 +133,9 @@ html.light-mode body {
 
 #app-content {
     padding: 1rem;
+    padding-bottom: 6rem;
+    /* Espacio para que el contenido no quede pegado abajo */
     flex-grow: 1;
-    padding-bottom: 5rem;
 }
 
 /* ================================================================
@@ -155,8 +157,8 @@ html.light-mode body {
 
     border-radius: 1rem;
     box-shadow: 0 0 5px var(--color-shadow);
-    overflow: hidden;
-    margin-bottom: 1.5rem;
+    height: auto;
+    margin-bottom: 2rem;
     transition: opacity 0.3s ease;
 }
 

@@ -80,6 +80,7 @@ body {
     color: var(--color-text-primary);
     transition: background-color 0.3s, color 0.3s;
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     margin: 0;
     padding: 0;
@@ -95,6 +96,7 @@ html.light-mode body {
     display: flex;
     flex-direction: column;
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
 }
 
@@ -151,6 +153,7 @@ html.light-mode body {
     background-clip: padding-box, border-box;
 
     height: calc(100vh - 11rem);
+    height: calc(100dvh - 11rem);
     overflow: hidden;
     display: flex;
     flex-direction: column;
